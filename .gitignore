@@ -1,0 +1,50 @@
+## ── Backend (.NET) ───────────────────────────────
+**/bin/
+**/obj/
+**/.vs/
+**/*.csproj.user
+**/*.user
+**/*.suo
+**/*.userprefs
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Sensitive config
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/Properties/launchSettings.json
+
+## ── Frontend ─────────────────────────────────────
+**/node_modules/
+**/.env
+**/.env.local
+**/.env.*.local
+**/dist/
+**/build/
+**/.next/
+**/.nuxt/
+**/.vite/
+**/.svelte-kit/
+
+## ── Logs ─────────────────────────────────────────
+logs/
+*.log
+*.serilog
+
+## ── IDE ──────────────────────────────────────────
+.idea/
+*.swp
+*.swo
+
+## ── OS ───────────────────────────────────────────
+Thumbs.db
+.DS_Store
+desktop.ini
+
+## ── Temp ─────────────────────────────────────────
+*.tmp
+*.temp
