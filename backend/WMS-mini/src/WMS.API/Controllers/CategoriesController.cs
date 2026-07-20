@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
@@ -5,6 +6,7 @@ using WMS.Application.Interfaces;
 namespace WMS.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class CategoriesController : ControllerBase
 {
@@ -31,6 +33,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
     {
         var result = await _service.CreateAsync(dto);
@@ -38,6 +41,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateCategoryDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -46,6 +50,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

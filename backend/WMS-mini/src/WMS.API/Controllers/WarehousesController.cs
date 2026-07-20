@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
@@ -6,6 +7,7 @@ using WMS.Domain.Enums;
 namespace WMS.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class WarehousesController : ControllerBase
 {
@@ -32,6 +34,7 @@ public class WarehousesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
     {
         var result = await _service.CreateAsync(dto);
@@ -39,6 +42,7 @@ public class WarehousesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateWarehouseDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -47,6 +51,7 @@ public class WarehousesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var result = await _service.DeleteAsync(id);
