@@ -30,6 +30,7 @@ public class MappingProfile : Profile
         CreateMap<PurchaseOrder, PurchaseOrderDto>().ReverseMap();
         CreateMap<CreatePurchaseOrderDto, PurchaseOrder>();
         CreateMap<PurchaseOrderDetail, PurchaseOrderDetailDto>().ReverseMap();
+        CreateMap<CreatePurchaseOrderDetailDto, PurchaseOrderDetail>();
 
         CreateMap<Receiving, ReceivingDto>().ReverseMap();
         CreateMap<CreateReceivingDto, Receiving>();
