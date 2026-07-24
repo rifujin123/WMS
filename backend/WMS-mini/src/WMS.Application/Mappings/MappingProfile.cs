@@ -34,6 +34,7 @@ public class MappingProfile : Profile
         CreateMap<Receiving, ReceivingDto>().ReverseMap();
         CreateMap<CreateReceivingDto, Receiving>();
         CreateMap<ReceivingDetail, ReceivingDetailDto>().ReverseMap();
+        CreateMap<CreateReceivingDetailDto, ReceivingDetail>();
 
         CreateMap<PutAwayTask, PutAwayTaskDto>().ReverseMap();
 
