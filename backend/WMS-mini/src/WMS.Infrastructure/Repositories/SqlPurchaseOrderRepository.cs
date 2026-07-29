@@ -16,12 +16,18 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<List<PurchaseOrder>> GetAllAsync()
     {
-        return await _db.PurchaseOrders.ToListAsync();
+        return await _db.PurchaseOrders
+            .Include(p => p.PurchaseOrderDetails)
+            .ThenInclude(d => d.Product)
+            .ToListAsync();
     }
 
     public async Task<PurchaseOrder?> GetByIdAsync(Guid id)
     {
-        return await _db.PurchaseOrders.FindAsync(id);
+        return await _db.PurchaseOrders
+            .Include(p => p.PurchaseOrderDetails)
+            .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task AddAsync(PurchaseOrder purchaseOrder)
