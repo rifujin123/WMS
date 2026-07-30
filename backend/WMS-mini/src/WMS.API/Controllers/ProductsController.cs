@@ -28,7 +28,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
-        if (result is null)
+        if (result == null)
             return NotFound(new { message = "Product not found" });
 
         return Ok(result);
@@ -47,7 +47,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
-        if (result is null)
+        if (result == null)
             return NotFound(new { message = "Product not found" });
 
         return Ok(result);

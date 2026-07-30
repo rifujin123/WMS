@@ -1,6 +1,6 @@
 using AutoMapper;
-using WMS.Domain.Entities;
 using WMS.Application.DTOs;
+using WMS.Domain.Entities;
 
 namespace WMS.Application.Mappings;
 
@@ -31,11 +31,23 @@ public class MappingProfile : Profile
         CreateMap<CreatePurchaseOrderDto, PurchaseOrder>();
         CreateMap<PurchaseOrderDetail, PurchaseOrderDetailDto>().ReverseMap();
 
-        CreateMap<Receiving, ReceivingDto>().ReverseMap();
-        CreateMap<CreateReceivingDto, Receiving>();
-        CreateMap<ReceivingDetail, ReceivingDetailDto>().ReverseMap();
+        CreateMap<Receiving, ReceivingDto>()
+            .ForMember(d => d.PoNumber, o => o.MapFrom(s => s.PurchaseOrder.PoNumber))
+            .ForMember(d => d.ReceivedByName, o => o.MapFrom(s => s.ReceivedBy != null ? s.ReceivedBy.UserName : null));
+        CreateMap<CreateReceivingDto, Receiving>()
+            .ForMember(d => d.ReceivingDetails, o => o.Ignore());
+        CreateMap<ReceivingDetail, ReceivingDetailDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
 
-        CreateMap<PutAwayTask, PutAwayTaskDto>().ReverseMap();
+        CreateMap<PutAwayTask, PutAwayTaskDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.FromLocationCode, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.Code : null))
+            .ForMember(d => d.ToLocationCode, o => o.MapFrom(s => s.ToLocation != null ? s.ToLocation.Code : null))
+            .ForMember(d => d.AssignToName, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.UserName : null));
+        CreateMap<CreatePutAwayTaskDto, PutAwayTask>();
+        CreateMap<UpdatePutAwayTaskDto, PutAwayTask>();
 
         CreateMap<Stock, StockDto>().ReverseMap();
         CreateMap<StockMovement, StockMovementDto>().ReverseMap();

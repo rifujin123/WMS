@@ -16,12 +16,20 @@ public class SqlReceivingRepository : IReceivingRepository
 
     public async Task<List<Receiving>> GetAllAsync()
     {
-        return await _db.Receivings.ToListAsync();
+        return await _db.Receivings
+            .Include(r => r.PurchaseOrder)
+            .Include(r => r.ReceivingDetails)
+                .ThenInclude(d => d.Product)
+            .ToListAsync();
     }
 
     public async Task<Receiving?> GetByIdAsync(Guid id)
     {
-        return await _db.Receivings.FindAsync(id);
+        return await _db.Receivings
+            .Include(r => r.PurchaseOrder)
+            .Include(r => r.ReceivingDetails)
+                .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task AddAsync(Receiving receiving)
