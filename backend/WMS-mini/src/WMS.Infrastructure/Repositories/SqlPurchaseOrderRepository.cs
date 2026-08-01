@@ -16,7 +16,10 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<List<PurchaseOrder>> GetAllAsync()
     {
-        return await _db.PurchaseOrders.ToListAsync();
+        return await _db.PurchaseOrders
+            .Include(p => p.PurchaseOrderDetails)
+            .ThenInclude(d => d.Product)
+            .ToListAsync();
     }
 
     public async Task<PurchaseOrder?> GetByIdAsync(Guid id)
