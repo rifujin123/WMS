@@ -1,0 +1,10 @@
+# Cursor IDE local config
+.cursor/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# .NET build artifacts
+bin/
+obj/

@@ -82,6 +82,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IPutAwayService, PutAwayService>();
 builder.Services.AddScoped<IReceivingService, ReceivingService>();
 
 // Repositories

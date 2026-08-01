@@ -25,9 +25,9 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
     public async Task<PurchaseOrder?> GetByIdAsync(Guid id)
     {
         return await _db.PurchaseOrders
-            .Include(p => p.PurchaseOrderDetails)
-            .ThenInclude(d => d.Product)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .Include(po => po.PurchaseOrderDetails)
+                .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(po => po.Id == id);
     }
 
     public async Task AddAsync(PurchaseOrder purchaseOrder)

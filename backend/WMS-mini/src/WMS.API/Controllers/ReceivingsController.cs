@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -28,38 +29,52 @@ public class ReceivingsController : ControllerBase
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
         var result = await _service.GetByIdAsync(id);
-        if (result == null) return NotFound();
+        if (result == null)
+            return NotFound(new { message = "Receiving not found" });
+
         return Ok(result);
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Create([FromBody] CreateReceivingDto dto)
     {
-        var result = await _service.CreateAsync(dto);
-        if (result == null)
-            return BadRequest(new { message = "PO not found or not in Approved status." });
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.CreateAsync(dto, userId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    [HttpPatch("{id}/confirm")]
-    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
+    [HttpPost("{id}/confirm")]
     public async Task<IActionResult> Confirm([FromRoute] Guid id)
     {
-        var existing = await _service.GetByIdAsync(id);
-        if (existing == null) return NotFound();
-
         var result = await _service.ConfirmAsync(id);
-        if (result == null) return BadRequest(new { message = "Receiving is not in Draft status." });
+        if (result == null)
+            return NotFound(new { message = "Receiving not found" });
+
+        return Ok(result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] CreateReceivingDto dto)
+    {
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.UpdateAsync(id, dto, userId);
+        if (result == null)
+            return NotFound(new { message = "Receiving not found" });
+
         return Ok(result);
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
-        var deleted = await _service.DeleteAsync(id);
-        if (!deleted) return NotFound();
+        var result = await _service.DeleteAsync(id);
+        if (!result)
+            return NotFound(new { message = "Receiving not found" });
+
         return Ok(new { message = "Deleted successfully" });
     }
 }

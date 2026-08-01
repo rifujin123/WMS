@@ -6,9 +6,13 @@ public class ReceivingDto
 {
     public Guid Id { get; set; }
     public Guid PurchaseOrderId { get; set; }
-    public string PoNumber { get; set; } = string.Empty;
+    public string? PoNumber { get; set; }
+    public Guid? ReceivedById { get; set; }
+    public string? ReceivedByName { get; set; }
     public DateTime ReceivedDate { get; set; }
     public ReceivingStatus Status { get; set; }
     public string? Notes { get; set; }
-    public List<ReceivingDetailDto> ReceivingDetails { get; set; } = new();
+    public List<ReceivingDetailDto> Details { get; set; } = new();
+    public Guid? CreatedById { get; set; }
+    public DateTime CreatedDate { get; set; }
 }

@@ -16,12 +16,24 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
 
     public async Task<List<PutAwayTask>> GetAllAsync()
     {
-        return await _db.PutAwayTasks.ToListAsync();
+        return await _db.PutAwayTasks
+            .Include(t => t.Product)
+            .Include(t => t.FromLocation)
+            .Include(t => t.ToLocation)
+            .Include(t => t.AssignTo)
+            .Include(t => t.ReceivingDetail)
+            .ToListAsync();
     }
 
     public async Task<PutAwayTask?> GetByIdAsync(Guid id)
     {
-        return await _db.PutAwayTasks.FindAsync(id);
+        return await _db.PutAwayTasks
+            .Include(t => t.Product)
+            .Include(t => t.FromLocation)
+            .Include(t => t.ToLocation)
+            .Include(t => t.AssignTo)
+            .Include(t => t.ReceivingDetail)
+            .FirstOrDefaultAsync(t => t.Id == id);
     }
 
     public async Task AddAsync(PutAwayTask putAwayTask)
