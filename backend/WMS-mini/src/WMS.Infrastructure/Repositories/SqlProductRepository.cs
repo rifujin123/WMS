@@ -41,4 +41,16 @@ public class SqlProductRepository : IProductRepository
         _db.Products.Remove(product);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<bool> HasReferencesAsync(Guid productId)
+    {
+        return await _db.Stocks.AnyAsync(s => s.ProductId == productId)
+            || await _db.PurchaseOrderDetails.AnyAsync(d => d.ProductId == productId)
+            || await _db.StockMovements.AnyAsync(m => m.ProductId == productId)
+            || await _db.SaleOrderDetails.AnyAsync(d => d.ProductId == productId)
+            || await _db.PickingDetails.AnyAsync(d => d.ProductId == productId)
+            || await _db.ReceivingDetails.AnyAsync(d => d.ProductId == productId)
+            || await _db.PutAwayTasks.AnyAsync(t => t.ProductId == productId)
+            || await _db.RmaDetails.AnyAsync(d => d.ProductId == productId);
+    }
 }

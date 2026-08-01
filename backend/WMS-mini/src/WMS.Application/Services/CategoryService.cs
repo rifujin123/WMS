@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +31,9 @@ namespace WMS.Application.Services
         {
             var category = await _repo.GetByIdAsync(id);
             if (category == null) return false;
+
+            if (await _repo.HasProductsAsync(id))
+                throw new InvalidOperationException("Cannot delete category that still has products.");
 
             await _repo.DeleteAsync(category);
             return true;

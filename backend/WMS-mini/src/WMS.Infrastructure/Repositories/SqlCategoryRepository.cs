@@ -41,4 +41,9 @@ public class SqlCategoryRepository : ICategoryRepository
         _db.Categories.Remove(category);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<bool> HasProductsAsync(Guid categoryId)
+    {
+        return await _db.Products.AnyAsync(p => p.CategoryId == categoryId);
+    }
 }

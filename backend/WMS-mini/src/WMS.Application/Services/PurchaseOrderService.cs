@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,7 +51,12 @@ namespace WMS.Application.Services
             if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return null;
 
             purchaseOrder.VendorName = dto.VendorName;
+
+            // Xóa detail cũ rồi thay bằng danh sách mới — tránh sót dòng cũ trong DB
+            await _repo.RemoveDetailsAsync(purchaseOrder.Id);
             purchaseOrder.PurchaseOrderDetails = _mapper.Map<List<PurchaseOrderDetail>>(dto.PurchaseOrderDetails);
+            foreach (var detail in purchaseOrder.PurchaseOrderDetails)
+                detail.PurchaseOrderId = purchaseOrder.Id;
 
             await _repo.UpdateAsync(purchaseOrder);
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);

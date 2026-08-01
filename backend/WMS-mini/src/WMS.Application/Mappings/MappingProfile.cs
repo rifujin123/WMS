@@ -20,9 +20,6 @@ public class MappingProfile : Profile
         CreateMap<CreateWarehouseDto, Warehouse>();
         CreateMap<UpdateWarehouseDto, Warehouse>();
 
-        CreateMap<CreateWarehouseDto, Warehouse>();
-        CreateMap<UpdateWarehouseDto, Warehouse>();
-
         CreateMap<Location, LocationDto>().ReverseMap();
         CreateMap<CreateLocationDto, Location>();
         CreateMap<UpdateLocationDto, Location>();

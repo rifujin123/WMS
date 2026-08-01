@@ -53,7 +53,11 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
             throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
 
-        await _userManager.AddToRoleAsync(user, "WarehouseStaff");
+        var role = string.IsNullOrWhiteSpace(dto.Role) ? "WarehouseStaff" : dto.Role;
+        if (role != "Admin" && role != "WarehouseManager" && role != "WarehouseStaff")
+            throw new Exception($"Invalid role '{role}'.");
+
+        await _userManager.AddToRoleAsync(user, role);
     }
 
     private string GenerateJwtToken(User user, IList<string> roles)

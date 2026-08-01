@@ -32,6 +32,12 @@ public class SqlReceivingRepository : IReceivingRepository
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    public async Task<ReceivingDetail?> GetDetailByIdAsync(Guid id)
+    {
+        return await _db.ReceivingDetails
+            .FirstOrDefaultAsync(d => d.Id == id);
+    }
+
     public async Task AddAsync(Receiving receiving)
     {
         await _db.Receivings.AddAsync(receiving);

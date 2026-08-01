@@ -57,6 +57,9 @@ public class LocationService : ILocationService
         var location = await _repo.GetByIdAsync(id);
         if (location == null) return false;
 
+        if (await _repo.HasStockAsync(id))
+            throw new InvalidOperationException("Cannot delete location that still has stock.");
+
         await _repo.DeleteAsync(location);
         return true;
     }

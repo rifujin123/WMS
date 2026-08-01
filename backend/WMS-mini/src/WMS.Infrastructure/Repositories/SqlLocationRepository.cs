@@ -48,4 +48,9 @@ public class SqlLocationRepository : ILocationRepository
         _db.Locations.Remove(location);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<bool> HasStockAsync(Guid locationId)
+    {
+        return await _db.Stocks.AnyAsync(s => s.LocationId == locationId);
+    }
 }

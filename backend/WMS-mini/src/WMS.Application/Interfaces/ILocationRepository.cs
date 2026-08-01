@@ -10,4 +10,5 @@ public interface ILocationRepository
     Task AddAsync(Location location);
     Task UpdateAsync(Location location);
     Task DeleteAsync(Location location);
+    Task<bool> HasStockAsync(Guid locationId);
 }
