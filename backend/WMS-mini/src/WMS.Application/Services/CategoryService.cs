@@ -20,9 +20,10 @@ namespace WMS.Application.Services
             _repo = repo;
             _mapper = mapper;
         }
-        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto)
+        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, Guid userId)
         {
             var category = _mapper.Map<Category>(dto);
+            category.CreatedById = userId;
             await _repo.AddAsync(category);
             return _mapper.Map<CategoryDto>(category);
         }

@@ -35,10 +35,11 @@ namespace WMS.Application.Services
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
         }
 
-        public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto)
+        public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto, Guid userId)
         {
             var purchaseOrder = _mapper.Map<PurchaseOrder>(dto);
             purchaseOrder.Status = PurchaseOrderStatus.Pending;
+            purchaseOrder.CreatedById = userId;
 
             await _repo.AddAsync(purchaseOrder);
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);

@@ -46,7 +46,7 @@ public class PutAwayService : IPutAwayService
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
-    public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto)
+    public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto, Guid userId)
     {
         // Kiểm tra dòng nhận hàng gốc tồn tại và không cất vượt số lượng đã nhận
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId);
@@ -59,6 +59,7 @@ public class PutAwayService : IPutAwayService
 
         var task = _mapper.Map<PutAwayTask>(dto);
         task.Status = PutAwayTaskStatus.Open;
+        task.CreatedById = userId;
 
         await _repo.AddAsync(task);
         return _mapper.Map<PutAwayTaskDto>(task);

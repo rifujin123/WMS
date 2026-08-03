@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -35,7 +36,10 @@ public class PurchaseOrdersController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.CreateAsync(dto, userId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
@@ -58,7 +62,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPatch("{id}/approve")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve([FromRoute] Guid id)
     {
         var result = await _service.ApproveAsync(id);

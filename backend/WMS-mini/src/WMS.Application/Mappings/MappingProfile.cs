@@ -47,8 +47,19 @@ public class MappingProfile : Profile
         CreateMap<CreatePutAwayTaskDto, PutAwayTask>();
         CreateMap<UpdatePutAwayTaskDto, PutAwayTask>();
 
-        CreateMap<Stock, StockDto>().ReverseMap();
+        CreateMap<Stock, StockDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code));
         CreateMap<StockMovement, StockMovementDto>().ReverseMap();
+
+        CreateMap<StockAdjustment, StockAdjustmentDto>();
+        CreateMap<CreateStockAdjustmentDto, StockAdjustment>()
+            .ForMember(d => d.Details, o => o.Ignore());
+        CreateMap<StockAdjustmentDetail, StockAdjustmentDetailDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code));
 
         CreateMap<SaleOrder, SaleOrderDto>().ReverseMap();
         CreateMap<CreateSaleOrderDto, SaleOrder>();

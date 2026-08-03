@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -35,13 +36,18 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Create([FromBody] CreatePutAwayTaskDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.CreateAsync(dto, userId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePutAwayTaskDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -52,6 +58,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var deleted = await _service.DeleteAsync(id);
@@ -62,6 +69,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost("{id}/assign")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Assign([FromRoute] Guid id, [FromBody] AssignPutAwayDto dto)
     {
         var result = await _service.AssignAsync(id, dto.UserId);
@@ -72,6 +80,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost("{id}/start")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> StartProgress([FromRoute] Guid id)
     {
         var result = await _service.StartProgressAsync(id);
@@ -82,6 +91,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost("{id}/complete")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Complete([FromRoute] Guid id)
     {
         var result = await _service.CompleteAsync(id);

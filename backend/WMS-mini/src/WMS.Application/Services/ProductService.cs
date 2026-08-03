@@ -30,9 +30,10 @@ public class ProductService : IProductService
         return _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<ProductDto> CreateAsync(CreateProductDto dto)
+    public async Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId)
     {
         var product = _mapper.Map<Product>(dto);
+        product.CreatedById = userId;
         await _repo.AddAsync(product);
         return _mapper.Map<ProductDto>(product);
     }

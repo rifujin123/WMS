@@ -7,7 +7,7 @@ public interface IWarehouseService
 {
     Task<List<WarehouseDto>> GetAllAsync();
     Task<WarehouseDto?> GetByIdAsync(Guid id);
-    Task<WarehouseDto> CreateAsync(CreateWarehouseDto dto);
+    Task<WarehouseDto> CreateAsync(CreateWarehouseDto dto, Guid userId);
     Task<WarehouseDto?> UpdateAsync(Guid id, UpdateWarehouseDto dto);
     Task<DeleteWarehouseResult> DeleteAsync(Guid id);
 }

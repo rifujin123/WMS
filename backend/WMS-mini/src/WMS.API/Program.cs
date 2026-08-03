@@ -72,7 +72,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         var jwtKey = builder.Configuration["Jwt:Key"]
             ?? throw new InvalidOperationException("Jwt:Key is not configured. Set it in appsettings.Development.json or environment variable Jwt__Key.");
-
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -94,6 +93,8 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IPutAwayService, PutAwayService>();
 builder.Services.AddScoped<IReceivingService, ReceivingService>();
+builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();
@@ -110,6 +111,7 @@ builder.Services.AddScoped<IPutAwayTaskRepository, SqlPutAwayTaskRepository>();
 builder.Services.AddScoped<IShipmentRepository, SqlShipmentRepository>();
 builder.Services.AddScoped<IRmaRepository, SqlRmaRepository>();
 builder.Services.AddScoped<IAssociationRuleRepository, SqlAssociationRuleRepository>();
+builder.Services.AddScoped<IStockAdjustmentRepository, SqlStockAdjustmentRepository>();
 
 var app = builder.Build();
 

@@ -35,9 +35,10 @@ public class LocationService : ILocationService
         return _mapper.Map<List<LocationDto>>(locations);
     }
 
-    public async Task<LocationDto> CreateAsync(CreateLocationDto dto)
+    public async Task<LocationDto> CreateAsync(CreateLocationDto dto, Guid userId)
     {
         var location = _mapper.Map<Location>(dto);
+        location.CreatedById = userId;
         await _repo.AddAsync(location);
         return _mapper.Map<LocationDto>(location);
     }

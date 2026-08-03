@@ -36,6 +36,7 @@ public class ReceivingsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Create([FromBody] CreateReceivingDto dto)
     {
         if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
@@ -46,6 +47,7 @@ public class ReceivingsController : ControllerBase
     }
 
     [HttpPost("{id}/confirm")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Confirm([FromRoute] Guid id)
     {
         var result = await _service.ConfirmAsync(id);
@@ -56,6 +58,7 @@ public class ReceivingsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] CreateReceivingDto dto)
     {
         if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))

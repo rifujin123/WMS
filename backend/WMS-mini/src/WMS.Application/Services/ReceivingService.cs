@@ -64,6 +64,7 @@ public class ReceivingService : IReceivingService
         {
             PurchaseOrderId = dto.PurchaseOrderId,
             ReceivedById = userId,
+            CreatedById = userId,
             ReceivedDate = DateTime.UtcNow,
             Status = ReceivingStatus.Draft,
             Notes = dto.Notes
