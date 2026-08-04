@@ -64,4 +64,12 @@ public class SqlStockRepository : IStockRepository
         _db.Stocks.Remove(stock);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<List<Stock>> GetByLocationAsync(Guid locationId){
+        return await _db.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.Location)
+            .Where(s => s.LocationId == locationId)
+            .ToListAsync();
+    }
 }

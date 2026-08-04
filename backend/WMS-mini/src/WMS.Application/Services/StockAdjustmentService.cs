@@ -62,7 +62,7 @@ public class StockAdjustmentService : IStockAdjustmentService
         return _mapper.Map<StockAdjustmentDto>(adjustment);
     }
 
-    public async Task<StockAdjustmentDto?> ApproveAsync(Guid id)
+    public async Task<StockAdjustmentDto?> ApproveAsync(Guid id, Guid userId)
     {
         var adjustment = await _repo.GetByIdAsync(id);
         if (adjustment == null)
@@ -114,6 +114,8 @@ public class StockAdjustmentService : IStockAdjustmentService
         }
 
         adjustment.Status = StockAdjustmentStatus.Approved;
+        adjustment.ApprovedById = userId;
+        adjustment.ApprovedDate = DateTime.UtcNow;
         await _repo.UpdateAsync(adjustment);
         return _mapper.Map<StockAdjustmentDto>(adjustment);
     }

@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
+using WMS.Domain.Entities;
 
 namespace WMS.API.Controllers;
 
@@ -12,10 +14,12 @@ namespace WMS.API.Controllers;
 public class PutAwayTasksController : ControllerBase
 {
     private readonly IPutAwayService _service;
+    private readonly UserManager<User> _userManager;
 
-    public PutAwayTasksController(IPutAwayService service)
+    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager)
     {
         _service = service;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -72,6 +76,13 @@ public class PutAwayTasksController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Assign([FromRoute] Guid id, [FromBody] AssignPutAwayDto dto)
     {
+        var target = await _userManager.FindByIdAsync(dto.UserId.ToString());
+        if (target == null)
+            return BadRequest(new { message = "User not found." });
+
+        if (!await _userManager.IsInRoleAsync(target, "WarehouseStaff"))
+            return BadRequest(new { message = "Can only assign to WarehouseStaff." });
+
         var result = await _service.AssignAsync(id, dto.UserId);
         if (result == null)
             return NotFound(new { message = "PutAway task not found" });

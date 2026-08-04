@@ -19,8 +19,11 @@ public class LocationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? warehouseId)
     {
+        if (warehouseId.HasValue)
+            return Ok(await _service.GetByWarehouseAsync(warehouseId.Value));
+
         var result = await _service.GetAllAsync();
         return Ok(result);
     }
@@ -30,13 +33,6 @@ public class LocationsController : ControllerBase
     {
         var result = await _service.GetByIdAsync(id);
         if (result == null) return NotFound();
-        return Ok(result);
-    }
-
-    [HttpGet("warehouse/{warehouseId}")]
-    public async Task<IActionResult> GetByWarehouse([FromRoute] Guid warehouseId)
-    {
-        var result = await _service.GetByWarehouseAsync(warehouseId);
         return Ok(result);
     }
 

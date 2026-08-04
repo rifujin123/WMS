@@ -14,5 +14,9 @@ public class StockAdjustment : BaseAuditableEntity
     [MaxLength(500)]
     public string? Notes { get; set; }
 
+    public Guid? ApprovedById { get; set; }
+    public User? ApprovedBy { get; set; }
+    public DateTime? ApprovedDate { get; set; }
+
     public ICollection<StockAdjustmentDetail> Details { get; set; } = new List<StockAdjustmentDetail>();
 }

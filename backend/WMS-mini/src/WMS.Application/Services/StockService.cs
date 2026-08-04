@@ -33,4 +33,10 @@ public class StockService : IStockService
         var results = await _repo.GetByProductAsync(productId);
         return _mapper.Map<List<StockDto>>(results);
     }
+
+    public async Task<List<StockDto>> GetByLocationAsync(Guid locationId)
+    {
+        var results = await _repo.GetByLocationAsync(locationId);
+        return _mapper.Map<List<StockDto>>(results);
+    }
 }

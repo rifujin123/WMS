@@ -7,4 +7,5 @@ public interface IStockService
     Task<List<StockDto>> GetAllAsync();
     Task<StockDto?> GetByIdAsync(Guid id);
     Task<List<StockDto>> GetByProductAsync(Guid productId);
+    Task<List<StockDto>> GetByLocationAsync(Guid locationId);
 }

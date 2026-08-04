@@ -7,6 +7,6 @@ public interface IStockAdjustmentService
     Task<List<StockAdjustmentDto>> GetAllAsync();
     Task<StockAdjustmentDto?> GetByIdAsync(Guid id);
     Task<StockAdjustmentDto> CreateAsync(CreateStockAdjustmentDto dto, Guid userId);
-    Task<StockAdjustmentDto?> ApproveAsync(Guid id);
+    Task<StockAdjustmentDto?> ApproveAsync(Guid id, Guid userId);
     Task<bool> DeleteAsync(Guid id);
 }

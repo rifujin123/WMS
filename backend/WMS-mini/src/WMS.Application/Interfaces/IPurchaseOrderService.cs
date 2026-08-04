@@ -10,6 +10,6 @@ public interface IPurchaseOrderService
     Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto, Guid userId);
     Task<PurchaseOrderDto?> UpdateAsync(Guid id, UpdatePurchaseOrderDto dto);
     Task<bool> DeleteAsync(Guid id);
-    Task<PurchaseOrderDto?> ApproveAsync(Guid id);
+    Task<PurchaseOrderDto?> ApproveAsync(Guid id, Guid userId);
     Task<PurchaseOrderDto?> CloseAsync(Guid id);
 }

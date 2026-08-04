@@ -17,8 +17,14 @@ public class StocksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? productId, [FromQuery] Guid? locationId)
     {
+        if (productId.HasValue)
+            return Ok(await _service.GetByProductAsync(productId.Value));
+
+        if (locationId.HasValue)
+            return Ok(await _service.GetByLocationAsync(locationId.Value));
+
         var result = await _service.GetAllAsync();
         return Ok(result);
     }
@@ -30,13 +36,6 @@ public class StocksController : ControllerBase
         if (result == null)
             return NotFound(new { message = "Stock not found" });
 
-        return Ok(result);
-    }
-
-    [HttpGet("by-product/{productId}")]
-    public async Task<IActionResult> GetByProduct([FromRoute] Guid productId)
-    {
-        var result = await _service.GetByProductAsync(productId);
         return Ok(result);
     }
 }

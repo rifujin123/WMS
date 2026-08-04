@@ -73,13 +73,15 @@ namespace WMS.Application.Services
             return true;
         }
 
-        public async Task<PurchaseOrderDto?> ApproveAsync(Guid id)
+        public async Task<PurchaseOrderDto?> ApproveAsync(Guid id, Guid userId)
         {
             var purchaseOrder = await _repo.GetByIdAsync(id);
             if (purchaseOrder == null) return null;
             if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return null;
 
             purchaseOrder.Status = PurchaseOrderStatus.Approved;
+            purchaseOrder.ApprovedById = userId;
+            purchaseOrder.ApprovedDate = DateTime.UtcNow;
             await _repo.UpdateAsync(purchaseOrder);
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
         }

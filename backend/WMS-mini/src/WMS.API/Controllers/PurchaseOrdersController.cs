@@ -65,7 +65,10 @@ public class PurchaseOrdersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve([FromRoute] Guid id)
     {
-        var result = await _service.ApproveAsync(id);
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.ApproveAsync(id, userId);
         if (result == null) return NotFound();
         return Ok(result);
     }
