@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -35,10 +35,11 @@ namespace WMS.Application.Services
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
         }
 
-        public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto)
+        public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto, Guid userId)
         {
             var purchaseOrder = _mapper.Map<PurchaseOrder>(dto);
             purchaseOrder.Status = PurchaseOrderStatus.Pending;
+            purchaseOrder.CreatedById = userId;
 
             await _repo.AddAsync(purchaseOrder);
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
@@ -51,7 +52,12 @@ namespace WMS.Application.Services
             if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return null;
 
             purchaseOrder.VendorName = dto.VendorName;
+
+            // Xóa detail cũ rồi thay bằng danh sách mới — tránh sót dòng cũ trong DB
+            await _repo.RemoveDetailsAsync(purchaseOrder.Id);
             purchaseOrder.PurchaseOrderDetails = _mapper.Map<List<PurchaseOrderDetail>>(dto.PurchaseOrderDetails);
+            foreach (var detail in purchaseOrder.PurchaseOrderDetails)
+                detail.PurchaseOrderId = purchaseOrder.Id;
 
             await _repo.UpdateAsync(purchaseOrder);
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
@@ -67,13 +73,15 @@ namespace WMS.Application.Services
             return true;
         }
 
-        public async Task<PurchaseOrderDto?> ApproveAsync(Guid id)
+        public async Task<PurchaseOrderDto?> ApproveAsync(Guid id, Guid userId)
         {
             var purchaseOrder = await _repo.GetByIdAsync(id);
             if (purchaseOrder == null) return null;
             if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return null;
 
             purchaseOrder.Status = PurchaseOrderStatus.Approved;
+            purchaseOrder.ApprovedById = userId;
+            purchaseOrder.ApprovedDate = DateTime.UtcNow;
             await _repo.UpdateAsync(purchaseOrder);
             return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
         }

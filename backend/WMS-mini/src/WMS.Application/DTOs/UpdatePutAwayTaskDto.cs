@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using WMS.Domain.Enums;
 
 namespace WMS.Application.DTOs;
 
@@ -16,6 +15,5 @@ public class UpdatePutAwayTaskDto
 
     public Guid? FromLocationId { get; set; }
     public Guid? ToLocationId { get; set; }
-    public PutAwayTaskStatus Status { get; set; }
     public Guid? AssignToId { get; set; }
 }

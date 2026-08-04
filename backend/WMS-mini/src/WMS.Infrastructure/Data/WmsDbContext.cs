@@ -28,6 +28,8 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Rma> Rmas => Set<Rma>();
     public DbSet<RmaDetail> RmaDetails => Set<RmaDetail>();
     public DbSet<AssociationRule> AssociationRules => Set<AssociationRule>();
+    public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
+    public DbSet<StockAdjustmentDetail> StockAdjustmentDetails => Set<StockAdjustmentDetail>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +60,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.Entity<SaleOrder>()
             .HasIndex(s => s.OrderNo)
+            .IsUnique();
+
+        modelBuilder.Entity<StockAdjustment>()
+            .HasIndex(a => a.AdjustmentNo)
             .IsUnique();
     }
 }

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,9 +20,10 @@ namespace WMS.Application.Services
             _repo = repo;
             _mapper = mapper;
         }
-        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto)
+        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, Guid userId)
         {
             var category = _mapper.Map<Category>(dto);
+            category.CreatedById = userId;
             await _repo.AddAsync(category);
             return _mapper.Map<CategoryDto>(category);
         }
@@ -31,6 +32,9 @@ namespace WMS.Application.Services
         {
             var category = await _repo.GetByIdAsync(id);
             if (category == null) return false;
+
+            if (await _repo.HasProductsAsync(id))
+                throw new InvalidOperationException("Cannot delete category that still has products.");
 
             await _repo.DeleteAsync(category);
             return true;

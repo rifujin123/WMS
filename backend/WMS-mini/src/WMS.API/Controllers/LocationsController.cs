@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -18,8 +19,11 @@ public class LocationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? warehouseId)
     {
+        if (warehouseId.HasValue)
+            return Ok(await _service.GetByWarehouseAsync(warehouseId.Value));
+
         var result = await _service.GetAllAsync();
         return Ok(result);
     }
@@ -32,18 +36,14 @@ public class LocationsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("warehouse/{warehouseId}")]
-    public async Task<IActionResult> GetByWarehouse([FromRoute] Guid warehouseId)
-    {
-        var result = await _service.GetByWarehouseAsync(warehouseId);
-        return Ok(result);
-    }
-
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateLocationDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.CreateAsync(dto, userId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 

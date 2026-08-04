@@ -1,6 +1,6 @@
 namespace WMS.Application.DTOs;
 
-public class StockDto
+public class StockAdjustmentDetailDto
 {
     public Guid Id { get; set; }
     public Guid ProductId { get; set; }
@@ -8,6 +8,5 @@ public class StockDto
     public string ProductName { get; set; } = string.Empty;
     public Guid LocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
-    public int OnhandQty { get; set; }
-    public int ReservedQty { get; set; }
+    public int CountedQty { get; set; }
 }

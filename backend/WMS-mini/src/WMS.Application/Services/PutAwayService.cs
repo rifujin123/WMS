@@ -9,6 +9,7 @@ namespace WMS.Application.Services;
 public class PutAwayService : IPutAwayService
 {
     private readonly IPutAwayTaskRepository _repo;
+    private readonly IReceivingRepository _receivingRepo;
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
@@ -16,12 +17,14 @@ public class PutAwayService : IPutAwayService
 
     public PutAwayService(
         IPutAwayTaskRepository repo,
+        IReceivingRepository receivingRepo,
         IStockRepository stockRepo,
         IStockMovementRepository movementRepo,
         ILocationRepository locationRepo,
         IMapper mapper)
     {
         _repo = repo;
+        _receivingRepo = receivingRepo;
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
@@ -43,10 +46,20 @@ public class PutAwayService : IPutAwayService
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
-    public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto)
+    public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto, Guid userId)
     {
+        // Kiểm tra dòng nhận hàng gốc tồn tại và không cất vượt số lượng đã nhận
+        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId);
+        if (detail == null)
+            throw new InvalidOperationException("ReceivingDetail not found.");
+
+        if (dto.Quantity > detail.ActualQuantity)
+            throw new InvalidOperationException(
+                $"Cannot create putaway with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
+
         var task = _mapper.Map<PutAwayTask>(dto);
         task.Status = PutAwayTaskStatus.Open;
+        task.CreatedById = userId;
 
         await _repo.AddAsync(task);
         return _mapper.Map<PutAwayTaskDto>(task);
@@ -58,6 +71,17 @@ public class PutAwayService : IPutAwayService
         if (task == null)
             return null;
 
+        if (task.Status != PutAwayTaskStatus.Open)
+            throw new InvalidOperationException($"Cannot update task in '{task.Status}' status. Must be 'Open'.");
+
+        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId);
+        if (detail == null)
+            throw new InvalidOperationException("ReceivingDetail not found.");
+
+        if (dto.Quantity > detail.ActualQuantity)
+            throw new InvalidOperationException(
+                $"Cannot update task with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
+
         _mapper.Map(dto, task);
         await _repo.UpdateAsync(task);
         return _mapper.Map<PutAwayTaskDto>(task);
@@ -68,6 +92,9 @@ public class PutAwayService : IPutAwayService
         var task = await _repo.GetByIdAsync(id);
         if (task == null)
             return false;
+
+        if (task.Status != PutAwayTaskStatus.Open)
+            throw new InvalidOperationException($"Cannot delete task in '{task.Status}' status. Must be 'Open'.");
 
         await _repo.DeleteAsync(task);
         return true;

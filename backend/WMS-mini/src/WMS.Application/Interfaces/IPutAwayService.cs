@@ -6,7 +6,7 @@ public interface IPutAwayService
 {
     Task<List<PutAwayTaskDto>> GetAllAsync();
     Task<PutAwayTaskDto?> GetByIdAsync(Guid id);
-    Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto);
+    Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto, Guid userId);
     Task<PutAwayTaskDto?> UpdateAsync(Guid id, UpdatePutAwayTaskDto dto);
     Task<bool> DeleteAsync(Guid id);
 

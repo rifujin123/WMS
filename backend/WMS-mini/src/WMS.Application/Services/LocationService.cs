@@ -35,9 +35,10 @@ public class LocationService : ILocationService
         return _mapper.Map<List<LocationDto>>(locations);
     }
 
-    public async Task<LocationDto> CreateAsync(CreateLocationDto dto)
+    public async Task<LocationDto> CreateAsync(CreateLocationDto dto, Guid userId)
     {
         var location = _mapper.Map<Location>(dto);
+        location.CreatedById = userId;
         await _repo.AddAsync(location);
         return _mapper.Map<LocationDto>(location);
     }
@@ -56,6 +57,9 @@ public class LocationService : ILocationService
     {
         var location = await _repo.GetByIdAsync(id);
         if (location == null) return false;
+
+        if (await _repo.HasStockAsync(id))
+            throw new InvalidOperationException("Cannot delete location that still has stock.");
 
         await _repo.DeleteAsync(location);
         return true;

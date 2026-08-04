@@ -16,17 +16,34 @@ public class SqlStockRepository : IStockRepository
 
     public async Task<List<Stock>> GetAllAsync()
     {
-        return await _db.Stocks.ToListAsync();
+        return await _db.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.Location)
+            .ToListAsync();
     }
 
     public async Task<Stock?> GetByIdAsync(Guid id)
     {
-        return await _db.Stocks.FindAsync(id);
+        return await _db.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.Location)
+            .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task<List<Stock>> GetByProductAsync(Guid productId)
+    {
+        return await _db.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.Location)
+            .Where(s => s.ProductId == productId)
+            .ToListAsync();
     }
 
     public async Task<Stock?> GetByProductAndLocationAsync(Guid productId, Guid locationId)
     {
         return await _db.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.Location)
             .FirstOrDefaultAsync(s => s.ProductId == productId && s.LocationId == locationId);
     }
 
@@ -46,5 +63,13 @@ public class SqlStockRepository : IStockRepository
     {
         _db.Stocks.Remove(stock);
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<Stock>> GetByLocationAsync(Guid locationId){
+        return await _db.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.Location)
+            .Where(s => s.LocationId == locationId)
+            .ToListAsync();
     }
 }

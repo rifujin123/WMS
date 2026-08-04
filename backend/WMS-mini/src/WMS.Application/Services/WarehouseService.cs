@@ -30,9 +30,10 @@ public class WarehouseService : IWarehouseService
         return _mapper.Map<WarehouseDto>(warehouse);
     }
 
-    public async Task<WarehouseDto> CreateAsync(CreateWarehouseDto dto)
+    public async Task<WarehouseDto> CreateAsync(CreateWarehouseDto dto, Guid userId)
     {
         var warehouse = _mapper.Map<Warehouse>(dto);
+        warehouse.CreatedById = userId;
         await _repo.AddAsync(warehouse);
         return _mapper.Map<WarehouseDto>(warehouse);
     }

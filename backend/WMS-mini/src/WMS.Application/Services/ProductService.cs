@@ -30,9 +30,10 @@ public class ProductService : IProductService
         return _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<ProductDto> CreateAsync(CreateProductDto dto)
+    public async Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId)
     {
         var product = _mapper.Map<Product>(dto);
+        product.CreatedById = userId;
         await _repo.AddAsync(product);
         return _mapper.Map<ProductDto>(product);
     }
@@ -51,6 +52,9 @@ public class ProductService : IProductService
     {
         var product = await _repo.GetByIdAsync(id);
         if (product == null) return false;
+
+        if (await _repo.HasReferencesAsync(id))
+            throw new InvalidOperationException("Cannot delete product that is referenced by stock or orders.");
 
         await _repo.DeleteAsync(product);
         return true;

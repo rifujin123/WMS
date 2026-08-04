@@ -47,4 +47,14 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
         _db.PurchaseOrders.Remove(purchaseOrder);
         await _db.SaveChangesAsync();
     }
+
+    public async Task RemoveDetailsAsync(Guid purchaseOrderId)
+    {
+        var details = await _db.PurchaseOrderDetails
+            .Where(d => d.PurchaseOrderId == purchaseOrderId)
+            .ToListAsync();
+
+        _db.PurchaseOrderDetails.RemoveRange(details);
+        await _db.SaveChangesAsync();
+    }
 }

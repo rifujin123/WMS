@@ -1,7 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
+using WMS.Domain.Entities;
 
 namespace WMS.API.Controllers;
 
@@ -11,10 +14,12 @@ namespace WMS.API.Controllers;
 public class PutAwayTasksController : ControllerBase
 {
     private readonly IPutAwayService _service;
+    private readonly UserManager<User> _userManager;
 
-    public PutAwayTasksController(IPutAwayService service)
+    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager)
     {
         _service = service;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -35,13 +40,18 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Create([FromBody] CreatePutAwayTaskDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.CreateAsync(dto, userId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePutAwayTaskDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -52,6 +62,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var deleted = await _service.DeleteAsync(id);
@@ -62,8 +73,16 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost("{id}/assign")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Assign([FromRoute] Guid id, [FromBody] AssignPutAwayDto dto)
     {
+        var target = await _userManager.FindByIdAsync(dto.UserId.ToString());
+        if (target == null)
+            return BadRequest(new { message = "User not found." });
+
+        if (!await _userManager.IsInRoleAsync(target, "WarehouseStaff"))
+            return BadRequest(new { message = "Can only assign to WarehouseStaff." });
+
         var result = await _service.AssignAsync(id, dto.UserId);
         if (result == null)
             return NotFound(new { message = "PutAway task not found" });
@@ -72,6 +91,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost("{id}/start")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> StartProgress([FromRoute] Guid id)
     {
         var result = await _service.StartProgressAsync(id);
@@ -82,6 +102,7 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpPost("{id}/complete")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Complete([FromRoute] Guid id)
     {
         var result = await _service.CompleteAsync(id);

@@ -53,12 +53,18 @@ public class ReceivingService : IReceivingService
             if (!validProductIds.Contains(detail.ProductId))
                 throw new InvalidOperationException(
                     $"Product '{detail.ProductId}' is not in PurchaseOrder '{po.PoNumber}'.");
+
+            var poDetail = po.PurchaseOrderDetails.First(d => d.ProductId == detail.ProductId);
+            if (detail.ActualQuantity + poDetail.ReceivedQuantity > poDetail.OrderedQuantity)
+                throw new InvalidOperationException(
+                    $"Cannot receive {detail.ActualQuantity} of product '{detail.ProductId}'. Remaining: {poDetail.OrderedQuantity - poDetail.ReceivedQuantity}.");
         }
 
         var receiving = new Receiving
         {
             PurchaseOrderId = dto.PurchaseOrderId,
             ReceivedById = userId,
+            CreatedById = userId,
             ReceivedDate = DateTime.UtcNow,
             Status = ReceivingStatus.Draft,
             Notes = dto.Notes
@@ -85,6 +91,34 @@ public class ReceivingService : IReceivingService
         if (receiving.Status != ReceivingStatus.Draft)
             throw new InvalidOperationException($"Cannot confirm receiving in '{receiving.Status}' status. Must be 'Draft'.");
 
+        var po = await _poRepo.GetByIdAsync(receiving.PurchaseOrderId);
+        if (po == null)
+            throw new InvalidOperationException("PurchaseOrder not found.");
+
+        // Cộng dồn lượng nhận thực tế vào từng dòng PO
+        foreach (var detail in receiving.ReceivingDetails)
+        {
+            var poDetail = po.PurchaseOrderDetails
+                .FirstOrDefault(d => d.ProductId == detail.ProductId);
+            if (poDetail == null)
+                throw new InvalidOperationException(
+                    $"Product '{detail.ProductId}' is not in PurchaseOrder '{po.PoNumber}'.");
+
+            if (detail.Condition == ProductCondition.Ok)
+            {
+                // Chốt chặn cuối khi confirm: không vượt tổng đặt trừ phần đã nhận
+                if (poDetail.ReceivedQuantity + detail.ActualQuantity > poDetail.OrderedQuantity)
+                    throw new InvalidOperationException(
+                        $"Cannot confirm: receiving {detail.ActualQuantity} would exceed ordered quantity {poDetail.OrderedQuantity} (already received {poDetail.ReceivedQuantity}).");
+
+                poDetail.ReceivedQuantity += detail.ActualQuantity;
+            }
+        }
+
+        // PO chỉ đạt "Received" khi mọi dòng đã nhận đủ
+        if (po.PurchaseOrderDetails.All(d => d.ReceivedQuantity >= d.OrderedQuantity))
+            po.Status = PurchaseOrderStatus.Received;
+
         receiving.Status = ReceivingStatus.Confirmed;
 
         // Auto-create PutAwayTasks for each OK-condition detail
@@ -103,6 +137,7 @@ public class ReceivingService : IReceivingService
             await _putAwayRepo.AddAsync(putAway);
         }
 
+        await _poRepo.UpdateAsync(po);
         await _repo.UpdateAsync(receiving);
         return _mapper.Map<ReceivingDto>(receiving);
     }
@@ -128,6 +163,11 @@ public class ReceivingService : IReceivingService
             if (!validProductIds.Contains(detail.ProductId))
                 throw new InvalidOperationException(
                     $"Product '{detail.ProductId}' is not in PurchaseOrder '{po.PoNumber}'.");
+
+            var poDetail = po.PurchaseOrderDetails.First(d => d.ProductId == detail.ProductId);
+            if (detail.ActualQuantity + poDetail.ReceivedQuantity > poDetail.OrderedQuantity)
+                throw new InvalidOperationException(
+                    $"Cannot receive {detail.ActualQuantity} of product '{detail.ProductId}'. Remaining: {poDetail.OrderedQuantity - poDetail.ReceivedQuantity}.");
         }
 
         receiving.PurchaseOrderId = dto.PurchaseOrderId;

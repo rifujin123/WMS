@@ -9,10 +9,11 @@ namespace WMS.API.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class PurchaseOrdersController : ControllerBase
+public class StockAdjustmentsController : ControllerBase
 {
-    private readonly IPurchaseOrderService _service;
-    public PurchaseOrdersController(IPurchaseOrderService service)
+    private readonly IStockAdjustmentService _service;
+
+    public StockAdjustmentsController(IStockAdjustmentService service)
     {
         _service = service;
     }
@@ -28,13 +29,15 @@ public class PurchaseOrdersController : ControllerBase
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
         var result = await _service.GetByIdAsync(id);
-        if (result == null) return NotFound();
+        if (result == null)
+            return NotFound(new { message = "StockAdjustment not found" });
+
         return Ok(result);
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,WarehouseManager")]
-    public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
+    public async Task<IActionResult> Create([FromBody] CreateStockAdjustmentDto dto)
     {
         if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
             return Unauthorized();
@@ -43,12 +46,17 @@ public class PurchaseOrdersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}/approve")]
     [Authorize(Roles = "Admin,WarehouseManager")]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePurchaseOrderDto dto)
+    public async Task<IActionResult> Approve([FromRoute] Guid id)
     {
-        var result = await _service.UpdateAsync(id, dto);
-        if (result == null) return NotFound();
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return Unauthorized();
+
+        var result = await _service.ApproveAsync(id, userId);
+        if (result == null)
+            return NotFound(new { message = "StockAdjustment not found" });
+
         return Ok(result);
     }
 
@@ -57,28 +65,9 @@ public class PurchaseOrdersController : ControllerBase
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var deleted = await _service.DeleteAsync(id);
-        if (!deleted) return NotFound();
+        if (!deleted)
+            return NotFound(new { message = "StockAdjustment not found" });
+
         return Ok(new { message = "Deleted successfully" });
-    }
-
-    [HttpPatch("{id}/approve")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Approve([FromRoute] Guid id)
-    {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.ApproveAsync(id, userId);
-        if (result == null) return NotFound();
-        return Ok(result);
-    }
-
-    [HttpPatch("{id}/close")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
-    public async Task<IActionResult> Close([FromRoute] Guid id)
-    {
-        var result = await _service.CloseAsync(id);
-        if (result == null) return NotFound();
-        return Ok(result);
     }
 }
