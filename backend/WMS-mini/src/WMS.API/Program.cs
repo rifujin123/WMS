@@ -1,4 +1,5 @@
 using System.Text;
+using CloudinaryDotNet;
 using WMS.API.Middlewares;
 using WMS.Application.Interfaces;
 using WMS.Application.Services;
@@ -85,8 +86,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
+// Cloudinary (dùng chung 1 instance, thread-safe)
+var cloudName = builder.Configuration["Cloudinary:CloudName"];
+if (string.IsNullOrWhiteSpace(cloudName))
+    throw new InvalidOperationException("Cloudinary:CloudName is not configured.");
+var cloudApiKey = builder.Configuration["Cloudinary:ApiKey"];
+if (string.IsNullOrWhiteSpace(cloudApiKey))
+    throw new InvalidOperationException("Cloudinary:ApiKey is not configured.");
+var cloudApiSecret = builder.Configuration["Cloudinary:ApiSecret"];
+if (string.IsNullOrWhiteSpace(cloudApiSecret))
+    throw new InvalidOperationException("Cloudinary:ApiSecret is not configured.");
+var cloudinary = new Cloudinary(new Account(cloudName, cloudApiKey, cloudApiSecret));
+cloudinary.Api.Secure = true; // trả về https:// URL
+builder.Services.AddSingleton(cloudinary);
+
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ILocationService, LocationService>();

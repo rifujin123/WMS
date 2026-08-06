@@ -36,7 +36,8 @@ public class AuthService : IAuthService
             RefreshToken = string.Empty,
             Username = user.UserName ?? string.Empty,
             Email = user.Email ?? string.Empty,
-            FullName = user.FullName
+            FullName = user.FullName,
+            AvatarUrl = user.AvatarUrl
         };
     }
 
@@ -46,7 +47,8 @@ public class AuthService : IAuthService
         {
             UserName = dto.Username,
             Email = dto.Email,
-            FullName = dto.FullName
+            FullName = dto.FullName,
+            AvatarUrl = dto.AvatarUrl
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
