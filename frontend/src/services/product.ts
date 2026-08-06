@@ -2,7 +2,7 @@ import api from '../lib/axios'
 import type { CreateProductDto, ProductDto } from '../types/product'
 
 export const getProducts = (): Promise<ProductDto[]> =>
-  api.get('/Products').then((r) => r.data)
+  api.get('/Products')
 
 export const createProduct = (
   dto: CreateProductDto,
@@ -16,7 +16,7 @@ export const createProduct = (
   form.append('price', String(dto.price))
   if (dto.dimension) form.append('dimension', dto.dimension)
   if (image) form.append('file', image)
-  return api.post('/Products', form).then((r) => r.data)
+  return api.post('/Products', form)
 }
 
 export const updateProduct = (
@@ -32,8 +32,8 @@ export const updateProduct = (
   form.append('price', String(dto.price))
   if (dto.dimension) form.append('dimension', dto.dimension)
   if (image) form.append('file', image)
-  return api.put(`/Products/${id}`, form).then((r) => r.data)
+  return api.put(`/Products/${id}`, form)
 }
 
 export const deleteProduct = (id: string): Promise<void> =>
-  api.delete(`/Products/${id}`).then((r) => r.data)
+  api.delete(`/Products/${id}`)

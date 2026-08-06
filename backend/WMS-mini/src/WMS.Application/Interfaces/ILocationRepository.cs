@@ -11,4 +11,5 @@ public interface ILocationRepository
     Task UpdateAsync(Location location);
     Task DeleteAsync(Location location);
     Task<bool> HasStockAsync(Guid locationId);
+    Task<Location?> GetByWarehouseAndCodeAsync(Guid warehouseId, string code);
 }

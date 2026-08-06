@@ -10,14 +10,29 @@ namespace WMS.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // No-op: ImageUrl (Products) và AvatarUrl (AspNetUsers) đã tồn tại trong DB
-            // từ các lần ALTER TABLE thủ công trước đó. Migration này chỉ để ghi nhận
-            // vào __EFMigrationsHistory cho khớp với model.
+            migrationBuilder.AddColumn<string>(
+                name: "ImageUrl",
+                table: "Products",
+                type: "nvarchar(max)",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "AvatarUrl",
+                table: "AspNetUsers",
+                type: "nvarchar(max)",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "ImageUrl",
+                table: "Products");
+
+            migrationBuilder.DropColumn(
+                name: "AvatarUrl",
+                table: "AspNetUsers");
         }
     }
 }

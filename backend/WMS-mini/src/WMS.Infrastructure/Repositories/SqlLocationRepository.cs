@@ -53,4 +53,10 @@ public class SqlLocationRepository : ILocationRepository
     {
         return await _db.Stocks.AnyAsync(s => s.LocationId == locationId);
     }
+
+    public async Task<Location?> GetByWarehouseAndCodeAsync(Guid warehouseId, string code)
+    {
+        return await _db.Locations.FirstOrDefaultAsync(l =>
+            l.WarehouseId == warehouseId && l.Code == code);
+    }
 }

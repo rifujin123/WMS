@@ -29,6 +29,7 @@ const menuItems: MenuProps['items'] = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
   { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
+  { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
   { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
 ]
 

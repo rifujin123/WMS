@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using CloudinaryDotNet;
 using WMS.API.Middlewares;
 using WMS.Application.Interfaces;
@@ -18,7 +19,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("Frontend", p =>

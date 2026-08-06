@@ -16,13 +16,22 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Unwrap API response: { success, code, message, data, timestamp } → return data only
+        return response.data?.data ?? response.data
+    },
     (error) => {
         const isLoginRequest = error.config?.url?.includes('/Auth/login')
         if(error.response?.status === 401 && !isLoginRequest){
             localStorage.removeItem(TOKEN_KEY)
             localStorage.removeItem('user')
             window.location.href = '/login'
+        }
+        
+        // Enhance error with API message for better UX
+        const apiError = error.response?.data
+        if(apiError?.message){
+            error.message = apiError.message
         }
         return Promise.reject(error)
     },
