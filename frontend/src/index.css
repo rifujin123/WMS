@@ -14,3 +14,34 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+@keyframes wms-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wms-rise {
+  animation: wms-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Nút primary nhấn xuống một chút để có cảm giác vật lý */
+.ant-btn-primary:active {
+  transform: scale(0.985);
+  transition: transform 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wms-rise {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
