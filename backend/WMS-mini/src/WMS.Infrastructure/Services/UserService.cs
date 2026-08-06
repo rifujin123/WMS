@@ -1,6 +1,4 @@
 using AutoMapper;
-using CloudinaryDotNet;
-using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Identity;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
@@ -12,13 +10,13 @@ public class UserService : IUserService
 {
     private readonly UserManager<User> _userManager;
     private readonly IMapper _mapper;
-    private readonly Cloudinary _cloudinary;
+    private readonly IImageService _imageService;
 
-    public UserService(UserManager<User> userManager, IMapper mapper, Cloudinary cloudinary)
+    public UserService(UserManager<User> userManager, IMapper mapper, IImageService imageService)
     {
         _userManager = userManager;
         _mapper = mapper;
-        _cloudinary = cloudinary;
+        _imageService = imageService;
     }
 
     public async Task<UserProfileDto?> GetProfileAsync(Guid userId)
@@ -66,19 +64,9 @@ public class UserService : IUserService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return null;
 
-        var uploadParams = new ImageUploadParams
-        {
-            File = new FileDescription(fileName, fileStream),
-            PublicId = $"wms/avatars/{userId}",
-            Overwrite = true,
-            Transformation = new Transformation().Width(400).Height(400).Crop("fill")
-        };
+        var url = await _imageService.UploadAsync(fileStream, fileName, $"wms/avatars/{userId}", 400, 400);
 
-        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-        if (uploadResult.Error != null)
-            throw new Exception(uploadResult.Error.Message);
-
-        user.AvatarUrl = uploadResult.SecureUrl.ToString();
+        user.AvatarUrl = url;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));

@@ -1,8 +1,8 @@
 // Service trang Thông tin cá nhân — gọi API thật từ backend WMS.API
 import api from '../lib/axios'
 import type {
-  ChangePasswordPayload,
-  UpdateProfilePayload,
+  ChangePasswordDto,
+  UpdateProfileDto,
   UserProfile,
 } from '../types/user'
 
@@ -11,15 +11,15 @@ export function getProfile(): Promise<UserProfile> {
 }
 
 export function updateProfile(
-  payload: UpdateProfilePayload,
+  dto: UpdateProfileDto,
 ): Promise<UserProfile> {
-  return api.put('/Users/me', payload).then((res) => res.data)
+  return api.put('/Users/me', dto).then((res) => res.data)
 }
 
 export function changePassword(
-  payload: ChangePasswordPayload,
+  dto: ChangePasswordDto,
 ): Promise<{ message: string }> {
-  return api.put('/Users/me/password', payload).then((res) => res.data)
+  return api.put('/Users/me/password', dto).then((res) => res.data)
 }
 
 export function uploadAvatar(file: File): Promise<{ avatarUrl: string }> {

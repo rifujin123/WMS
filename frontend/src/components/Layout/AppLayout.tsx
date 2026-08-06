@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  AppstoreOutlined,
   DashboardOutlined,
   DownOutlined,
   EnvironmentOutlined,
@@ -27,6 +28,7 @@ const { Header, Content, Footer, Sider } = Layout
 const menuItems: MenuProps['items'] = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
+  { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
   { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
 ]
 

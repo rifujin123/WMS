@@ -5,6 +5,7 @@ import PublicOnlyRoute from './PublicOnlyRoute'
 import Dashboard from '../pages/Dashboard'
 import Login from '../pages/Login'
 import Products from '../pages/Products'
+import Categories from '../pages/Categories'
 import Profile from '../pages/Profile'
 import Users from '../pages/Users'
 
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
         children: [
           { path: 'dashboard', element: <Dashboard /> },
           { path: 'products', element: <Products /> },
+          { path: 'categories', element: <Categories /> },
           { path: 'users', element: <Users /> },
           { path: 'profile', element: <Profile /> },
         ],

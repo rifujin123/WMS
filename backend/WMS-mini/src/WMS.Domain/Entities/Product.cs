@@ -25,4 +25,7 @@ public class Product : BaseAuditableEntity
 
     [MaxLength(100)]
     public string? Dimension { get; set; }
+
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
 }

@@ -6,7 +6,8 @@ public interface IProductService
 {
     Task<List<ProductDto>> GetAllAsync();
     Task<ProductDto?> GetByIdAsync(Guid id);
-    Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId);
-    Task<ProductDto?> UpdateAsync(Guid id, UpdateProductDto dto);
+    Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId, Stream? imageStream = null, string? imageFileName = null);
+    Task<ProductDto?> UpdateAsync(Guid id, UpdateProductDto dto, Stream? imageStream = null, string? imageFileName = null);
     Task<bool> DeleteAsync(Guid id);
+    Task<string?> UploadImageAsync(Guid id, Stream fileStream, string fileName);
 }

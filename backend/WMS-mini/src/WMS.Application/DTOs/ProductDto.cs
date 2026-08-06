@@ -9,4 +9,5 @@ public class ProductDto
     public string? Unit { get; set; }
     public decimal Price { get; set; }
     public string? Dimension { get; set; }
+    public string? ImageUrl { get; set; }
 }

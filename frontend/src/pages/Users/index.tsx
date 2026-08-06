@@ -196,7 +196,7 @@ function Users() {
           loading={loading}
           pagination={{ pageSize: 8, showSizeChanger: false }}
           scroll={{ x: 720 }}
-          locale={{ emptyText: <Empty description="Chưa có người dùng nào" /> }}
+          locale={{ emptyText: <Empty image={null} description="Chưa có người dùng nào" /> }}
         />
       </Card>
 
