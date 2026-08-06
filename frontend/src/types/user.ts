@@ -9,12 +9,12 @@ export interface UserProfile {
   roles: string[]
 }
 
-export interface UpdateProfilePayload {
+export interface UpdateProfileDto {
   fullName: string
   phoneNumber?: string
 }
 
-export interface ChangePasswordPayload {
+export interface ChangePasswordDto {
   currentPassword: string
   newPassword: string
 }
