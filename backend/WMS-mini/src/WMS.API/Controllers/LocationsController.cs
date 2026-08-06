@@ -62,6 +62,6 @@ public class LocationsController : ControllerBase
     {
         var deleted = await _service.DeleteAsync(id);
         if (!deleted) return NotFound();
-        return Ok(new {message = "Deleted successfully"});
+        return Ok(new { message = "Đã xoá thành công." });
     }
 }

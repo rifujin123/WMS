@@ -37,6 +37,10 @@ public class LocationService : ILocationService
 
     public async Task<LocationDto> CreateAsync(CreateLocationDto dto, Guid userId)
     {
+        var existing = await _repo.GetByWarehouseAndCodeAsync(dto.WarehouseId, dto.Code);
+        if (existing != null)
+            throw new InvalidOperationException("Location code already exists in this warehouse.");
+
         var location = _mapper.Map<Location>(dto);
         location.CreatedById = userId;
         await _repo.AddAsync(location);
@@ -47,6 +51,13 @@ public class LocationService : ILocationService
     {
         var location = await _repo.GetByIdAsync(id);
         if (location == null) return null;
+
+        if (!string.Equals(location.Code, dto.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            var existing = await _repo.GetByWarehouseAndCodeAsync(location.WarehouseId, dto.Code);
+            if (existing != null)
+                throw new InvalidOperationException("Location code already exists in this warehouse.");
+        }
 
         _mapper.Map(dto, location);
         await _repo.UpdateAsync(location);
@@ -59,7 +70,7 @@ public class LocationService : ILocationService
         if (location == null) return false;
 
         if (await _repo.HasStockAsync(id))
-            throw new InvalidOperationException("Cannot delete location that still has stock.");
+            throw new InvalidOperationException("Cannot delete location that has stock.");
 
         await _repo.DeleteAsync(location);
         return true;
