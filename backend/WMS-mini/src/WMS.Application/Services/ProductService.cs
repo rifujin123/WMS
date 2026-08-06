@@ -9,11 +9,13 @@ public class ProductService : IProductService
 {
     private readonly IProductRepository _repo;
     private readonly IMapper _mapper;
+    private readonly IImageService _imageService;
 
-    public ProductService(IProductRepository repo, IMapper mapper)
+    public ProductService(IProductRepository repo, IMapper mapper, IImageService imageService)
     {
         _repo = repo;
         _mapper = mapper;
+        _imageService = imageService;
     }
 
     public async Task<List<ProductDto>> GetAllAsync()
@@ -30,20 +32,35 @@ public class ProductService : IProductService
         return _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId)
+    public async Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId, Stream? imageStream = null, string? imageFileName = null)
     {
         var product = _mapper.Map<Product>(dto);
         product.CreatedById = userId;
         await _repo.AddAsync(product);
+
+        if (imageStream != null && !string.IsNullOrWhiteSpace(imageFileName))
+        {
+            var url = await _imageService.UploadAsync(imageStream, imageFileName, $"wms/products/{product.Id}", 600, 600);
+            product.ImageUrl = url;
+            await _repo.UpdateAsync(product);
+        }
+
         return _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<ProductDto?> UpdateAsync(Guid id, UpdateProductDto dto)
+    public async Task<ProductDto?> UpdateAsync(Guid id, UpdateProductDto dto, Stream? imageStream = null, string? imageFileName = null)
     {
         var product = await _repo.GetByIdAsync(id);
         if (product == null) return null;
 
         _mapper.Map(dto, product);
+
+        if (imageStream != null && !string.IsNullOrWhiteSpace(imageFileName))
+        {
+            var url = await _imageService.UploadAsync(imageStream, imageFileName, $"wms/products/{id}", 600, 600);
+            product.ImageUrl = url;
+        }
+
         await _repo.UpdateAsync(product);
         return _mapper.Map<ProductDto>(product);
     }
@@ -58,5 +75,17 @@ public class ProductService : IProductService
 
         await _repo.DeleteAsync(product);
         return true;
+    }
+
+    public async Task<string?> UploadImageAsync(Guid id, Stream fileStream, string fileName)
+    {
+        var product = await _repo.GetByIdAsync(id);
+        if (product == null) return null;
+
+        var url = await _imageService.UploadAsync(fileStream, fileName, $"wms/products/{id}", 600, 600);
+
+        product.ImageUrl = url;
+        await _repo.UpdateAsync(product);
+        return product.ImageUrl;
     }
 }
