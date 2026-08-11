@@ -3,6 +3,7 @@ import type { UpdateLocationDto } from '../types/location'
 import {
   createLocation as createLocationRequest,
   deleteLocation as deleteLocationRequest,
+  getAllLocations,
   getLocationsByWarehouse,
   updateLocation as updateLocationRequest,
 } from '../services/location'
@@ -13,6 +14,10 @@ export function useLocationsByWarehouse(warehouseId: string | undefined) {
     queryFn: () => getLocationsByWarehouse(warehouseId!),
     enabled: !!warehouseId,
   })
+}
+
+export function useAllLocations() {
+  return useQuery({ queryKey: ['allLocations'], queryFn: getAllLocations })
 }
 
 export function useCreateLocation() {

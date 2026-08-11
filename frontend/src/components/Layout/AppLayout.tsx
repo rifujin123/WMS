@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import {
   AppstoreOutlined,
+  CarryOutOutlined,
   DashboardOutlined,
   DownOutlined,
   EnvironmentOutlined,
   FacebookFilled,
+  FileTextOutlined,
+  InboxOutlined,
   InstagramFilled,
   LogoutOutlined,
   MailOutlined,
@@ -27,6 +30,9 @@ const { Header, Content, Footer, Sider } = Layout
 // Menu item map với route thật — thêm mục mới khi làm thêm page
 const menuItems: MenuProps['items'] = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+  { key: '/purchase-orders', icon: <FileTextOutlined />, label: 'Đơn đặt hàng' },
+  { key: '/receivings', icon: <InboxOutlined />, label: 'Nhận hàng' },
+  { key: '/putaway-tasks', icon: <CarryOutOutlined />, label: 'Cất hàng' },
   { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
   { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
   { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
