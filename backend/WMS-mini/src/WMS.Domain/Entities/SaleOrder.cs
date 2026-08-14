@@ -16,6 +16,6 @@ public class SaleOrder : BaseAuditableEntity
     public SaleOrderStatus Status { get; set; }
 
     public ICollection<SaleOrderDetail> SaleOrderDetails { get; set; } = new List<SaleOrderDetail>();
-    public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+    public Shipment? Shipment { get; set; }
     public ICollection<Rma> Rmas { get; set; } = new List<Rma>();
 }

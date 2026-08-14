@@ -116,6 +116,7 @@ builder.Services.AddScoped<IPutAwayService, PutAwayService>();
 builder.Services.AddScoped<IReceivingService, ReceivingService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
+builder.Services.AddScoped<IPickingService, PickingService>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();

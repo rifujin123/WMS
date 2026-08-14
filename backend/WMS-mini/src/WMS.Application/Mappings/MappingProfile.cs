@@ -68,9 +68,14 @@ public class MappingProfile : Profile
         CreateMap<CreateSaleOrderDto, SaleOrder>();
         CreateMap<SaleOrderDetail, SaleOrderDetailDto>().ReverseMap();
 
-        CreateMap<Picking, PickingDto>().ReverseMap();
+        CreateMap<Picking, PickingDto>()
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.Name))
+            .ForMember(d => d.AssignedToName, o => o.MapFrom(s => s.AssignedTo != null ? s.AssignedTo.UserName : null));
         CreateMap<CreatePickingDto, Picking>();
-        CreateMap<PickingDetail, PickingDetailDto>().ReverseMap();
+        CreateMap<PickingDetail, PickingDetailDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location != null ? s.Location.Code : null));
 
         CreateMap<Shipment, ShipmentDto>().ReverseMap();
 

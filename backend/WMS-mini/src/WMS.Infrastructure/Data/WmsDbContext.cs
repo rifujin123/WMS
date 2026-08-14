@@ -42,6 +42,16 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             relationship.DeleteBehavior = DeleteBehavior.NoAction;
         }
 
+        modelBuilder.Entity<Shipment>()
+            .HasOne(s => s.SaleOrder)
+            .WithOne(o => o.Shipment)
+            .HasForeignKey<Shipment>(s => s.SaleOrderId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Shipment>()
+            .HasIndex(s => s.SaleOrderId)
+            .IsUnique();
+
         modelBuilder.Entity<Stock>()
             .HasIndex(s => new { s.ProductId, s.LocationId })
             .IsUnique();
@@ -64,6 +74,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.Entity<StockAdjustment>()
             .HasIndex(a => a.AdjustmentNo)
+            .IsUnique();
+
+        modelBuilder.Entity<Picking>()
+            .HasIndex(p => p.PickingNo)
             .IsUnique();
     }
 }

@@ -1,10 +1,12 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Domain.Enums;
+using WMS.Infrastructure.Data;
 
-namespace WMS.Application.Services;
+namespace WMS.Infrastructure.Services;
 
 public class PutAwayService : IPutAwayService
 {
@@ -13,6 +15,7 @@ public class PutAwayService : IPutAwayService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
+    private readonly WmsDbContext _db;
     private readonly IMapper _mapper;
 
     public PutAwayService(
@@ -21,6 +24,7 @@ public class PutAwayService : IPutAwayService
         IStockRepository stockRepo,
         IStockMovementRepository movementRepo,
         ILocationRepository locationRepo,
+        WmsDbContext db,
         IMapper mapper)
     {
         _repo = repo;
@@ -28,6 +32,7 @@ public class PutAwayService : IPutAwayService
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
+        _db = db;
         _mapper = mapper;
     }
 
@@ -154,6 +159,18 @@ public class PutAwayService : IPutAwayService
         if (task.ToLocationId == null)
             throw new InvalidOperationException("ToLocation must be set to complete putaway.");
 
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        // Kiểm tra lại sức chứa trước khi cộng dồn — tránh vượt MaxQuantity do các thao tác khác xen vào
+        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value);
+        if (location == null)
+            throw new InvalidOperationException("Destination location not found.");
+
+        if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
+            throw new InvalidOperationException(
+                $"Location '{location.Code}' does not have enough capacity. " +
+                $"Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
+
         // Cập nhật hoặc tạo mới Stock
         var stock = await _stockRepo.GetByProductAndLocationAsync(task.ProductId, task.ToLocationId.Value);
         if (stock == null)
@@ -174,12 +191,8 @@ public class PutAwayService : IPutAwayService
         }
 
         // Cập nhật số lượng tại vị trí
-        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value);
-        if (location != null)
-        {
-            location.CurrentQuantity += task.Quantity;
-            await _locationRepo.UpdateAsync(location);
-        }
+        location.CurrentQuantity += task.Quantity;
+        await _locationRepo.UpdateAsync(location);
 
         // Ghi nhận StockMovement
         var movement = new StockMovement
@@ -194,6 +207,8 @@ public class PutAwayService : IPutAwayService
 
         task.Status = PutAwayTaskStatus.Completed;
         await _repo.UpdateAsync(task);
+
+        await tx.CommitAsync();
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 }

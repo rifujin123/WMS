@@ -6,6 +6,9 @@ namespace WMS.Domain.Entities;
 
 public class Picking : BaseAuditableEntity
 {
+    [MaxLength(50)]
+    public string PickingNo { get; set; } = string.Empty;
+
     public Guid WarehouseId { get; set; }
 
     [Required]

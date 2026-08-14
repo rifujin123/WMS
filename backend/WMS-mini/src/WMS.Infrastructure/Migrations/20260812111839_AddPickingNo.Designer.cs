@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WMS.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using WMS.Infrastructure.Data;
 namespace WMS.Infrastructure.Migrations
 {
     [DbContext(typeof(WmsDbContext))]
-    partial class WmsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260812111839_AddPickingNo")]
+    partial class AddPickingNo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -783,8 +786,7 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("SaleOrderId")
-                        .IsUnique();
+                    b.HasIndex("SaleOrderId");
 
                     b.ToTable("Shipments");
                 });
@@ -1456,8 +1458,8 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.SaleOrder", "SaleOrder")
-                        .WithOne("Shipment")
-                        .HasForeignKey("WMS.Domain.Entities.Shipment", "SaleOrderId")
+                        .WithMany("Shipments")
+                        .HasForeignKey("SaleOrderId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
@@ -1617,7 +1619,7 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Navigation("SaleOrderDetails");
 
-                    b.Navigation("Shipment");
+                    b.Navigation("Shipments");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>

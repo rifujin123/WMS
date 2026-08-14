@@ -1,10 +1,12 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Domain.Enums;
+using WMS.Infrastructure.Data;
 
-namespace WMS.Application.Services;
+namespace WMS.Infrastructure.Services;
 
 public class StockAdjustmentService : IStockAdjustmentService
 {
@@ -12,6 +14,7 @@ public class StockAdjustmentService : IStockAdjustmentService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
+    private readonly WmsDbContext _db;
     private readonly IMapper _mapper;
 
     public StockAdjustmentService(
@@ -19,12 +22,14 @@ public class StockAdjustmentService : IStockAdjustmentService
         IStockRepository stockRepo,
         IStockMovementRepository movementRepo,
         ILocationRepository locationRepo,
+        WmsDbContext db,
         IMapper mapper)
     {
         _repo = repo;
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
+        _db = db;
         _mapper = mapper;
     }
 
@@ -72,6 +77,8 @@ public class StockAdjustmentService : IStockAdjustmentService
             throw new InvalidOperationException(
                 $"Cannot approve adjustment in '{adjustment.Status}' status. Must be 'Draft'.");
 
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
         foreach (var detail in adjustment.Details)
         {
             var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId);
@@ -98,6 +105,12 @@ public class StockAdjustmentService : IStockAdjustmentService
             var location = await _locationRepo.GetByIdAsync(detail.LocationId);
             if (location != null)
             {
+                // Kiểm tra sức chứa trước khi cộng dồn — tránh vượt MaxQuantity
+                if (location.CurrentQuantity + delta > location.MaxQuantity)
+                    throw new InvalidOperationException(
+                        $"Location '{location.Code}' does not have enough capacity. " +
+                        $"Available: {location.MaxQuantity - location.CurrentQuantity}, Adjustment delta: {delta}.");
+
                 location.CurrentQuantity += delta;
                 await _locationRepo.UpdateAsync(location);
             }
@@ -117,6 +130,8 @@ public class StockAdjustmentService : IStockAdjustmentService
         adjustment.ApprovedById = userId;
         adjustment.ApprovedDate = DateTime.UtcNow;
         await _repo.UpdateAsync(adjustment);
+
+        await tx.CommitAsync();
         return _mapper.Map<StockAdjustmentDto>(adjustment);
     }
 

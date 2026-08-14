@@ -16,12 +16,26 @@ public class SqlPickingRepository : IPickingRepository
 
     public async Task<List<Picking>> GetAllAsync()
     {
-        return await _db.Pickings.ToListAsync();
+        return await _db.Pickings
+            .Include(p => p.Warehouse)
+            .Include(p => p.AssignedTo)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Product)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Location)
+            .ToListAsync();
     }
 
     public async Task<Picking?> GetByIdAsync(Guid id)
     {
-        return await _db.Pickings.FindAsync(id);
+        return await _db.Pickings
+            .Include(p => p.Warehouse)
+            .Include(p => p.AssignedTo)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Product)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Location)
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task AddAsync(Picking picking)

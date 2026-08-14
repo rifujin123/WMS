@@ -16,12 +16,18 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
 
     public async Task<List<SaleOrder>> GetAllAsync()
     {
-        return await _db.SaleOrders.ToListAsync();
+        return await _db.SaleOrders
+            .Include(s => s.SaleOrderDetails)
+                .ThenInclude(d => d.Product)
+            .ToListAsync();
     }
 
     public async Task<SaleOrder?> GetByIdAsync(Guid id)
     {
-        return await _db.SaleOrders.FindAsync(id);
+        return await _db.SaleOrders
+            .Include(s => s.SaleOrderDetails)
+                .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task AddAsync(SaleOrder saleOrder)
