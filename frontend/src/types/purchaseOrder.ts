@@ -14,7 +14,6 @@ export interface PurchaseOrderDto {
   poNumber: string
   vendorName?: string
   status: PurchaseOrderStatus
-  approvedById?: string
   approvedDate?: string
   purchaseOrderDetails: PurchaseOrderDetailDto[]
 }

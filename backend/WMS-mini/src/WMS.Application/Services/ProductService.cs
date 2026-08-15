@@ -10,12 +10,14 @@ public class ProductService : IProductService
     private readonly IProductRepository _repo;
     private readonly IMapper _mapper;
     private readonly IImageService _imageService;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public ProductService(IProductRepository repo, IMapper mapper, IImageService imageService)
+    public ProductService(IProductRepository repo, IMapper mapper, IImageService imageService, IUnitOfWork unitOfWork)
     {
         _repo = repo;
         _mapper = mapper;
         _imageService = imageService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<ProductDto>> GetAllAsync()
@@ -32,19 +34,18 @@ public class ProductService : IProductService
         return _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<ProductDto> CreateAsync(CreateProductDto dto, Guid userId, Stream? imageStream = null, string? imageFileName = null)
+    public async Task<ProductDto> CreateAsync(CreateProductDto dto, Stream? imageStream = null, string? imageFileName = null)
     {
         var product = _mapper.Map<Product>(dto);
-        product.CreatedById = userId;
         await _repo.AddAsync(product);
 
         if (imageStream != null && !string.IsNullOrWhiteSpace(imageFileName))
         {
             var url = await _imageService.UploadAsync(imageStream, imageFileName, $"wms/products/{product.Id}", 600, 600);
             product.ImageUrl = url;
-            await _repo.UpdateAsync(product);
         }
 
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<ProductDto>(product);
     }
 
@@ -62,6 +63,7 @@ public class ProductService : IProductService
         }
 
         await _repo.UpdateAsync(product);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<ProductDto>(product);
     }
 
@@ -74,6 +76,7 @@ public class ProductService : IProductService
             throw new InvalidOperationException("Cannot delete product that is referenced by stock or orders.");
 
         await _repo.DeleteAsync(product);
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
@@ -86,6 +89,7 @@ public class ProductService : IProductService
 
         product.ImageUrl = url;
         await _repo.UpdateAsync(product);
+        await _unitOfWork.SaveChangesAsync();
         return product.ImageUrl;
     }
 }

@@ -53,7 +53,6 @@ const mockReceiving = {
       condition: 'Ok' as ProductCondition,
     },
   ],
-  createdById: undefined,
   createdDate: '2026-08-07T02:49:00',
 }
 

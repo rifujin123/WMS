@@ -22,7 +22,6 @@ export interface ReceivingDto {
   status: ReceivingStatus
   notes?: string
   details: ReceivingDetailDto[]
-  createdById?: string
   createdDate: string
 }
 

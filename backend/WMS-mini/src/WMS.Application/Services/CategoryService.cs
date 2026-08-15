@@ -14,17 +14,19 @@ namespace WMS.Application.Services
     {
         private readonly ICategoryRepository _repo;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public CategoryService(ICategoryRepository repo, IMapper mapper)
+        public CategoryService(ICategoryRepository repo, IMapper mapper, IUnitOfWork unitOfWork)
         {
             _repo = repo;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
-        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, Guid userId)
+        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto)
         {
             var category = _mapper.Map<Category>(dto);
-            category.CreatedById = userId;
             await _repo.AddAsync(category);
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<CategoryDto>(category);
         }
 
@@ -37,6 +39,7 @@ namespace WMS.Application.Services
                 throw new InvalidOperationException("Cannot delete category that still has products.");
 
             await _repo.DeleteAsync(category);
+            await _unitOfWork.SaveChangesAsync();
             return true;
         }
 
@@ -62,6 +65,7 @@ namespace WMS.Application.Services
 
             _mapper.Map(dto, category);
             await _repo.UpdateAsync(category);
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<CategoryDto>(category);
         }
     }

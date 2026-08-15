@@ -10,11 +10,13 @@ public class WarehouseService : IWarehouseService
 {
     private readonly IWarehouseRepository _repo;
     private readonly IMapper _mapper;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public WarehouseService(IWarehouseRepository repo, IMapper mapper)
+    public WarehouseService(IWarehouseRepository repo, IMapper mapper, IUnitOfWork unitOfWork)
     {
         _repo = repo;
         _mapper = mapper;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<WarehouseDto>> GetAllAsync()
@@ -30,11 +32,11 @@ public class WarehouseService : IWarehouseService
         return _mapper.Map<WarehouseDto>(warehouse);
     }
 
-    public async Task<WarehouseDto> CreateAsync(CreateWarehouseDto dto, Guid userId)
+    public async Task<WarehouseDto> CreateAsync(CreateWarehouseDto dto)
     {
         var warehouse = _mapper.Map<Warehouse>(dto);
-        warehouse.CreatedById = userId;
         await _repo.AddAsync(warehouse);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<WarehouseDto>(warehouse);
     }
 
@@ -45,6 +47,7 @@ public class WarehouseService : IWarehouseService
 
         _mapper.Map(dto, warehouse);
         await _repo.UpdateAsync(warehouse);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<WarehouseDto>(warehouse);
     }
 
@@ -57,6 +60,7 @@ public class WarehouseService : IWarehouseService
             return DeleteWarehouseResult.HasLocations;
 
         await _repo.DeleteAsync(warehouse);
+        await _unitOfWork.SaveChangesAsync();
         return DeleteWarehouseResult.Success;
     }
 }

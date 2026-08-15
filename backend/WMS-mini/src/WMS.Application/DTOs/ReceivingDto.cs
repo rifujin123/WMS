@@ -13,6 +13,5 @@ public class ReceivingDto
     public ReceivingStatus Status { get; set; }
     public string? Notes { get; set; }
     public List<ReceivingDetailDto> Details { get; set; } = new();
-    public Guid? CreatedById { get; set; }
     public DateTime CreatedDate { get; set; }
 }

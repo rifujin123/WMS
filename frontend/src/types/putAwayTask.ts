@@ -14,7 +14,6 @@ export interface PutAwayTaskDto {
   status: PutAwayTaskStatus
   assignToId?: string
   assignToName?: string
-  createdById?: string
   createdDate: string
 }
 
