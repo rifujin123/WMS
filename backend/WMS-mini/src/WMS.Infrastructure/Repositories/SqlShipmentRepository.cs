@@ -16,12 +16,23 @@ public class SqlShipmentRepository : IShipmentRepository
 
     public async Task<List<Shipment>> GetAllAsync()
     {
-        return await _db.Shipments.ToListAsync();
+        return await _db.Shipments
+            .Include(s => s.SaleOrder)
+            .ToListAsync();
     }
 
     public async Task<Shipment?> GetByIdAsync(Guid id)
     {
-        return await _db.Shipments.FindAsync(id);
+        return await _db.Shipments
+            .Include(s => s.SaleOrder)
+            .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task<Shipment?> GetBySaleOrderIdAsync(Guid saleOrderId)
+    {
+        return await _db.Shipments
+            .Include(s => s.SaleOrder)
+            .FirstOrDefaultAsync(s => s.SaleOrderId == saleOrderId);
     }
 
     public async Task AddAsync(Shipment shipment)

@@ -67,42 +67,54 @@ public class PickingService : IPickingService
 
         var picking = new Picking
         {
-            PickingNo = $"PICK-{DateTime.UtcNow:yyyyMMddHHmmss}",
+            PickingNo = $"PICK-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid().ToString("N")[..8]}",
             WarehouseId = dto.WarehouseId,
             Status = PickingStatus.Open,
             CreatedById = userId,
             CreatedDate = DateTime.UtcNow
         };
 
-        // Duyệt từng dòng SaleOrder, allocate stock từ location có đủ hàng khả dụng
         foreach (var sod in saleOrder.SaleOrderDetails)
         {
-            var remaining = sod.Quantity - sod.AllocatedQty;
-            if (remaining <= 0) continue;
+            var requiredQty = sod.Quantity - sod.AllocatedQty;
+            if (requiredQty <= 0) continue;
 
-            var stocks = await _stockRepo.GetByProductAsync(sod.ProductId);
-            var stock = stocks.FirstOrDefault(s => s.OnhandQty - s.ReservedQty >= remaining);
-            if (stock == null)
-                throw new InvalidOperationException(
-                    $"Insufficient stock for product '{sod.Product.Sku}'. Required: {remaining}.");
+            var remaining = requiredQty;
+            var stocks = await _stockRepo.GetAvailableByProductAndWarehouseAsync(
+                sod.ProductId, dto.WarehouseId);
 
-            stock.ReservedQty += remaining;
-            await _stockRepo.UpdateAsync(stock);
-
-            sod.AllocatedQty += remaining;
-            sod.Status = SaleOrderDetailStatus.Allocated;
-
-            picking.PickingDetails.Add(new PickingDetail
+            foreach (var stock in stocks)
             {
-                SaleOrderDetailId = sod.Id,
-                ProductId = sod.ProductId,
-                LocationId = stock.LocationId,
-                QtyToPick = remaining,
-                QtyPicked = 0,
-                Status = PickingDetailStatus.Pending,
-                CreatedById = userId,
-                CreatedDate = DateTime.UtcNow
-            });
+                var qtyToAllocate = Math.Min(remaining, stock.OnhandQty - stock.ReservedQty);
+                if (qtyToAllocate <= 0) continue;
+
+                stock.ReservedQty += qtyToAllocate;
+                await _stockRepo.UpdateAsync(stock);
+
+                sod.AllocatedQty += qtyToAllocate;
+                remaining -= qtyToAllocate;
+
+                picking.PickingDetails.Add(new PickingDetail
+                {
+                    SaleOrderDetailId = sod.Id,
+                    ProductId = sod.ProductId,
+                    LocationId = stock.LocationId,
+                    QtyToPick = qtyToAllocate,
+                    QtyPicked = 0,
+                    Status = PickingDetailStatus.Pending,
+                    CreatedById = userId,
+                    CreatedDate = DateTime.UtcNow
+                });
+
+                if (remaining == 0) break;
+            }
+
+            if (remaining > 0)
+                throw new InvalidOperationException(
+                    $"Insufficient stock for product '{sod.Product.Sku}'. " +
+                    $"Required: {requiredQty}, Available: {requiredQty - remaining}.");
+
+            sod.Status = SaleOrderDetailStatus.Allocated;
         }
 
         if (picking.PickingDetails.Count == 0)
@@ -156,7 +168,6 @@ public class PickingService : IPickingService
 
         var byId = dto.Details.ToDictionary(d => d.DetailId);
 
-        // Bắt buộc đủ hàng: mọi dòng phải được khai báo và pick đủ QtyToPick
         foreach (var detail in picking.PickingDetails)
         {
             if (!byId.TryGetValue(detail.Id, out var input))
@@ -166,6 +177,11 @@ public class PickingService : IPickingService
                 throw new InvalidOperationException(
                     $"Insufficient picked quantity for product '{detail.Product.Sku}'. " +
                     $"Required: {detail.QtyToPick}, Picked: {input.QtyPicked}.");
+
+            if (input.QtyPicked > detail.QtyToPick)
+                throw new InvalidOperationException(
+                    $"Picked quantity exceeds required quantity for product '{detail.Product.Sku}'. " +
+                    $"Required: {detail.QtyToPick}, Picked: {input.QtyPicked}.");
         }
 
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -173,6 +189,7 @@ public class PickingService : IPickingService
         var sodIds = picking.PickingDetails
             .Where(d => d.SaleOrderDetailId != null)
             .Select(d => d.SaleOrderDetailId!.Value)
+            .Distinct()
             .ToList();
         var sodList = await _db.SaleOrderDetails
             .Where(x => sodIds.Contains(x.Id))
@@ -185,12 +202,21 @@ public class PickingService : IPickingService
             if (detail.LocationId == null)
                 throw new InvalidOperationException($"Location is required to complete detail '{detail.Id}'.");
 
+            var input = byId[detail.Id];
             var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId.Value);
             if (stock == null)
                 throw new InvalidOperationException("Stock not found for picked location.");
 
-            stock.ReservedQty -= detail.QtyToPick;
-            stock.OnhandQty -= detail.QtyToPick;
+            if (stock.ReservedQty < input.QtyPicked)
+                throw new InvalidOperationException(
+                    $"Insufficient reserved stock for product '{detail.Product.Sku}' at location '{stock.Location.Code}'.");
+
+            if (stock.OnhandQty < input.QtyPicked)
+                throw new InvalidOperationException(
+                    $"Insufficient on-hand stock for product '{detail.Product.Sku}' at location '{stock.Location.Code}'.");
+
+            stock.ReservedQty -= input.QtyPicked;
+            stock.OnhandQty -= input.QtyPicked;
             await _stockRepo.UpdateAsync(stock);
 
             var movement = new StockMovement
@@ -198,24 +224,28 @@ public class PickingService : IPickingService
                 ProductId = detail.ProductId,
                 LocationId = detail.LocationId.Value,
                 MovementType = MovementType.Out,
-                Qty = detail.QtyToPick,
+                Qty = input.QtyPicked,
                 Notes = $"Picking completed. PickingNo: {picking.PickingNo}"
             };
             await _movementRepo.AddAsync(movement);
 
-            detail.QtyPicked = detail.QtyToPick;
+            detail.QtyPicked = input.QtyPicked;
             detail.Status = PickingDetailStatus.Picked;
+        }
 
-            if (detail.SaleOrderDetailId != null)
-            {
-                var sod = sodList.FirstOrDefault(x => x.Id == detail.SaleOrderDetailId);
-                if (sod != null)
-                {
-                    sod.Status = SaleOrderDetailStatus.Picked;
-                    if (sod.SaleOrder.SaleOrderDetails.All(d => d.Status == SaleOrderDetailStatus.Picked))
-                        sod.SaleOrder.Status = SaleOrderStatus.Packed;
-                }
-            }
+        foreach (var sod in sodList)
+        {
+            var details = picking.PickingDetails
+                .Where(d => d.SaleOrderDetailId == sod.Id)
+                .ToList();
+            if (details.Count > 0 && details.All(d => d.Status == PickingDetailStatus.Picked))
+                sod.Status = SaleOrderDetailStatus.Picked;
+        }
+
+        foreach (var saleOrder in sodList.Select(s => s.SaleOrder).Distinct())
+        {
+            if (saleOrder.SaleOrderDetails.All(d => d.Status == SaleOrderDetailStatus.Picked))
+                saleOrder.Status = SaleOrderStatus.Packed;
         }
 
         picking.Status = PickingStatus.Completed;

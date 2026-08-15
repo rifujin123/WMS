@@ -30,6 +30,12 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
+    public async Task<SaleOrder?> GetByOrderNoAsync(string orderNo)
+    {
+        return await _db.SaleOrders
+            .FirstOrDefaultAsync(s => s.OrderNo == orderNo);
+    }
+
     public async Task AddAsync(SaleOrder saleOrder)
     {
         await _db.SaleOrders.AddAsync(saleOrder);
@@ -44,7 +50,18 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
 
     public async Task DeleteAsync(SaleOrder saleOrder)
     {
+        _db.SaleOrderDetails.RemoveRange(saleOrder.SaleOrderDetails);
         _db.SaleOrders.Remove(saleOrder);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task RemoveDetailsAsync(Guid saleOrderId)
+    {
+        var details = await _db.SaleOrderDetails
+            .Where(d => d.SaleOrderId == saleOrderId)
+            .ToListAsync();
+
+        _db.SaleOrderDetails.RemoveRange(details);
         await _db.SaveChangesAsync();
     }
 }

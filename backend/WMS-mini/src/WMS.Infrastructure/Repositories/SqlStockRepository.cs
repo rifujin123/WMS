@@ -39,6 +39,19 @@ public class SqlStockRepository : IStockRepository
             .ToListAsync();
     }
 
+    public async Task<List<Stock>> GetAvailableByProductAndWarehouseAsync(Guid productId, Guid warehouseId)
+    {
+        return await _db.Stocks
+            .Include(s => s.Location)
+            .Where(s => s.ProductId == productId
+                && s.Location.WarehouseId == warehouseId
+                && s.OnhandQty - s.ReservedQty > 0)
+            .OrderBy(s => s.Location.Code)
+            .ThenBy(s => s.LocationId)
+            .ThenBy(s => s.Id)
+            .ToListAsync();
+    }
+
     public async Task<Stock?> GetByProductAndLocationAsync(Guid productId, Guid locationId)
     {
         return await _db.Stocks

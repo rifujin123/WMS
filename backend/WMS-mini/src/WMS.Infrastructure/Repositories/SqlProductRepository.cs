@@ -24,6 +24,14 @@ public class SqlProductRepository : IProductRepository
         return await _db.Products.FindAsync(id);
     }
 
+    public async Task<List<Guid>> GetExistingIdsAsync(List<Guid> productIds)
+    {
+        return await _db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .Select(p => p.Id)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Product product)
     {
         await _db.Products.AddAsync(product);

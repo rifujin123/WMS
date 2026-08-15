@@ -64,9 +64,12 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code));
 
-        CreateMap<SaleOrder, SaleOrderDto>().ReverseMap();
+        CreateMap<SaleOrder, SaleOrderDto>();
         CreateMap<CreateSaleOrderDto, SaleOrder>();
-        CreateMap<SaleOrderDetail, SaleOrderDetailDto>().ReverseMap();
+        CreateMap<CreateSaleOrderDetailDto, SaleOrderDetail>();
+        CreateMap<SaleOrderDetail, SaleOrderDetailDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
 
         CreateMap<Picking, PickingDto>()
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.Name))
@@ -77,7 +80,9 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location != null ? s.Location.Code : null));
 
-        CreateMap<Shipment, ShipmentDto>().ReverseMap();
+        CreateMap<Shipment, ShipmentDto>()
+            .ForMember(d => d.SaleOrderNo, o => o.MapFrom(s => s.SaleOrder.OrderNo));
+        CreateMap<CreateShipmentDto, Shipment>();
 
         CreateMap<Rma, RmaDto>().ReverseMap();
         CreateMap<CreateRmaDto, Rma>();

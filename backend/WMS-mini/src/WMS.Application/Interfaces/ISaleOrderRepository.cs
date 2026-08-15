@@ -6,7 +6,9 @@ public interface ISaleOrderRepository
 {
     Task<List<SaleOrder>> GetAllAsync();
     Task<SaleOrder?> GetByIdAsync(Guid id);
+    Task<SaleOrder?> GetByOrderNoAsync(string orderNo);
     Task AddAsync(SaleOrder saleOrder);
     Task UpdateAsync(SaleOrder saleOrder);
     Task DeleteAsync(SaleOrder saleOrder);
+    Task RemoveDetailsAsync(Guid saleOrderId);
 }
