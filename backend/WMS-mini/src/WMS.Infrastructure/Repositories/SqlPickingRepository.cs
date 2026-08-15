@@ -41,18 +41,20 @@ public class SqlPickingRepository : IPickingRepository
     public async Task AddAsync(Picking picking)
     {
         await _db.Pickings.AddAsync(picking);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Picking picking)
     {
         _db.Pickings.Update(picking);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Picking picking)
     {
         _db.Pickings.Remove(picking);
-        await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<Guid>> GetPickingIdsExceptAsync(Guid excludeId)
+    {
+        return await _db.Pickings.Where(p => p.Id != excludeId).Select(p => p.Id).ToListAsync();
     }
 }

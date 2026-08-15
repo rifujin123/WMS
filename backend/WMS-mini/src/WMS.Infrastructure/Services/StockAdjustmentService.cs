@@ -1,10 +1,8 @@
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Domain.Enums;
-using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
 
@@ -14,22 +12,23 @@ public class StockAdjustmentService : IStockAdjustmentService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
-    private readonly WmsDbContext _db;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
 
     public StockAdjustmentService(
-        IStockAdjustmentRepository repo,
-        IStockRepository stockRepo,
-        IStockMovementRepository movementRepo,
-        ILocationRepository locationRepo,
-        WmsDbContext db,
-        IMapper mapper)
+        IStockAdjustmentRepository repo, 
+        IStockRepository stockRepo, 
+        IStockMovementRepository movementRepo, 
+        ILocationRepository locationRepo, 
+        IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
     {
-        _repo = repo;
-        _stockRepo = stockRepo;
-        _movementRepo = movementRepo;
-        _locationRepo = locationRepo;
-        _db = db;
+        _repo = repo; 
+        _stockRepo = stockRepo; 
+        _movementRepo = movementRepo; 
+        _locationRepo = locationRepo; 
+        _unitOfWork = unitOfWork; 
+        _currentUser = currentUser; 
         _mapper = mapper;
     }
 
@@ -46,106 +45,68 @@ public class StockAdjustmentService : IStockAdjustmentService
         return _mapper.Map<StockAdjustmentDto>(result);
     }
 
-    public async Task<StockAdjustmentDto> CreateAsync(CreateStockAdjustmentDto dto, Guid userId)
+    public async Task<StockAdjustmentDto> CreateAsync(CreateStockAdjustmentDto dto)
     {
-        var adjustment = new StockAdjustment
+        var entity = new StockAdjustment
         {
-            AdjustmentNo = $"ADJ-{DateTime.UtcNow:yyyyMMddHHmmss}",
-            Status = StockAdjustmentStatus.Draft,
+            AdjustmentNo = $"ADJ-{DateTime.UtcNow:yyyyMMddHHmmss}", 
+            Status = StockAdjustmentStatus.Draft, 
             Notes = dto.Notes,
-            CreatedById = userId,
-            CreatedDate = DateTime.UtcNow,
-            Details = dto.Details.Select(d => new StockAdjustmentDetail
-            {
-                ProductId = d.ProductId,
-                LocationId = d.LocationId,
-                CountedQty = d.CountedQty
-            }).ToList()
+            Details = dto.Details.Select(d => new StockAdjustmentDetail { ProductId = d.ProductId, LocationId = d.LocationId, CountedQty = d.CountedQty }).ToList()
         };
-
-        await _repo.AddAsync(adjustment);
-        return _mapper.Map<StockAdjustmentDto>(adjustment);
+        await _repo.AddAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<StockAdjustmentDto>(entity);
     }
 
-    public async Task<StockAdjustmentDto?> ApproveAsync(Guid id, Guid userId)
+    public async Task<StockAdjustmentDto?> ApproveAsync(Guid id)
     {
         var adjustment = await _repo.GetByIdAsync(id);
-        if (adjustment == null)
-            return null;
-
-        if (adjustment.Status != StockAdjustmentStatus.Draft)
-            throw new InvalidOperationException(
-                $"Cannot approve adjustment in '{adjustment.Status}' status. Must be 'Draft'.");
-
-        await using var tx = await _db.Database.BeginTransactionAsync();
-
-        foreach (var detail in adjustment.Details)
+        if (adjustment == null) return null;
+        if (adjustment.Status != StockAdjustmentStatus.Draft) throw new InvalidOperationException($"Cannot approve adjustment in '{adjustment.Status}' status. Must be 'Draft'.");
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId);
-            int delta;
-            if (stock == null)
+            foreach (var detail in adjustment.Details)
             {
-                delta = detail.CountedQty; // từ 0 → CountedQty
-                stock = new Stock
+                var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId);
+                var delta = detail.CountedQty;
+                if (stock == null)
                 {
-                    ProductId = detail.ProductId,
-                    LocationId = detail.LocationId,
-                    OnhandQty = detail.CountedQty,
-                    ReservedQty = 0
-                };
-                await _stockRepo.AddAsync(stock); // lưu thẳng CountedQty
+                    stock = new Stock { ProductId = detail.ProductId, LocationId = detail.LocationId, OnhandQty = detail.CountedQty, ReservedQty = 0 };
+                    await _stockRepo.AddAsync(stock);
+                }
+                else
+                {
+                    delta = detail.CountedQty - stock.OnhandQty;
+                    stock.OnhandQty = detail.CountedQty;
+                    await _stockRepo.UpdateAsync(stock);
+                }
+                var location = await _locationRepo.GetByIdAsync(detail.LocationId);
+                if (location != null)
+                {
+                    if (location.CurrentQuantity + delta > location.MaxQuantity) throw new InvalidOperationException($"Location '{location.Code}' does not have enough capacity. Available: {location.MaxQuantity - location.CurrentQuantity}, Adjustment delta: {delta}.");
+                    location.CurrentQuantity += delta;
+                    await _locationRepo.UpdateAsync(location);
+                }
+                await _movementRepo.AddAsync(new StockMovement { ProductId = detail.ProductId, LocationId = detail.LocationId, MovementType = MovementType.Adjustment, Qty = delta, Notes = $"Stock adjustment. AdjustmentNo: {adjustment.AdjustmentNo}" });
             }
-            else
-            {
-                delta = detail.CountedQty - stock.OnhandQty;
-                stock.OnhandQty = detail.CountedQty;
-                await _stockRepo.UpdateAsync(stock);
-            }
+            adjustment.Status = StockAdjustmentStatus.Approved;
+            adjustment.ApprovedById = _currentUser.UserId;
+            adjustment.ApprovedDate = DateTime.UtcNow;
+            await _repo.UpdateAsync(adjustment);
+            await _unitOfWork.SaveChangesAsync();
+        });
 
-            var location = await _locationRepo.GetByIdAsync(detail.LocationId);
-            if (location != null)
-            {
-                // Kiểm tra sức chứa trước khi cộng dồn — tránh vượt MaxQuantity
-                if (location.CurrentQuantity + delta > location.MaxQuantity)
-                    throw new InvalidOperationException(
-                        $"Location '{location.Code}' does not have enough capacity. " +
-                        $"Available: {location.MaxQuantity - location.CurrentQuantity}, Adjustment delta: {delta}.");
-
-                location.CurrentQuantity += delta;
-                await _locationRepo.UpdateAsync(location);
-            }
-
-            var movement = new StockMovement
-            {
-                ProductId = detail.ProductId,
-                LocationId = detail.LocationId,
-                MovementType = MovementType.Adjustment,
-                Qty = delta,
-                Notes = $"Stock adjustment. AdjustmentNo: {adjustment.AdjustmentNo}"
-            };
-            await _movementRepo.AddAsync(movement);
-        }
-
-        adjustment.Status = StockAdjustmentStatus.Approved;
-        adjustment.ApprovedById = userId;
-        adjustment.ApprovedDate = DateTime.UtcNow;
-        await _repo.UpdateAsync(adjustment);
-
-        await tx.CommitAsync();
         return _mapper.Map<StockAdjustmentDto>(adjustment);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var adjustment = await _repo.GetByIdAsync(id);
-        if (adjustment == null)
-            return false;
-
-        if (adjustment.Status != StockAdjustmentStatus.Draft)
-            throw new InvalidOperationException(
-                $"Cannot delete adjustment in '{adjustment.Status}' status. Must be 'Draft'.");
-
-        await _repo.DeleteAsync(adjustment);
+        var entity = await _repo.GetByIdAsync(id);
+        if (entity == null) return false;
+        if (entity.Status != StockAdjustmentStatus.Draft) throw new InvalidOperationException($"Cannot delete adjustment in '{entity.Status}' status. Must be 'Draft'.");
+        await _repo.DeleteAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 }

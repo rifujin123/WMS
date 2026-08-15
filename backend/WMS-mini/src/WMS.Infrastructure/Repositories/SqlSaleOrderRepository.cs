@@ -39,20 +39,17 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
     public async Task AddAsync(SaleOrder saleOrder)
     {
         await _db.SaleOrders.AddAsync(saleOrder);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(SaleOrder saleOrder)
     {
         _db.SaleOrders.Update(saleOrder);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(SaleOrder saleOrder)
     {
         _db.SaleOrderDetails.RemoveRange(saleOrder.SaleOrderDetails);
         _db.SaleOrders.Remove(saleOrder);
-        await _db.SaveChangesAsync();
     }
 
     public async Task RemoveDetailsAsync(Guid saleOrderId)
@@ -62,6 +59,33 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
             .ToListAsync();
 
         _db.SaleOrderDetails.RemoveRange(details);
-        await _db.SaveChangesAsync();
+    }
+
+    public async Task<SaleOrderDetail?> GetDetailByIdAsync(Guid detailId)
+    {
+        return await _db.SaleOrderDetails.FirstOrDefaultAsync(d => d.Id == detailId);
+    }
+
+    public async Task<List<SaleOrderDetail>> GetDetailsWithOrdersByIdsAsync(List<Guid> detailIds)
+    {
+        return await _db.SaleOrderDetails
+            .Where(x => detailIds.Contains(x.Id))
+            .Include(x => x.SaleOrder)
+                .ThenInclude(o => o.SaleOrderDetails)
+            .ToListAsync();
+    }
+
+    public async Task<List<Guid>> GetSaleOrderIdsByPickingsAsync(List<Guid> pickingIds)
+    {
+        return await _db.SaleOrderDetails
+            .Where(d => d.PickingDetails.Any(p => pickingIds.Contains(p.PickingId)))
+            .Select(d => d.SaleOrderId)
+            .Distinct()
+            .ToListAsync();
+    }
+
+    public async Task<List<SaleOrder>> GetByIdsAsync(List<Guid> ids)
+    {
+        return await _db.SaleOrders.Where(o => ids.Contains(o.Id)).ToListAsync();
     }
 }

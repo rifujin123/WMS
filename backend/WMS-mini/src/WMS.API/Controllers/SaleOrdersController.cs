@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -35,10 +34,7 @@ public class SaleOrdersController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Create([FromBody] CreateSaleOrderDto dto)
     {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.CreateAsync(dto, userId);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 

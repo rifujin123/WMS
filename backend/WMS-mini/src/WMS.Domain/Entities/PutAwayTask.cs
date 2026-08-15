@@ -24,4 +24,13 @@ public class PutAwayTask : BaseAuditableEntity
     public PutAwayTaskStatus Status { get; set; }
     public Guid? AssignToId { get; set; }
     public User? AssignTo { get; set; }
+    public Guid? AssignedById { get; set; }
+    public User? AssignedBy { get; set; }
+    public DateTime? AssignedDate { get; set; }
+    public Guid? StartedById { get; set; }
+    public User? StartedBy { get; set; }
+    public DateTime? StartedDate { get; set; }
+    public Guid? CompletedById { get; set; }
+    public User? CompletedBy { get; set; }
+    public DateTime? CompletedDate { get; set; }
 }

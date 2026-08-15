@@ -89,5 +89,10 @@ public class MappingProfile : Profile
         CreateMap<RmaDetail, RmaDetailDto>().ReverseMap();
 
         CreateMap<AssociationRule, AssociationRuleDto>().ReverseMap();
+
+        CreateMap<AuditLog, AuditLogDto>()
+            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName));
+        CreateMap<StatusHistory, StatusHistoryDto>()
+            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName));
     }
 }

@@ -14,6 +14,9 @@ public class Receiving : BaseAuditableEntity
     public Guid? ReceivedById { get; set; }
     public User? ReceivedBy { get; set; }
     public DateTime ReceivedDate { get; set; }
+    public Guid? ConfirmedById { get; set; }
+    public User? ConfirmedBy { get; set; }
+    public DateTime? ConfirmedDate { get; set; }
     public ReceivingStatus Status { get; set; }
 
     [MaxLength(500)]

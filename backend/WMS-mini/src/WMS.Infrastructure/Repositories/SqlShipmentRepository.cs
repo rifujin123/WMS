@@ -38,18 +38,16 @@ public class SqlShipmentRepository : IShipmentRepository
     public async Task AddAsync(Shipment shipment)
     {
         await _db.Shipments.AddAsync(shipment);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Shipment shipment)
     {
         _db.Shipments.Update(shipment);
-        await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Shipment shipment)
+    public Task DeleteAsync(Shipment shipment)
     {
         _db.Shipments.Remove(shipment);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 }

@@ -10,15 +10,18 @@ public class ShipmentService : IShipmentService
 {
     private readonly IShipmentRepository _repo;
     private readonly ISaleOrderRepository _saleOrderRepo;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     public ShipmentService(
         IShipmentRepository repo,
         ISaleOrderRepository saleOrderRepo,
+        IUnitOfWork unitOfWork,
         IMapper mapper)
     {
         _repo = repo;
         _saleOrderRepo = saleOrderRepo;
+        _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
 
@@ -43,7 +46,7 @@ public class ShipmentService : IShipmentService
         return _mapper.Map<ShipmentDto>(shipment);
     }
 
-    public async Task<ShipmentDto> CreateAsync(CreateShipmentDto dto, Guid userId)
+    public async Task<ShipmentDto> CreateAsync(CreateShipmentDto dto)
     {
         var saleOrder = await _saleOrderRepo.GetByIdAsync(dto.SaleOrderId);
         if (saleOrder == null)
@@ -57,11 +60,11 @@ public class ShipmentService : IShipmentService
             throw new InvalidOperationException("Shipment already exists for this SaleOrder.");
 
         var shipment = _mapper.Map<Shipment>(dto);
-        shipment.CreatedById = userId;
         shipment.CreatedDate = DateTime.UtcNow;
         shipment.ShippedDate = null;
 
         await _repo.AddAsync(shipment);
+        await _unitOfWork.SaveChangesAsync();
         return (await GetByIdAsync(shipment.Id))!;
     }
 }

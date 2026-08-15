@@ -63,19 +63,16 @@ public class SqlStockRepository : IStockRepository
     public async Task AddAsync(Stock stock)
     {
         await _db.Stocks.AddAsync(stock);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Stock stock)
     {
         _db.Stocks.Update(stock);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Stock stock)
     {
         _db.Stocks.Remove(stock);
-        await _db.SaveChangesAsync();
     }
 
     public async Task<List<Stock>> GetByLocationAsync(Guid locationId){

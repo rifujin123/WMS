@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -39,10 +38,7 @@ public class ReceivingsController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Create([FromBody] CreateReceivingDto dto)
     {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.CreateAsync(dto, userId);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
@@ -61,10 +57,7 @@ public class ReceivingsController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] CreateReceivingDto dto)
     {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.UpdateAsync(id, dto, userId);
+        var result = await _service.UpdateAsync(id, dto);
         if (result == null)
             return NotFound(new { message = "Receiving not found" });
 

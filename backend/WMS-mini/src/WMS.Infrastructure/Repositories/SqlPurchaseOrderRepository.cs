@@ -33,19 +33,16 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
     public async Task AddAsync(PurchaseOrder purchaseOrder)
     {
         await _db.PurchaseOrders.AddAsync(purchaseOrder);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(PurchaseOrder purchaseOrder)
     {
         _db.PurchaseOrders.Update(purchaseOrder);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(PurchaseOrder purchaseOrder)
     {
         _db.PurchaseOrders.Remove(purchaseOrder);
-        await _db.SaveChangesAsync();
     }
 
     public async Task RemoveDetailsAsync(Guid purchaseOrderId)
@@ -55,6 +52,5 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
             .ToListAsync();
 
         _db.PurchaseOrderDetails.RemoveRange(details);
-        await _db.SaveChangesAsync();
     }
 }

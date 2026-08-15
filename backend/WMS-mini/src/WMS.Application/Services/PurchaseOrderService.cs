@@ -1,100 +1,88 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AutoMapper;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Domain.Enums;
 
-namespace WMS.Application.Services
+namespace WMS.Application.Services;
+
+public class PurchaseOrderService : IPurchaseOrderService
 {
-    public class PurchaseOrderService : IPurchaseOrderService
+    private readonly IPurchaseOrderRepository _repo;
+    private readonly IMapper _mapper;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
+
+    public PurchaseOrderService(IPurchaseOrderRepository repo, IMapper mapper, IUnitOfWork unitOfWork, ICurrentUserService currentUser)
     {
-        private readonly IPurchaseOrderRepository _repo;
-        private readonly IMapper _mapper;
+        _repo = repo;
+        _mapper = mapper;
+        _unitOfWork = unitOfWork;
+        _currentUser = currentUser;
+    }
 
-        public PurchaseOrderService(IPurchaseOrderRepository repo, IMapper mapper)
-        {
-            _repo = repo;
-            _mapper = mapper;
-        }
+    public async Task<List<PurchaseOrderDto>> GetAllAsync() => _mapper.Map<List<PurchaseOrderDto>>(await _repo.GetAllAsync());
 
-        public async Task<List<PurchaseOrderDto>> GetAllAsync()
-        {
-            var purchaseOrders = await _repo.GetAllAsync();
-            return _mapper.Map<List<PurchaseOrderDto>>(purchaseOrders);
-        }
+    public async Task<PurchaseOrderDto?> GetByIdAsync(Guid id)
+    {
+        var entity = await _repo.GetByIdAsync(id);
+        if(entity == null)
+            return null;
+        return _mapper.Map<PurchaseOrderDto>(entity);
+    }
 
-        public async Task<PurchaseOrderDto?> GetByIdAsync(Guid id)
-        {
-            var purchaseOrder = await _repo.GetByIdAsync(id);
-            if (purchaseOrder == null) return null;
-            return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
-        }
+    public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto)
+    {
+        var entity = _mapper.Map<PurchaseOrder>(dto);
+        entity.Status = PurchaseOrderStatus.Pending;
+        await _repo.AddAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<PurchaseOrderDto>(entity);
+    }
 
-        public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto, Guid userId)
-        {
-            var purchaseOrder = _mapper.Map<PurchaseOrder>(dto);
-            purchaseOrder.Status = PurchaseOrderStatus.Pending;
-            purchaseOrder.CreatedById = userId;
+    public async Task<PurchaseOrderDto?> UpdateAsync(Guid id, UpdatePurchaseOrderDto dto)
+    {
+        var entity = await _repo.GetByIdAsync(id);
+        if (entity == null || entity.Status != PurchaseOrderStatus.Pending) return null;
+        entity.VendorName = dto.VendorName;
+        await _repo.RemoveDetailsAsync(entity.Id);
+        entity.PurchaseOrderDetails = _mapper.Map<List<PurchaseOrderDetail>>(dto.PurchaseOrderDetails);
+        foreach (var detail in entity.PurchaseOrderDetails) detail.PurchaseOrderId = entity.Id;
+        await _repo.UpdateAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<PurchaseOrderDto>(entity);
+    }
 
-            await _repo.AddAsync(purchaseOrder);
-            return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
-        }
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var entity = await _repo.GetByIdAsync(id);
+        if (entity == null || entity.Status != PurchaseOrderStatus.Pending) return false;
+        await _repo.DeleteAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
 
-        public async Task<PurchaseOrderDto?> UpdateAsync(Guid id, UpdatePurchaseOrderDto dto)
-        {
-            var purchaseOrder = await _repo.GetByIdAsync(id);
-            if (purchaseOrder == null) return null;
-            if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return null;
+    public async Task<PurchaseOrderDto?> ApproveAsync(Guid id)
+    {
+        var entity = await _repo.GetByIdAsync(id);
+        if (entity == null || entity.Status != PurchaseOrderStatus.Pending) return null;
+        entity.Status = PurchaseOrderStatus.Approved;
+        entity.ApprovedById = _currentUser.UserId;
+        entity.ApprovedDate = DateTime.UtcNow;
+        await _repo.UpdateAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<PurchaseOrderDto>(entity);
+    }
 
-            purchaseOrder.VendorName = dto.VendorName;
-
-            // Xóa detail cũ rồi thay bằng danh sách mới — tránh sót dòng cũ trong DB
-            await _repo.RemoveDetailsAsync(purchaseOrder.Id);
-            purchaseOrder.PurchaseOrderDetails = _mapper.Map<List<PurchaseOrderDetail>>(dto.PurchaseOrderDetails);
-            foreach (var detail in purchaseOrder.PurchaseOrderDetails)
-                detail.PurchaseOrderId = purchaseOrder.Id;
-
-            await _repo.UpdateAsync(purchaseOrder);
-            return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
-        }
-
-        public async Task<bool> DeleteAsync(Guid id)
-        {
-            var purchaseOrder = await _repo.GetByIdAsync(id);
-            if (purchaseOrder == null) return false;
-            if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return false;
-
-            await _repo.DeleteAsync(purchaseOrder);
-            return true;
-        }
-
-        public async Task<PurchaseOrderDto?> ApproveAsync(Guid id, Guid userId)
-        {
-            var purchaseOrder = await _repo.GetByIdAsync(id);
-            if (purchaseOrder == null) return null;
-            if (purchaseOrder.Status != PurchaseOrderStatus.Pending) return null;
-
-            purchaseOrder.Status = PurchaseOrderStatus.Approved;
-            purchaseOrder.ApprovedById = userId;
-            purchaseOrder.ApprovedDate = DateTime.UtcNow;
-            await _repo.UpdateAsync(purchaseOrder);
-            return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
-        }
-
-        public async Task<PurchaseOrderDto?> CloseAsync(Guid id)
-        {
-            var purchaseOrder = await _repo.GetByIdAsync(id);
-            if (purchaseOrder == null) return null;
-            if (purchaseOrder.Status != PurchaseOrderStatus.Received) return null;
-
-            purchaseOrder.Status = PurchaseOrderStatus.Closed;
-            await _repo.UpdateAsync(purchaseOrder);
-            return _mapper.Map<PurchaseOrderDto>(purchaseOrder);
-        }
+    public async Task<PurchaseOrderDto?> CloseAsync(Guid id)
+    {
+        var entity = await _repo.GetByIdAsync(id);
+        if (entity == null || entity.Status != PurchaseOrderStatus.Received) return null;
+        entity.Status = PurchaseOrderStatus.Closed;
+        entity.ClosedById = _currentUser.UserId;
+        entity.ClosedDate = DateTime.UtcNow;
+        await _repo.UpdateAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<PurchaseOrderDto>(entity);
     }
 }

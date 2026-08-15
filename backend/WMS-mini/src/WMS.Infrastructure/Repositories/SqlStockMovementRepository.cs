@@ -27,18 +27,15 @@ public class SqlStockMovementRepository : IStockMovementRepository
     public async Task AddAsync(StockMovement stockMovement)
     {
         await _db.StockMovements.AddAsync(stockMovement);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(StockMovement stockMovement)
     {
         _db.StockMovements.Update(stockMovement);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(StockMovement stockMovement)
     {
         _db.StockMovements.Remove(stockMovement);
-        await _db.SaveChangesAsync();
     }
 }

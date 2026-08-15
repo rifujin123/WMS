@@ -37,18 +37,15 @@ public class SqlStockAdjustmentRepository : IStockAdjustmentRepository
     public async Task AddAsync(StockAdjustment adjustment)
     {
         await _db.StockAdjustments.AddAsync(adjustment);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(StockAdjustment adjustment)
     {
         _db.StockAdjustments.Update(adjustment);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(StockAdjustment adjustment)
     {
         _db.StockAdjustments.Remove(adjustment);
-        await _db.SaveChangesAsync();
     }
 }

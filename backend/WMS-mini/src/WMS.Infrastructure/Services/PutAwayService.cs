@@ -1,10 +1,8 @@
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Domain.Enums;
-using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
 
@@ -15,16 +13,18 @@ public class PutAwayService : IPutAwayService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
-    private readonly WmsDbContext _db;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
 
     public PutAwayService(
-        IPutAwayTaskRepository repo,
-        IReceivingRepository receivingRepo,
-        IStockRepository stockRepo,
-        IStockMovementRepository movementRepo,
-        ILocationRepository locationRepo,
-        WmsDbContext db,
+        IPutAwayTaskRepository repo, 
+        IReceivingRepository receivingRepo, 
+        IStockRepository stockRepo, 
+        IStockMovementRepository movementRepo, 
+        ILocationRepository locationRepo, 
+        IUnitOfWork unitOfWork, 
+        ICurrentUserService currentUser, 
         IMapper mapper)
     {
         _repo = repo;
@@ -32,7 +32,8 @@ public class PutAwayService : IPutAwayService
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
-        _db = db;
+        _unitOfWork = unitOfWork;
+        _currentUser = currentUser;
         _mapper = mapper;
     }
 
@@ -51,164 +52,121 @@ public class PutAwayService : IPutAwayService
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
-    public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto, Guid userId)
+    public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto)
     {
-        // Kiểm tra dòng nhận hàng gốc tồn tại và không cất vượt số lượng đã nhận
-        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId);
-        if (detail == null)
-            throw new InvalidOperationException("ReceivingDetail not found.");
-
+        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("ReceivingDetail not found.");
         if (dto.Quantity > detail.ActualQuantity)
-            throw new InvalidOperationException(
-                $"Cannot create putaway with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
+            throw new InvalidOperationException($"Cannot create putaway with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
 
         var task = _mapper.Map<PutAwayTask>(dto);
         task.Status = PutAwayTaskStatus.Open;
-        task.CreatedById = userId;
-
         await _repo.AddAsync(task);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
     public async Task<PutAwayTaskDto?> UpdateAsync(Guid id, UpdatePutAwayTaskDto dto)
     {
         var task = await _repo.GetByIdAsync(id);
-        if (task == null)
-            return null;
-
+        if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Open)
             throw new InvalidOperationException($"Cannot update task in '{task.Status}' status. Must be 'Open'.");
 
-        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId);
-        if (detail == null)
-            throw new InvalidOperationException("ReceivingDetail not found.");
-
+        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("ReceivingDetail not found.");
         if (dto.Quantity > detail.ActualQuantity)
-            throw new InvalidOperationException(
-                $"Cannot update task with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
+            throw new InvalidOperationException($"Cannot update task with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
 
         _mapper.Map(dto, task);
         await _repo.UpdateAsync(task);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
         var task = await _repo.GetByIdAsync(id);
-        if (task == null)
-            return false;
-
+        if (task == null) return false;
         if (task.Status != PutAwayTaskStatus.Open)
             throw new InvalidOperationException($"Cannot delete task in '{task.Status}' status. Must be 'Open'.");
 
         await _repo.DeleteAsync(task);
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
-    public async Task<PutAwayTaskDto?> AssignAsync(Guid id, Guid userId)
+    public async Task<PutAwayTaskDto?> AssignAsync(Guid id, Guid assignedToId)
     {
         var task = await _repo.GetByIdAsync(id);
-        if (task == null)
-            return null;
-
+        if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Open)
             throw new InvalidOperationException($"Cannot assign task in '{task.Status}' status. Must be 'Open'.");
 
-        task.AssignToId = userId;
+        task.AssignToId = assignedToId;
+        task.AssignedById = _currentUser.UserId;
+        task.AssignedDate = DateTime.UtcNow;
         task.Status = PutAwayTaskStatus.Assigned;
         await _repo.UpdateAsync(task);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
     public async Task<PutAwayTaskDto?> StartProgressAsync(Guid id)
     {
         var task = await _repo.GetByIdAsync(id);
-        if (task == null)
-            return null;
-
+        if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Assigned)
             throw new InvalidOperationException($"Cannot start task in '{task.Status}' status. Must be 'Assigned'.");
-
         if (task.ToLocationId == null)
             throw new InvalidOperationException("ToLocation must be set before starting putaway.");
 
-        // Kiểm tra sức chứa của vị trí đích
-        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value);
-        if (location == null)
-            throw new InvalidOperationException("Destination location not found.");
-
+        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Destination location not found.");
         if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
-            throw new InvalidOperationException(
-                $"Location '{location.Code}' does not have enough capacity. " +
-                $"Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
+            throw new InvalidOperationException($"Location '{location.Code}' does not have enough capacity. Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
 
         task.Status = PutAwayTaskStatus.InProgress;
+        task.StartedById = _currentUser.UserId;
+        task.StartedDate = DateTime.UtcNow;
         await _repo.UpdateAsync(task);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
     public async Task<PutAwayTaskDto?> CompleteAsync(Guid id)
     {
         var task = await _repo.GetByIdAsync(id);
-        if (task == null)
-            return null;
-
+        if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.InProgress)
             throw new InvalidOperationException($"Cannot complete task in '{task.Status}' status. Must be 'InProgress'.");
-
         if (task.ToLocationId == null)
             throw new InvalidOperationException("ToLocation must be set to complete putaway.");
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
-
-        // Kiểm tra lại sức chứa trước khi cộng dồn — tránh vượt MaxQuantity do các thao tác khác xen vào
-        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value);
-        if (location == null)
-            throw new InvalidOperationException("Destination location not found.");
-
-        if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
-            throw new InvalidOperationException(
-                $"Location '{location.Code}' does not have enough capacity. " +
-                $"Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
-
-        // Cập nhật hoặc tạo mới Stock
-        var stock = await _stockRepo.GetByProductAndLocationAsync(task.ProductId, task.ToLocationId.Value);
-        if (stock == null)
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            stock = new Stock
+            var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Destination location not found.");
+            if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
+                throw new InvalidOperationException($"Location '{location.Code}' does not have enough capacity. Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
+
+            var stock = await _stockRepo.GetByProductAndLocationAsync(task.ProductId, task.ToLocationId.Value);
+            if (stock == null)
             {
-                ProductId = task.ProductId,
-                LocationId = task.ToLocationId.Value,
-                OnhandQty = task.Quantity,
-                ReservedQty = 0
-            };
-            await _stockRepo.AddAsync(stock);
-        }
-        else
-        {
-            stock.OnhandQty += task.Quantity;
-            await _stockRepo.UpdateAsync(stock);
-        }
+                await _stockRepo.AddAsync(new Stock { ProductId = task.ProductId, LocationId = task.ToLocationId.Value, OnhandQty = task.Quantity, ReservedQty = 0 });
+            }
+            else
+            {
+                stock.OnhandQty += task.Quantity;
+                await _stockRepo.UpdateAsync(stock);
+            }
 
-        // Cập nhật số lượng tại vị trí
-        location.CurrentQuantity += task.Quantity;
-        await _locationRepo.UpdateAsync(location);
+            location.CurrentQuantity += task.Quantity;
+            await _locationRepo.UpdateAsync(location);
+            await _movementRepo.AddAsync(new StockMovement { ProductId = task.ProductId, LocationId = task.ToLocationId.Value, MovementType = MovementType.In, Qty = task.Quantity, Notes = $"PutAway completed. TaskId: {task.Id}" });
+            task.Status = PutAwayTaskStatus.Completed;
+            task.CompletedById = _currentUser.UserId;
+            task.CompletedDate = DateTime.UtcNow;
+            await _repo.UpdateAsync(task);
+            await _unitOfWork.SaveChangesAsync();
+        });
 
-        // Ghi nhận StockMovement
-        var movement = new StockMovement
-        {
-            ProductId = task.ProductId,
-            LocationId = task.ToLocationId.Value,
-            MovementType = MovementType.In,
-            Qty = task.Quantity,
-            Notes = $"PutAway completed. TaskId: {task.Id}"
-        };
-        await _movementRepo.AddAsync(movement);
-
-        task.Status = PutAwayTaskStatus.Completed;
-        await _repo.UpdateAsync(task);
-
-        await tx.CommitAsync();
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 }

@@ -39,18 +39,15 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
     public async Task AddAsync(PutAwayTask putAwayTask)
     {
         await _db.PutAwayTasks.AddAsync(putAwayTask);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(PutAwayTask putAwayTask)
     {
         _db.PutAwayTasks.Update(putAwayTask);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(PutAwayTask putAwayTask)
     {
         _db.PutAwayTasks.Remove(putAwayTask);
-        await _db.SaveChangesAsync();
     }
 }

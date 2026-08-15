@@ -11,15 +11,18 @@ public class SaleOrderService : ISaleOrderService
     private readonly ISaleOrderRepository _repo;
     private readonly IProductRepository _productRepo;
     private readonly IMapper _mapper;
+    private readonly IUnitOfWork _unitOfWork;
 
     public SaleOrderService(
         ISaleOrderRepository repo,
         IProductRepository productRepo,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork)
     {
         _repo = repo;
         _productRepo = productRepo;
         _mapper = mapper;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<SaleOrderDto>> GetAllAsync()
@@ -36,7 +39,7 @@ public class SaleOrderService : ISaleOrderService
         return _mapper.Map<SaleOrderDto>(saleOrder);
     }
 
-    public async Task<SaleOrderDto> CreateAsync(CreateSaleOrderDto dto, Guid userId)
+    public async Task<SaleOrderDto> CreateAsync(CreateSaleOrderDto dto)
     {
         ValidateBusinessRules(dto);
         await ValidateProductsExistAsync(dto);
@@ -49,18 +52,17 @@ public class SaleOrderService : ISaleOrderService
         var saleOrder = _mapper.Map<SaleOrder>(dto);
         saleOrder.OrderNo = orderNo;
         saleOrder.Status = SaleOrderStatus.New;
-        saleOrder.CreatedById = userId;
         saleOrder.CreatedDate = createdDate;
 
         foreach (var detail in saleOrder.SaleOrderDetails)
         {
             detail.AllocatedQty = 0;
             detail.Status = SaleOrderDetailStatus.Pending;
-            detail.CreatedById = userId;
             detail.CreatedDate = createdDate;
         }
 
         await _repo.AddAsync(saleOrder);
+        await _unitOfWork.SaveChangesAsync();
         return (await GetByIdAsync(saleOrder.Id))!;
     }
 
@@ -93,11 +95,11 @@ public class SaleOrderService : ISaleOrderService
             detail.SaleOrderId = id;
             detail.AllocatedQty = 0;
             detail.Status = SaleOrderDetailStatus.Pending;
-            detail.CreatedById = saleOrder.CreatedById;
             detail.CreatedDate = DateTime.UtcNow;
         }
 
         await _repo.UpdateAsync(saleOrder);
+        await _unitOfWork.SaveChangesAsync();
         return await GetByIdAsync(id);
     }
 
@@ -112,6 +114,7 @@ public class SaleOrderService : ISaleOrderService
                 $"Cannot delete SaleOrder in '{saleOrder.Status}' status. Must be 'New'.");
 
         await _repo.DeleteAsync(saleOrder);
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 

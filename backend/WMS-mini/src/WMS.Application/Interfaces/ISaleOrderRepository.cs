@@ -11,4 +11,8 @@ public interface ISaleOrderRepository
     Task UpdateAsync(SaleOrder saleOrder);
     Task DeleteAsync(SaleOrder saleOrder);
     Task RemoveDetailsAsync(Guid saleOrderId);
+    Task<SaleOrderDetail?> GetDetailByIdAsync(Guid detailId);
+    Task<List<SaleOrderDetail>> GetDetailsWithOrdersByIdsAsync(List<Guid> detailIds);
+    Task<List<Guid>> GetSaleOrderIdsByPickingsAsync(List<Guid> pickingIds);
+    Task<List<SaleOrder>> GetByIdsAsync(List<Guid> ids);
 }

@@ -9,4 +9,5 @@ public interface IPickingRepository
     Task AddAsync(Picking picking);
     Task UpdateAsync(Picking picking);
     Task DeleteAsync(Picking picking);
+    Task<List<Guid>> GetPickingIdsExceptAsync(Guid excludeId);
 }
