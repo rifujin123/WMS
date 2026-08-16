@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Domain.Enums;
 using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Repositories;
@@ -33,6 +34,7 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
             .Include(t => t.ToLocation)
             .Include(t => t.AssignTo)
             .Include(t => t.ReceivingDetail)
+                .ThenInclude(d => d.Receiving)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
@@ -50,4 +52,9 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
     {
         _db.PutAwayTasks.Remove(putAwayTask);
     }
+
+    public Task<int> GetIncompleteCountByPurchaseOrderAsync(Guid purchaseOrderId) =>
+        _db.PutAwayTasks
+            .Where(t => t.ReceivingDetail.Receiving.PurchaseOrderId == purchaseOrderId)
+            .CountAsync(t => t.Status != PutAwayTaskStatus.Completed);
 }

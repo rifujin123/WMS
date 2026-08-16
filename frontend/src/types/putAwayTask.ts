@@ -14,6 +14,7 @@ export interface PutAwayTaskDto {
   status: PutAwayTaskStatus
   assignToId?: string
   assignToName?: string
+  assignToAvatarUrl?: string
   createdDate: string
 }
 

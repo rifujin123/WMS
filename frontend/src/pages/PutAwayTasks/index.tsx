@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons'
 import {
   App,
+  Avatar,
   Button,
   Card,
   Empty,
@@ -21,6 +22,7 @@ import {
 } from 'antd'
 import type { TableColumnsType } from 'antd'
 import WarehouseLocationGrid from '../../components/WarehouseLocationGrid'
+import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
 import {
   useAssignPutAwayTask,
@@ -32,12 +34,7 @@ import {
 } from '../../hooks/usePutAwayTasks'
 import { useLocationsByWarehouse } from '../../hooks/useLocations'
 import { useWarehouses } from '../../hooks/useWarehouses'
-
-// mock data, chưa nối API lấy danh sách user
-const mockWarehouseStaff: { id: string; fullName: string }[] = [
-  { id: 'u3', fullName: 'Lê Thuỳ Dương' },
-  { id: 'u6', fullName: 'Vũ Hải Đăng' },
-]
+import { useWarehouseStaff } from '../../hooks/useUsers'
 
 const statusLabel: Record<PutAwayTaskStatus, string> = {
   Open: 'Mở',
@@ -57,6 +54,7 @@ function PutAwayTasks() {
   const { message } = App.useApp()
   const { data: tasks, isPending } = usePutAwayTasks()
   const { data: warehouses } = useWarehouses()
+  const { data: warehouseStaff } = useWarehouseStaff()
   const updateMutation = useUpdatePutAwayTask()
   const assignMutation = useAssignPutAwayTask()
   const startMutation = useStartPutAwayTask()
@@ -208,7 +206,14 @@ function PutAwayTasks() {
       title: 'Nhân viên',
       dataIndex: 'assignToName',
       key: 'assignToName',
-      render: (name?: string) => name ?? '—',
+      render: (name: string | undefined, row) =>
+        row.assignToId && name ? (
+          <Avatar.Group size={24}>
+            <Tooltip title={name}>
+              <Avatar src={row.assignToAvatarUrl || DEFAULT_AVATAR_URL} />
+            </Tooltip>
+          </Avatar.Group>
+        ) : '—',
     },
     {
       title: 'Trạng thái',
@@ -250,16 +255,24 @@ function PutAwayTasks() {
             </>
           )}
           {row.status === 'Assigned' && (
-            <Tooltip title="Bắt đầu">
-              <Button
-                type="link"
-                icon={<PlayCircleOutlined />}
-                style={{ paddingInline: 8 }}
-                onClick={() => handleStart(row)}
-              >
-                Bắt đầu
-              </Button>
-            </Tooltip>
+            <>
+              {!row.toLocationId && (
+                <Tooltip title="Đặt vị trí đích">
+                  <Button type="text" icon={<EditOutlined />} onClick={() => openLocModal(row)} />
+                </Tooltip>
+              )}
+              <Tooltip title={row.toLocationId ? 'Bắt đầu' : 'Cần đặt vị trí đích trước khi bắt đầu'}>
+                <Button
+                  type="link"
+                  icon={<PlayCircleOutlined />}
+                  style={{ paddingInline: 8 }}
+                  disabled={!row.toLocationId}
+                  onClick={() => handleStart(row)}
+                >
+                  Bắt đầu
+                </Button>
+              </Tooltip>
+            </>
           )}
           {row.status === 'InProgress' && (
             <Button
@@ -380,7 +393,8 @@ function PutAwayTasks() {
               showSearch
               optionFilterProp="label"
               placeholder="Chọn nhân viên kho"
-              options={mockWarehouseStaff.map((u) => ({ value: u.id, label: u.fullName }))}
+              loading={!warehouseStaff}
+              options={(warehouseStaff ?? []).map((u) => ({ value: u.id, label: u.fullName }))}
             />
           </Form.Item>
         </Form>

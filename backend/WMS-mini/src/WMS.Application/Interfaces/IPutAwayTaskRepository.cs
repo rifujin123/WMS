@@ -9,4 +9,5 @@ public interface IPutAwayTaskRepository
     Task AddAsync(PutAwayTask putAwayTask);
     Task UpdateAsync(PutAwayTask putAwayTask);
     Task DeleteAsync(PutAwayTask putAwayTask);
+    Task<int> GetIncompleteCountByPurchaseOrderAsync(Guid purchaseOrderId);
 }

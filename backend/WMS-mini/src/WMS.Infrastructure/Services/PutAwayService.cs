@@ -10,6 +10,7 @@ public class PutAwayService : IPutAwayService
 {
     private readonly IPutAwayTaskRepository _repo;
     private readonly IReceivingRepository _receivingRepo;
+    private readonly IPurchaseOrderRepository _poRepo;
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
@@ -20,6 +21,7 @@ public class PutAwayService : IPutAwayService
     public PutAwayService(
         IPutAwayTaskRepository repo, 
         IReceivingRepository receivingRepo, 
+        IPurchaseOrderRepository poRepo,
         IStockRepository stockRepo, 
         IStockMovementRepository movementRepo, 
         ILocationRepository locationRepo, 
@@ -29,6 +31,7 @@ public class PutAwayService : IPutAwayService
     {
         _repo = repo;
         _receivingRepo = receivingRepo;
+        _poRepo = poRepo;
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
@@ -69,8 +72,8 @@ public class PutAwayService : IPutAwayService
     {
         var task = await _repo.GetByIdAsync(id);
         if (task == null) return null;
-        if (task.Status != PutAwayTaskStatus.Open)
-            throw new InvalidOperationException($"Cannot update task in '{task.Status}' status. Must be 'Open'.");
+        if (task.Status != PutAwayTaskStatus.Open && task.Status != PutAwayTaskStatus.Assigned)
+            throw new InvalidOperationException($"Cannot update task in '{task.Status}' status. Must be 'Open' or 'Assigned'.");
 
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("ReceivingDetail not found.");
         if (dto.Quantity > detail.ActualQuantity)
@@ -165,6 +168,25 @@ public class PutAwayService : IPutAwayService
             task.CompletedDate = DateTime.UtcNow;
             await _repo.UpdateAsync(task);
             await _unitOfWork.SaveChangesAsync();
+
+            // Auto-close the PO when every put-away task of the purchase order is completed.
+            var purchaseOrderId = task.ReceivingDetail.Receiving?.PurchaseOrderId;
+            if (purchaseOrderId != null)
+            {
+                var incompleteCount = await _repo.GetIncompleteCountByPurchaseOrderAsync(purchaseOrderId.Value);
+                if (incompleteCount == 0)
+                {
+                    var po = await _poRepo.GetByIdAsync(purchaseOrderId.Value);
+                    if (po != null && po.Status == PurchaseOrderStatus.Received)
+                    {
+                        po.Status = PurchaseOrderStatus.Closed;
+                        po.ClosedById = _currentUser.UserId;
+                        po.ClosedDate = DateTime.UtcNow;
+                        await _poRepo.UpdateAsync(po);
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+                }
+            }
         });
 
         return _mapper.Map<PutAwayTaskDto>(task);

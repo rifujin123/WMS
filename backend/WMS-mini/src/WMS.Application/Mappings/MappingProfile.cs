@@ -46,7 +46,8 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.FromLocationCode, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.Code : null))
             .ForMember(d => d.ToLocationCode, o => o.MapFrom(s => s.ToLocation != null ? s.ToLocation.Code : null))
-            .ForMember(d => d.AssignToName, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.UserName : null));
+            .ForMember(d => d.AssignToName, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.FullName : null))
+            .ForMember(d => d.AssignToAvatarUrl, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.AvatarUrl : null));
         CreateMap<CreatePutAwayTaskDto, PutAwayTask>();
         CreateMap<UpdatePutAwayTaskDto, PutAwayTask>();
 

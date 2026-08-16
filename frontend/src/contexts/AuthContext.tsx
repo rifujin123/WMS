@@ -39,8 +39,12 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 
 function getRoleFromToken(token:string): string{
     const payload = decodeJwtPayload(token)
-    if(!payload?.role) return ''
-    return Array.isArray(payload.role) ? String(payload.role[0]) : String(payload.role)
+    if(!payload) return ''
+    // .NET phát JWT lưu role claim dưới URI đầy đủ của ClaimTypes.Role (đã xác minh từ token thật)
+    const raw = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
+        ?? payload.role
+    if(!raw) return ''
+    return (Array.isArray(raw) ? String(raw[0]) : String(raw)).trim()
 }
 
 function getInitialUser(): AuthUser | null{
@@ -55,7 +59,9 @@ function getInitialUser(): AuthUser | null{
         localStorage.removeItem(USER_KEY)
         return null
     }
-    return JSON.parse(saved) as AuthUser
+    const savedUser = JSON.parse(saved) as AuthUser
+    // Refresh role từ token mỗi lần khởi động — sửa trường hợp role bị lưu sai/rỗng trước đó
+    return { ...savedUser, role: getRoleFromToken(token) || savedUser.role }
 }
 
 export function AuthProvider({children}:{children: ReactNode}){

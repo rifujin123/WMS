@@ -24,8 +24,8 @@ public class AuditLogsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{entityType}/{entityId:guid}/status-history")]
-    public async Task<IActionResult> GetStatusHistory(string entityType, Guid entityId)
+    [HttpGet("status-history")]
+    public async Task<IActionResult> GetStatusHistory([FromQuery] string entityType, [FromQuery] Guid entityId)
     {
         var result = await _service.GetStatusHistoryAsync(entityType, entityId);
         return Ok(result);

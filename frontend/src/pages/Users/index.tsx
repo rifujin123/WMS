@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   Avatar,
@@ -7,6 +7,7 @@ import {
   Dropdown,
   Empty,
   Input,
+  Modal,
   Select,
   Table,
   Tag,
@@ -15,8 +16,10 @@ import {
 import type { MenuProps, TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import UserFormModal from './UserFormModal'
-import { useUsers } from '../../hooks/useUsers'
+import ResetPasswordModal from './ResetPasswordModal'
+import { useSetUserLock, useUsers } from '../../hooks/useUsers'
 import type { UserListItem } from '../../types/user'
+import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 
 const roleLabel: Record<UserListItem['role'], string> = {
   Admin: 'Admin',
@@ -32,7 +35,47 @@ const roleColor: Record<UserListItem['role'], string> = {
 
 function Users() {
   const [modalOpen, setModalOpen] = useState(false)
-  const { data: users, isPending, isError } = useUsers()
+  const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [resetUser, setResetUser] = useState<UserListItem | null>(null)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  // Debounce 1s: chỉ gọi API khi người dùng ngừng gõ
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 1000)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const filters = useMemo(() => ({
+    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+    ...(roleFilter && roleFilter !== 'all' ? { role: roleFilter } : {}),
+    ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+  }), [debouncedSearch, roleFilter, statusFilter])
+
+  const { data: users, isPending, isError } = useUsers(filters)
+  const lockMutation = useSetUserLock()
+
+  const handleToggleLock = (row: UserListItem) => {
+    const locked = row.status !== 'locked'
+    Modal.confirm({
+      title: locked ? 'Khoá tài khoản' : 'Mở khoá tài khoản',
+      content: `Bạn chắc chắn muốn ${locked ? 'khoá' : 'mở khoá'} tài khoản "${row.fullName}"?`,
+      okText: locked ? 'Khoá' : 'Mở khoá',
+      okButtonProps: locked ? { danger: true } : undefined,
+      cancelText: 'Huỷ',
+      onOk: () =>
+        lockMutation.mutate(
+          { id: row.id, locked },
+          {
+            onSuccess: () => message.success(locked ? 'Đã khoá tài khoản.' : 'Đã mở khoá tài khoản.'),
+            onError: () => message.error('Thao tác thất bại.'),
+          },
+        ),
+    })
+  }
 
   const actionMenu = (row: UserListItem): MenuProps => ({
     items: [
@@ -44,6 +87,18 @@ function Users() {
         danger: true,
       },
     ],
+    onClick: ({ key }) => {
+      if (key === 'edit') {
+        setEditingUser(row)
+        setEditModalOpen(true)
+      }
+      if (key === 'reset') {
+        setResetUser(row)
+      }
+      if (key === 'lock') {
+        handleToggleLock(row)
+      }
+    },
   })
 
   const columns: TableColumnsType<UserListItem> = [
@@ -53,9 +108,7 @@ function Users() {
       key: 'fullName',
       render: (_, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar style={{ backgroundColor: '#1677FF', flexShrink: 0 }}>
-            {row.fullName.charAt(0)}
-          </Avatar>
+          <Avatar src={row.avatarUrl || DEFAULT_AVATAR_URL} style={{ flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 500 }}>{row.fullName}</div>
             <div style={{ fontSize: 12, color: '#5A6672' }}>@{row.username}</div>
@@ -147,12 +200,16 @@ function Users() {
           prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
           placeholder="Tìm theo tên hoặc tên đăng nhập"
           style={{ width: 280 }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <Select
           placeholder="Vai trò"
-          allowClear
           style={{ width: 180 }}
+          value={roleFilter}
+          onChange={(value) => setRoleFilter(value)}
           options={[
+            { value: 'all', label: 'Tất cả' },
             { value: 'Admin', label: 'Admin' },
             { value: 'WarehouseManager', label: 'Quản lý kho' },
             { value: 'WarehouseStaff', label: 'Nhân viên kho' },
@@ -160,9 +217,11 @@ function Users() {
         />
         <Select
           placeholder="Trạng thái"
-          allowClear
           style={{ width: 150 }}
+          value={statusFilter}
+          onChange={(value) => setStatusFilter(value)}
           options={[
+            { value: 'all', label: 'Tất cả' },
             { value: 'active', label: 'Đang hoạt động' },
             { value: 'locked', label: 'Đã khoá' },
           ]}
@@ -185,7 +244,13 @@ function Users() {
         )}
       </Card>
 
-      <UserFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <UserFormModal open={modalOpen} user={null} onClose={() => setModalOpen(false)} />
+      <UserFormModal
+        open={editModalOpen}
+        user={editingUser}
+        onClose={() => { setEditModalOpen(false); setEditingUser(null) }}
+      />
+      <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} />
     </div>
   )
 }

@@ -52,7 +52,11 @@ export function useCompletePutAwayTask() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: completePutAwayTaskRequest,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] })
+      // Hoàn thành task có thể làm PO chuyển sang Closed
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] })
+    },
   })
 }
 

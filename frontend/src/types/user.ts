@@ -6,6 +6,7 @@ export interface UserListItem {
   username: string
   email: string
   fullName: string
+  avatarUrl?: string
   role: UserRole
   status: UserStatus
   createdAt: string
@@ -29,5 +30,15 @@ export interface UpdateProfileDto {
 
 export interface ChangePasswordDto {
   currentPassword: string
+  newPassword: string
+}
+
+export interface UpdateUserDto {
+  fullName: string
+  email: string
+  role: UserRole
+}
+
+export interface ResetPasswordDto {
   newPassword: string
 }
