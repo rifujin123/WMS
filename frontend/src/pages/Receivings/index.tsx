@@ -4,71 +4,72 @@ import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
-  SearchOutlined,
 } from '@ant-design/icons'
-import { Button, Card, Empty, Input, Table, Tag, Tooltip, Typography } from 'antd'
+import { App, Button, Card, Empty, Input, Modal, Skeleton, Table, Tag, Tooltip, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import { useNavigate } from 'react-router-dom'
 import ReceivingFormModal from './ReceivingFormModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
-
-// TODO: thay mock data bằng API thật — GET /Receivings (useReceivings)
-const mockReceivings: ReceivingDto[] = [
-  {
-    id: '7bd68121-0000-0000-0000-000000000001',
-    purchaseOrderId: 'po-1',
-    poNumber: 'PO-TEST-2026-001',
-    receivedByName: 'Nguyễn Hoài Nam',
-    receivedDate: '2026-08-07T02:49:00',
-    status: 'Draft',
-    notes: '',
-    details: [],
-    createdDate: '2026-08-07T02:49:00',
-  },
-  {
-    id: '4736242b-0000-0000-0000-000000000002',
-    purchaseOrderId: 'po-2',
-    poNumber: 'PO-TEST-2026-002',
-    receivedByName: 'Trần Bảo Khánh',
-    receivedDate: '2026-08-06T10:15:00',
-    status: 'Confirmed',
-    notes: '',
-    details: [],
-    createdDate: '2026-08-06T10:15:00',
-  },
-]
+import {
+  useConfirmReceiving,
+  useDeleteReceiving,
+  useReceivings,
+} from '../../hooks/useReceivings'
 
 function Receivings() {
+  const { message } = App.useApp()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ReceivingDto | null>(null)
   const [search, setSearch] = useState('')
   const navigate = useNavigate()
+  const { data: receivings, isPending, isError } = useReceivings()
+  const confirmMutation = useConfirmReceiving()
+  const deleteMutation = useDeleteReceiving()
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
-    if (!keyword) return mockReceivings
-    return mockReceivings.filter(
-      (r) =>
-        (r.poNumber ?? '').toLowerCase().includes(keyword) ||
-        (r.receivedByName ?? '').toLowerCase().includes(keyword),
+    return (receivings ?? []).filter(
+      (receiving) =>
+        !keyword ||
+        (receiving.poNumber ?? '').toLowerCase().includes(keyword) ||
+        (receiving.receivedByName ?? '').toLowerCase().includes(keyword),
     )
-  }, [search])
+  }, [receivings, search])
 
-  // TODO: xác nhận phiếu — gọi POST /Receivings/{id}/confirm (useConfirmReceiving),
-  // success thì navigate tới chi tiết để xem PutAway tasks đã tự sinh
   const handleConfirm = (row: ReceivingDto) => {
-    void row
+    Modal.confirm({
+      title: 'Xác nhận phiếu nhận',
+      content: `Xác nhận phiếu nhận của PO "${row.poNumber ?? '—'}"? Sau khi xác nhận, phiếu không thể sửa hoặc xóa và phiếu cất sẽ được sinh tự động.`,
+      okText: 'Xác nhận',
+      cancelText: 'Huỷ',
+      onOk: async () => {
+        try {
+          await confirmMutation.mutateAsync(row.id)
+          message.success('Đã xác nhận phiếu nhận.')
+        } catch {
+          message.error('Xác nhận phiếu nhận thất bại.')
+        }
+      },
+    })
   }
 
-  // TODO: xoá phiếu — gọi DELETE /Receivings/{id} (useDeleteReceiving)
   const handleDelete = (row: ReceivingDto) => {
-    void row
-  }
-
-  const openEdit = (row: ReceivingDto) => {
-    setEditing(row)
-    setModalOpen(true)
+    Modal.confirm({
+      title: 'Xoá phiếu nhận',
+      content: `Bạn chắc chắn muốn xoá phiếu nhận của PO "${row.poNumber ?? '—'}"?`,
+      okText: 'Xoá',
+      okButtonProps: { danger: true },
+      cancelText: 'Huỷ',
+      onOk: async () => {
+        try {
+          await deleteMutation.mutateAsync(row.id)
+          message.success('Đã xoá phiếu nhận.')
+        } catch {
+          message.error('Xoá phiếu nhận thất bại.')
+        }
+      },
+    })
   }
 
   const columns: TableColumnsType<ReceivingDto> = [
@@ -118,7 +119,7 @@ function Receivings() {
           {row.status === 'Draft' && (
             <>
               <Tooltip title="Sửa">
-                <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
+                <Button type="text" icon={<EditOutlined />} onClick={() => { setEditing(row); setModalOpen(true) }} />
               </Tooltip>
               <Tooltip title="Xoá">
                 <Button
@@ -167,44 +168,43 @@ function Receivings() {
           type="primary"
           icon={<PlusOutlined />}
           size="large"
-          onClick={() => {
-            setEditing(null)
-            setModalOpen(true)
-          }}
+          onClick={() => { setEditing(null); setModalOpen(true) }}
         >
           Tạo phiếu nhận
         </Button>
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <Input
+        <Input.Search
           allowClear
-          prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
           placeholder="Tìm theo số PO hoặc người nhận"
           style={{ width: 280 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
         />
       </div>
 
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        <Table<ReceivingDto>
-          rowKey="id"
-          columns={columns}
-          dataSource={filtered}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-          scroll={{ x: 720 }}
-          locale={{ emptyText: <Empty image={null} description="Chưa có phiếu nhận nào" /> }}
-        />
+        {isError ? (
+          <Empty image={null} description="Không tải được danh sách phiếu nhận" />
+        ) : isPending ? (
+          <Skeleton active paragraph={{ rows: 5 }} />
+        ) : (
+          <Table<ReceivingDto>
+            rowKey="id"
+            columns={columns}
+            dataSource={filtered}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
+            scroll={{ x: 720 }}
+            locale={{ emptyText: <Empty image={null} description="Chưa có phiếu nhận nào" /> }}
+          />
+        )}
       </Card>
 
       <ReceivingFormModal
         open={modalOpen}
         receiving={editing}
-        onClose={() => {
-          setModalOpen(false)
-          setEditing(null)
-        }}
+        onClose={() => { setModalOpen(false); setEditing(null) }}
       />
     </div>
   )

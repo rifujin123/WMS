@@ -1,12 +1,16 @@
-import { Button, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd'
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { useEffect } from 'react'
+import { App, Button, Col, Empty, Form, Input, InputNumber, Modal, Row, Select, Skeleton, Typography, Upload } from 'antd'
+import type { UploadProps } from 'antd'
+import { DeleteOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
+import { useEffect, useMemo } from 'react'
 import type {
   CreateReceivingDetailDto,
   CreateReceivingDto,
   ProductCondition,
   ReceivingDto,
 } from '../../types/receiving'
+import { useCreateReceiving, useUpdateReceiving } from '../../hooks/useReceivings'
+import { usePurchaseOrders } from '../../hooks/usePurchaseOrders'
+import type { PurchaseOrderDto } from '../../types/purchaseOrder'
 
 interface ReceivingFormModalProps {
   open: boolean
@@ -20,51 +24,104 @@ const conditionOptions: { value: ProductCondition; label: string }[] = [
   { value: 'Missing', label: 'Thiếu' },
 ]
 
-// TODO: thay mock data bằng API thật — GET /PurchaseOrders, chỉ lấy PO status === 'Approved'
-const mockPOOptions = [
-  { value: 'po-1', label: 'PO-TEST-2026-001 — Công ty TNHH Tech Nhập Khẩu' },
-  { value: 'po-2', label: 'PO-TEST-2026-002 — Công ty ABC' },
-]
+const beforeInvoiceUpload: UploadProps['beforeUpload'] = (file) => {
+  const acceptedTypes = ['image/jpeg', 'image/png']
+  if (!acceptedTypes.includes(file.type)) {
+    return Upload.LIST_IGNORE
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return Upload.LIST_IGNORE
+  }
+  return false
+}
 
-// TODO: thay mock data bằng danh sách sản phẩm thuộc PO đã chọn (lấy từ purchaseOrderDetails của PO)
-const mockProductOptions = [
-  { value: 'p-1', label: 'IPH15-128-BLK — iPhone 15 128GB Đen' },
-  { value: 'p-2', label: 'MBP14-M3-512 — MacBook Pro 14 M3 512GB' },
-]
+function getRemainingQuantity(detail: PurchaseOrderDto['purchaseOrderDetails'][number]) {
+  return Math.max(detail.orderedQuantity - detail.receivedQuantity, 0)
+}
 
 function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProps) {
   const [form] = Form.useForm<CreateReceivingDto>()
+  const { message } = App.useApp()
   const isEdit = receiving !== null
+  const { data: purchaseOrders, isPending: purchaseOrdersPending } = usePurchaseOrders()
+  const createMutation = useCreateReceiving()
+  const updateMutation = useUpdateReceiving()
+
+  const approvedPurchaseOrders = useMemo(
+    () =>
+      (purchaseOrders ?? []).filter(
+        (purchaseOrder) =>
+          purchaseOrder.status === 'Approved' || purchaseOrder.id === receiving?.purchaseOrderId,
+      ),
+    [purchaseOrders, receiving?.purchaseOrderId],
+  )
+  const selectedPurchaseOrderId = Form.useWatch('purchaseOrderId', form)
+  const selectedPurchaseOrder = approvedPurchaseOrders.find(
+    (purchaseOrder) => purchaseOrder.id === selectedPurchaseOrderId,
+  )
+  const productOptions = selectedPurchaseOrder?.purchaseOrderDetails.map((detail) => ({
+    value: detail.productId,
+    label: `${detail.productSku} — ${detail.productName}`,
+  }))
 
   useEffect(() => {
-    if (open) {
-      if (receiving) {
-        form.setFieldsValue({
-          purchaseOrderId: receiving.purchaseOrderId,
-          notes: receiving.notes,
-          details: receiving.details.map((d) => ({
-            productId: d.productId,
-            expectedQuantity: d.expectedQuantity,
-            actualQuantity: d.actualQuantity,
-            condition: d.condition,
-          })),
-        })
-      } else {
-        form.resetFields()
-      }
+    if (!open) return
+    if (receiving) {
+      form.setFieldsValue({
+        purchaseOrderId: receiving.purchaseOrderId,
+        notes: receiving.notes,
+        details: receiving.details.map((detail) => ({
+          productId: detail.productId,
+          expectedQuantity: detail.expectedQuantity,
+          actualQuantity: detail.actualQuantity,
+          condition: detail.condition,
+        })),
+      })
+    } else {
+      form.resetFields()
     }
   }, [open, receiving, form])
 
-  // TODO: khi đổi PO — reset danh sách dòng, tự điền expectedQuantity = orderedQuantity từ PO detail
-  const handlePOChange = () => {
-    form.setFieldValue('details', [])
+  const handlePOChange = (purchaseOrderId: string) => {
+    const purchaseOrder = approvedPurchaseOrders.find((item) => item.id === purchaseOrderId)
+    form.setFieldsValue({
+      details: purchaseOrder
+        ? purchaseOrder.purchaseOrderDetails
+            .map((detail) => ({
+              productId: detail.productId,
+              expectedQuantity: getRemainingQuantity(detail),
+              actualQuantity: getRemainingQuantity(detail),
+              condition: 'Ok' as ProductCondition,
+            }))
+            .filter((detail) => detail.actualQuantity > 0)
+        : [],
+    })
   }
 
-  // TODO: submit — gọi POST /Receivings (useCreateReceiving) hoặc PUT /Receivings/{id} (useUpdateReceiving)
   const handleOk = async () => {
     try {
-      await form.validateFields()
-      onClose()
+      const values = await form.validateFields()
+      const dto: CreateReceivingDto = {
+        purchaseOrderId: values.purchaseOrderId,
+        details: values.details.map((detail) => ({
+          ...detail,
+          expectedQuantity: Number(detail.expectedQuantity),
+          actualQuantity: Number(detail.actualQuantity),
+        })),
+        notes: values.notes?.trim() || undefined,
+      }
+      const onSuccess = () => {
+        message.success(isEdit ? 'Đã cập nhật phiếu nhận.' : 'Đã tạo phiếu nhận nháp.')
+        onClose()
+      }
+      const onError = () =>
+        message.error(isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.')
+
+      if (isEdit) {
+        await updateMutation.mutateAsync({ id: receiving.id, dto }, { onSuccess, onError })
+      } else {
+        await createMutation.mutateAsync(dto, { onSuccess, onError })
+      }
     } catch {
       return
     }
@@ -81,6 +138,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       destroyOnHidden
       okText={isEdit ? 'Lưu thay đổi' : 'Tạo phiếu nhận'}
       cancelText="Huỷ"
+      confirmLoading={createMutation.isPending || updateMutation.isPending}
     >
       <Form<CreateReceivingDto>
         form={form}
@@ -99,8 +157,15 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
             placeholder="Chọn PO đã duyệt"
             showSearch
             optionFilterProp="label"
-            options={mockPOOptions}
+            loading={purchaseOrdersPending}
+            options={approvedPurchaseOrders.map((purchaseOrder) => ({
+              value: purchaseOrder.id,
+              label: `${purchaseOrder.poNumber} — ${purchaseOrder.vendorName ?? 'Chưa có nhà cung cấp'}`,
+            }))}
             onChange={handlePOChange}
+            notFoundContent={
+              purchaseOrdersPending ? <Skeleton active paragraph={{ rows: 1 }} /> : <Empty image={null} description="Không có PO đã duyệt" />
+            }
           />
         </Form.Item>
 
@@ -108,18 +173,30 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
           <Input.TextArea rows={2} placeholder="Ghi chú thêm (không bắt buộc)" maxLength={500} />
         </Form.Item>
 
+        <Form.Item label="Ảnh hóa đơn (sẵn sàng cho Scan AI)">
+          <Upload
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+            beforeUpload={beforeInvoiceUpload}
+            maxCount={1}
+            showUploadList
+          >
+            <Button icon={<UploadOutlined />}>Chọn ảnh hóa đơn</Button>
+          </Upload>
+          <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
+            JPG hoặc PNG, tối đa 5MB. Ticket 02b sẽ nối nút này vào AI scan.
+          </Typography.Text>
+        </Form.Item>
+
         <Form.Item label="Danh sách hàng nhận" required>
           <Form.List
             name="details"
-            rules={[
-              {
-                validator: async (_, details: CreateReceivingDetailDto[] | undefined) => {
-                  if (!details || details.length === 0) {
-                    throw new Error('Vui lòng thêm ít nhất một dòng hàng.')
-                  }
-                },
+            rules={[{
+              validator: async (_, details: CreateReceivingDetailDto[] | undefined) => {
+                if (!details || details.length === 0) {
+                  throw new Error('Vui lòng thêm ít nhất một dòng hàng.')
+                }
               },
-            ]}
+            }]}
           >
             {(fields, { add, remove }, { errors }) => (
               <>
@@ -135,14 +212,16 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                           showSearch
                           optionFilterProp="label"
                           placeholder="Sản phẩm"
-                          options={mockProductOptions}
+                          options={productOptions}
+                          disabled={!selectedPurchaseOrder}
+                          notFoundContent={<Empty image={null} description="PO chưa có sản phẩm" />}
                         />
                       </Form.Item>
                     </Col>
                     <Col span={4}>
                       <Form.Item
                         name={[field.name, 'expectedQuantity']}
-                        rules={[{ required: true, message: 'Nhập SL.' }]}
+                        rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
                         style={{ marginBottom: 0 }}
                       >
                         <InputNumber style={{ width: '100%' }} min={1} placeholder="Dự kiến" />
@@ -151,7 +230,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                     <Col span={4}>
                       <Form.Item
                         name={[field.name, 'actualQuantity']}
-                        rules={[{ required: true, message: 'Nhập SL.' }]}
+                        rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
                         style={{ marginBottom: 0 }}
                       >
                         <InputNumber style={{ width: '100%' }} min={1} placeholder="Thực nhận" />
@@ -181,6 +260,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                   type="dashed"
                   block
                   icon={<PlusOutlined />}
+                  disabled={!selectedPurchaseOrder}
                   onClick={() => add({ expectedQuantity: 1, actualQuantity: 1, condition: 'Ok' })}
                 >
                   Thêm dòng hàng

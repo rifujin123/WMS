@@ -1,8 +1,11 @@
-import { Button, Card, Descriptions, Empty, Table, Tag, Typography } from 'antd'
+import { useMemo } from 'react'
+import { Button, Card, Descriptions, Empty, Result, Skeleton, Table, Tag, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useReceiving } from '../../hooks/useReceivings'
+import { usePutAwayTasks } from '../../hooks/usePutAwayTasks'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
 import type { ProductCondition, ReceivingDetailDto } from '../../types/receiving'
 
@@ -32,56 +35,30 @@ const conditionLabel: Record<ProductCondition, string> = {
   Missing: 'Thiếu',
 }
 
-// TODO: thay mock data bằng API thật — GET /Receivings/{id} (useReceiving)
-const mockReceiving = {
-  id: '7bd68121-0000-0000-0000-000000000001',
-  purchaseOrderId: 'po-1',
-  poNumber: 'PO-TEST-2026-001',
-  receivedByName: 'Nguyễn Hoài Nam',
-  receivedDate: '2026-08-07T02:49:00',
-  status: 'Draft' as const,
-  notes: 'Lô hàng về ngày 07/08/2026',
-  details: [
-    {
-      id: 'd-1',
-      receivingId: '7bd68121-0000-0000-0000-000000000001',
-      productId: 'p-1',
-      productSku: 'IPH15-128-BLK',
-      productName: 'iPhone 15 128GB Đen',
-      expectedQuantity: 50,
-      actualQuantity: 50,
-      condition: 'Ok' as ProductCondition,
-    },
-  ],
-  createdDate: '2026-08-07T02:49:00',
-}
-
-// TODO: thay mock data bằng API thật — GET /PutAwayTasks, lọc task có
-// receivingDetailId thuộc các dòng của Receiving hiện tại
-const mockTasks: PutAwayTaskDto[] = [
-  {
-    id: 't-1',
-    receivingDetailId: 'd-1',
-    productId: 'p-1',
-    productSku: 'IPH15-128-BLK',
-    productName: 'iPhone 15 128GB Đen',
-    quantity: 50,
-    toLocationCode: undefined,
-    status: 'Open',
-    createdDate: '2026-08-07T02:49:00',
-  },
-]
-
 function ReceivingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  void id
+  const receivingQuery = useReceiving(id)
+  const putAwayQuery = usePutAwayTasks()
 
-  const receiving = mockReceiving
-  const relatedTasks = mockTasks
+  const receiving = receivingQuery.data
+  const receivingDetailIds = useMemo(
+    () => new Set(receiving?.details.map((detail) => detail.id)),
+    [receiving?.details],
+  )
+  const relatedTasks = useMemo(
+    () => (putAwayQuery.data ?? []).filter((task) => receivingDetailIds.has(task.receivingDetailId)),
+    [putAwayQuery.data, receivingDetailIds],
+  )
 
   const detailColumns: TableColumnsType<ReceivingDetailDto> = [
-    { title: 'SKU', dataIndex: 'productSku', key: 'productSku', width: 140 },
+    {
+      title: 'SKU',
+      dataIndex: 'productSku',
+      key: 'productSku',
+      width: 140,
+      render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
+    },
     { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
     { title: 'Dự kiến', dataIndex: 'expectedQuantity', key: 'expectedQuantity', align: 'right' },
     { title: 'Thực nhận', dataIndex: 'actualQuantity', key: 'actualQuantity', align: 'right' },
@@ -96,14 +73,26 @@ function ReceivingDetail() {
   ]
 
   const taskColumns: TableColumnsType<PutAwayTaskDto> = [
-    { title: 'SKU', dataIndex: 'productSku', key: 'productSku', width: 140 },
+    {
+      title: 'SKU',
+      dataIndex: 'productSku',
+      key: 'productSku',
+      width: 140,
+      render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
+    },
     { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
     { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' },
     {
       title: 'Vị trí đích',
       dataIndex: 'toLocationCode',
       key: 'toLocationCode',
-      render: (code?: string) => (code ? <Tag>{code}</Tag> : <Tag color="red">Chưa set</Tag>),
+      render: (code?: string) => (
+        code ? (
+          <Tag color="blue" style={{ fontFamily: 'monospace' }}>{code}</Tag>
+        ) : (
+          <Tag color="red">Chưa set</Tag>
+        )
+      ),
     },
     {
       title: 'Nhân viên',
@@ -121,7 +110,20 @@ function ReceivingDetail() {
     },
   ]
 
-  // TODO: khi không có dữ liệu (chưa có API) hiện Result 404 với nút quay lại
+  if (receivingQuery.isPending) {
+    return <Skeleton active paragraph={{ rows: 10 }} />
+  }
+
+  if (receivingQuery.isError || !receiving) {
+    return (
+      <Result
+        status="404"
+        title="Không tìm thấy phiếu nhận"
+        subTitle="Phiếu nhận có thể đã bị xoá hoặc bạn không có quyền xem."
+        extra={<Button onClick={() => navigate('/receivings')}>Quay lại danh sách</Button>}
+      />
+    )
+  }
 
   return (
     <div>
@@ -142,9 +144,7 @@ function ReceivingDetail() {
         style={{ marginBottom: 24 }}
       >
         <Descriptions.Item label="Số PO">{receiving.poNumber ?? '—'}</Descriptions.Item>
-        <Descriptions.Item label="Người nhận">
-          {receiving.receivedByName ?? '—'}
-        </Descriptions.Item>
+        <Descriptions.Item label="Người nhận">{receiving.receivedByName ?? '—'}</Descriptions.Item>
         <Descriptions.Item label="Ngày nhận">
           {dayjs(receiving.receivedDate).format('DD/MM/YYYY HH:mm')}
         </Descriptions.Item>
@@ -175,24 +175,30 @@ function ReceivingDetail() {
         PutAway Tasks sinh ra
       </Typography.Title>
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        <Table<PutAwayTaskDto>
-          rowKey="id"
-          columns={taskColumns}
-          dataSource={relatedTasks}
-          pagination={false}
-          locale={{
-            emptyText: (
-              <Empty
-                image={null}
-                description={
-                  receiving.status === 'Draft'
-                    ? 'Phiếu nhận chưa xác nhận nên chưa có task nào.'
-                    : 'Chưa có PutAway task nào.'
-                }
-              />
-            ),
-          }}
-        />
+        {putAwayQuery.isPending ? (
+          <Skeleton active paragraph={{ rows: 3 }} />
+        ) : putAwayQuery.isError ? (
+          <Empty image={null} description="Không tải được danh sách PutAway task" />
+        ) : (
+          <Table<PutAwayTaskDto>
+            rowKey="id"
+            columns={taskColumns}
+            dataSource={relatedTasks}
+            pagination={false}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={null}
+                  description={
+                    receiving.status === 'Draft'
+                      ? 'Phiếu nhận chưa xác nhận nên chưa có task nào.'
+                      : 'Chưa có PutAway task nào.'
+                  }
+                />
+              ),
+            }}
+          />
+        )}
       </Card>
     </div>
   )

@@ -56,6 +56,7 @@ export function useConfirmReceiving() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['receivings'] })
       queryClient.invalidateQueries({ queryKey: ['receiving', id] })
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] })
       // confirm sinh ra PutAwayTasks mới
       queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] })
     },
