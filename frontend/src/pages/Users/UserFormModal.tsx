@@ -1,5 +1,6 @@
 import { Alert, App, Col, Form, Input, Modal, Row, Select } from 'antd'
 import type { RegisterFormValues } from '../../types/auth'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRegister } from '../../hooks/useAuth'
 
 const roleOptions = [
@@ -16,6 +17,7 @@ interface UserFormModalProps {
 function UserFormModal({ open, onClose }: UserFormModalProps) {
   const [form] = Form.useForm<RegisterFormValues>()
   const { message } = App.useApp()
+  const queryClient = useQueryClient()
   const registerMutation = useRegister()
   const handleOk = async () => {
     try  {
@@ -31,6 +33,7 @@ function UserFormModal({ open, onClose }: UserFormModalProps) {
         {
           onSuccess: () => {
             form.resetFields()
+            queryClient.invalidateQueries({ queryKey: ['users'] })
             message.success('Đã tạo tài khoản.')
             onClose()
           },

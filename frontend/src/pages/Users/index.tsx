@@ -15,34 +15,16 @@ import {
 import type { MenuProps, TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import UserFormModal from './UserFormModal'
+import { useUsers } from '../../hooks/useUsers'
+import type { UserListItem } from '../../types/user'
 
-interface UserRow {
-  id: string
-  fullName: string
-  username: string
-  email: string
-  role: 'Admin' | 'WarehouseManager' | 'WarehouseStaff'
-  status: 'active' | 'locked'
-  createdAt: string
-}
-
-// mock data, chưa nối API
-const mockUsers: UserRow[] = [
-  { id: 'u1', fullName: 'Nguyễn Hoài Nam', username: 'hoainam', email: 'hoainam@wms.local', role: 'Admin', status: 'active', createdAt: '2026-07-01' },
-  { id: 'u2', fullName: 'Trần Bảo Khánh', username: 'baokhanh', email: 'baokhanh@wms.local', role: 'WarehouseManager', status: 'active', createdAt: '2026-07-05' },
-  { id: 'u3', fullName: 'Lê Thuỳ Dương', username: 'thuyduong', email: 'thuyduong@wms.local', role: 'WarehouseStaff', status: 'active', createdAt: '2026-07-10' },
-  { id: 'u4', fullName: 'Phạm Quốc Đạt', username: 'quocdat', email: 'quocdat@wms.local', role: 'WarehouseStaff', status: 'locked', createdAt: '2026-07-15' },
-  { id: 'u5', fullName: 'Đỗ Minh Thư', username: 'minhthu', email: 'minhthu@wms.local', role: 'WarehouseManager', status: 'active', createdAt: '2026-07-20' },
-  { id: 'u6', fullName: 'Vũ Hải Đăng', username: 'haidang', email: 'haidang@wms.local', role: 'WarehouseStaff', status: 'active', createdAt: '2026-07-28' },
-]
-
-const roleLabel: Record<UserRow['role'], string> = {
+const roleLabel: Record<UserListItem['role'], string> = {
   Admin: 'Admin',
   WarehouseManager: 'Quản lý kho',
   WarehouseStaff: 'Nhân viên kho',
 }
 
-const roleColor: Record<UserRow['role'], string> = {
+const roleColor: Record<UserListItem['role'], string> = {
   Admin: 'blue',
   WarehouseManager: 'cyan',
   WarehouseStaff: 'default',
@@ -50,10 +32,9 @@ const roleColor: Record<UserRow['role'], string> = {
 
 function Users() {
   const [modalOpen, setModalOpen] = useState(false)
-  // Sẽ dùng làm loading cho Table khi nối API
-  const [loading] = useState(false)
+  const { data: users, isPending, isError } = useUsers()
 
-  const actionMenu = (row: UserRow): MenuProps => ({
+  const actionMenu = (row: UserListItem): MenuProps => ({
     items: [
       { key: 'edit', label: 'Sửa' },
       { key: 'reset', label: 'Đặt lại mật khẩu' },
@@ -65,7 +46,7 @@ function Users() {
     ],
   })
 
-  const columns: TableColumnsType<UserRow> = [
+  const columns: TableColumnsType<UserListItem> = [
     {
       title: 'Người dùng',
       dataIndex: 'fullName',
@@ -87,7 +68,7 @@ function Users() {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      render: (role: UserRow['role']) => (
+      render: (role: UserListItem['role']) => (
         <Tag color={roleColor[role]}>{roleLabel[role]}</Tag>
       ),
     },
@@ -95,7 +76,7 @@ function Users() {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (status: UserRow['status']) =>
+      render: (status: UserListItem['status']) =>
         status === 'active' ? (
           <Tag color="success">Đang hoạt động</Tag>
         ) : (
@@ -189,15 +170,19 @@ function Users() {
       </div>
 
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        <Table<UserRow>
+        {isError ? (
+          <Empty image={null} description="Không tải được danh sách người dùng" />
+        ) : (
+        <Table<UserListItem>
           rowKey="id"
           columns={columns}
-          dataSource={mockUsers}
-          loading={loading}
+          dataSource={users ?? []}
+          loading={isPending}
           pagination={{ pageSize: 8, showSizeChanger: false }}
           scroll={{ x: 720 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có người dùng nào" /> }}
         />
+        )}
       </Card>
 
       <UserFormModal open={modalOpen} onClose={() => setModalOpen(false)} />

@@ -1,3 +1,16 @@
+export type UserRole = 'Admin' | 'WarehouseManager' | 'WarehouseStaff'
+export type UserStatus = 'active' | 'locked'
+
+export interface UserListItem {
+  id: string
+  username: string
+  email: string
+  fullName: string
+  role: UserRole
+  status: UserStatus
+  createdAt: string
+}
+
 export interface UserProfile {
   id: string
   username: string

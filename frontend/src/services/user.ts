@@ -3,8 +3,13 @@ import api from '../lib/axios'
 import type {
   ChangePasswordDto,
   UpdateProfileDto,
+  UserListItem,
   UserProfile,
 } from '../types/user'
+
+export function getUsers(): Promise<UserListItem[]> {
+  return api.get('/Users')
+}
 
 export function getProfile(): Promise<UserProfile> {
   return api.get('/Users/me')

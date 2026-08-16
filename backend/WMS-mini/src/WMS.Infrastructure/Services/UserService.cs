@@ -19,6 +19,30 @@ public class UserService : IUserService
         _imageService = imageService;
     }
 
+    public async Task<List<UserListItemDto>> GetAllAsync()
+    {
+        var users = _userManager.Users.OrderByDescending(u => u.CreatedAt).ToList();
+        var result = new List<UserListItemDto>();
+
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            var isLocked = user.LockoutEnabled && user.LockoutEnd is { } end && end > DateTimeOffset.UtcNow;
+            result.Add(new UserListItemDto
+            {
+                Id = user.Id,
+                Username = user.UserName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
+                FullName = user.FullName,
+                Role = roles.FirstOrDefault() ?? string.Empty,
+                Status = isLocked ? "locked" : "active",
+                CreatedAt = user.CreatedAt,
+            });
+        }
+
+        return result;
+    }
+
     public async Task<UserProfileDto?> GetProfileAsync(Guid userId)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());

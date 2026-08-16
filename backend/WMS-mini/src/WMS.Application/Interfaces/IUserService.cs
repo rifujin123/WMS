@@ -8,4 +8,5 @@ public interface IUserService
     Task<UserProfileDto?> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
     Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto);
     Task<string?> UploadAvatarAsync(Guid userId, Stream fileStream, string fileName);
+    Task<List<UserListItemDto>> GetAllAsync();
 }
