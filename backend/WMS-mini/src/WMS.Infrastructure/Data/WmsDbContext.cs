@@ -90,6 +90,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(p => p.PoNumber)
             .IsUnique();
 
+        modelBuilder.Entity<PurchaseOrderDetail>()
+            .Property(d => d.RowVersion)
+            .IsRowVersion();
+
         modelBuilder.Entity<SaleOrder>()
             .HasIndex(s => s.OrderNo)
             .IsUnique();

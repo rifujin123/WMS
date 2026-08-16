@@ -50,6 +50,8 @@ public class SqlReceivingRepository : IReceivingRepository
 
     public async Task DeleteAsync(Receiving receiving)
     {
+        // Mark details as deleted too because the required FK uses NoAction.
+        _db.ReceivingDetails.RemoveRange(receiving.ReceivingDetails);
         _db.Receivings.Remove(receiving);
     }
 }

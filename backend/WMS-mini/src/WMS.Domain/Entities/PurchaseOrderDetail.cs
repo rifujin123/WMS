@@ -17,4 +17,5 @@ public class PurchaseOrderDetail : BaseAuditableEntity
 
     public int OrderedQuantity { get; set; }
     public int ReceivedQuantity { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }

@@ -56,6 +56,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     [purchaseOrders, receiving?.purchaseOrderId],
   )
   const selectedPurchaseOrderId = Form.useWatch('purchaseOrderId', form)
+  const formDetails = Form.useWatch('details', form)
   const selectedPurchaseOrder = approvedPurchaseOrders.find(
     (purchaseOrder) => purchaseOrder.id === selectedPurchaseOrderId,
   )
@@ -63,6 +64,26 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     value: detail.productId,
     label: `${detail.productSku} — ${detail.productName}`,
   }))
+
+  const getExpectedQuantity = (productId?: string) => {
+    const poDetail = selectedPurchaseOrder?.purchaseOrderDetails.find((item) => item.productId === productId)
+    return poDetail ? getRemainingQuantity(poDetail) : undefined
+  }
+
+  const getQuantityRule = (index: number) => {
+    const detail = formDetails?.[index]
+    const remainingQuantity = getExpectedQuantity(detail?.productId)
+    if (detail?.condition !== 'Ok' || remainingQuantity === undefined) {
+      return { required: true, type: 'number' as const, min: 1, max: undefined, message: 'Nhập SL.' }
+    }
+    return {
+      required: true,
+      type: 'number' as const,
+      min: 1,
+      max: remainingQuantity,
+      message: `Tối đa ${remainingQuantity} theo số lượng còn lại của PO.`,
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -72,7 +93,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
         notes: receiving.notes,
         details: receiving.details.map((detail) => ({
           productId: detail.productId,
-          expectedQuantity: detail.expectedQuantity,
+          expectedQuantity: getExpectedQuantity(detail.productId) ?? detail.expectedQuantity,
           actualQuantity: detail.actualQuantity,
           condition: detail.condition,
         })),
@@ -105,25 +126,20 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
         purchaseOrderId: values.purchaseOrderId,
         details: values.details.map((detail) => ({
           ...detail,
-          expectedQuantity: Number(detail.expectedQuantity),
+          expectedQuantity: getExpectedQuantity(detail.productId) ?? 0,
           actualQuantity: Number(detail.actualQuantity),
         })),
         notes: values.notes?.trim() || undefined,
       }
-      const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật phiếu nhận.' : 'Đã tạo phiếu nhận nháp.')
-        onClose()
-      }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.')
-
       if (isEdit) {
-        await updateMutation.mutateAsync({ id: receiving.id, dto }, { onSuccess, onError })
+        await updateMutation.mutateAsync({ id: receiving.id, dto })
       } else {
-        await createMutation.mutateAsync(dto, { onSuccess, onError })
+        await createMutation.mutateAsync(dto)
       }
+      message.success(isEdit ? 'Đã cập nhật phiếu nhận nháp.' : 'Đã tạo phiếu nhận nháp.')
+      onClose()
     } catch {
-      return
+      message.error(isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.')
     }
   }
 
@@ -200,6 +216,13 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
           >
             {(fields, { add, remove }, { errors }) => (
               <>
+                <Row gutter={8} style={{ marginBottom: 8 }}>
+                  <Col span={8}><Typography.Text type="secondary">Sản phẩm</Typography.Text></Col>
+                  <Col span={4}><Typography.Text type="secondary">Ước tính</Typography.Text></Col>
+                  <Col span={4}><Typography.Text type="secondary">Thực nhận</Typography.Text></Col>
+                  <Col span={4}><Typography.Text type="secondary">Tình trạng</Typography.Text></Col>
+                  <Col span={4} />
+                </Row>
                 {fields.map((field) => (
                   <Row key={field.key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
                     <Col span={8}>
@@ -213,6 +236,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                           optionFilterProp="label"
                           placeholder="Sản phẩm"
                           options={productOptions}
+                           onChange={(productId) => form.setFieldValue(['details', field.name, 'expectedQuantity'], getExpectedQuantity(productId))}
                           disabled={!selectedPurchaseOrder}
                           notFoundContent={<Empty image={null} description="PO chưa có sản phẩm" />}
                         />
@@ -224,16 +248,21 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                         rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
                         style={{ marginBottom: 0 }}
                       >
-                        <InputNumber style={{ width: '100%' }} min={1} placeholder="Dự kiến" />
+                        <InputNumber style={{ width: '100%' }} min={1} disabled placeholder="Dự kiến" />
                       </Form.Item>
                     </Col>
                     <Col span={4}>
                       <Form.Item
                         name={[field.name, 'actualQuantity']}
-                        rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
+                        rules={[getQuantityRule(field.name)]}
                         style={{ marginBottom: 0 }}
                       >
-                        <InputNumber style={{ width: '100%' }} min={1} placeholder="Thực nhận" />
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          min={1}
+                          max={getQuantityRule(field.name).max}
+                          placeholder="Thực nhận"
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={4}>

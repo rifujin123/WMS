@@ -1,21 +1,12 @@
 import { useMemo, useState } from 'react'
-import {
-  CheckCircleOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { CheckCircleOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { App, Button, Card, Empty, Input, Modal, Skeleton, Table, Tag, Tooltip, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import { useNavigate } from 'react-router-dom'
 import ReceivingFormModal from './ReceivingFormModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
-import {
-  useConfirmReceiving,
-  useDeleteReceiving,
-  useReceivings,
-} from '../../hooks/useReceivings'
+import { useConfirmReceiving, useDeleteReceiving, useReceivings } from '../../hooks/useReceivings'
 
 function Receivings() {
   const { message } = App.useApp()
@@ -201,11 +192,13 @@ function Receivings() {
         )}
       </Card>
 
-      <ReceivingFormModal
-        open={modalOpen}
-        receiving={editing}
-        onClose={() => { setModalOpen(false); setEditing(null) }}
-      />
+      {modalOpen && (
+        <ReceivingFormModal
+          open
+          receiving={editing}
+          onClose={() => { setModalOpen(false); setEditing(null) }}
+        />
+      )}
     </div>
   )
 }

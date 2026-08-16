@@ -43,7 +43,7 @@ public class ReceivingsController : ControllerBase
     }
 
     [HttpPost("{id}/confirm")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Confirm([FromRoute] Guid id)
     {
         var result = await _service.ConfirmAsync(id);
@@ -65,7 +65,7 @@ public class ReceivingsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var result = await _service.DeleteAsync(id);

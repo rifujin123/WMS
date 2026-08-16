@@ -67,6 +67,7 @@ public class ReceivingService : IReceivingService
                     poDetail.ReceivedQuantity += detail.ActualQuantity;
                 }
             }
+
             if (po.PurchaseOrderDetails.All(d => d.ReceivedQuantity >= d.OrderedQuantity)) po.Status = PurchaseOrderStatus.Received;
             receiving.Status = ReceivingStatus.Confirmed;
             receiving.ConfirmedById = _currentUser.UserId;
