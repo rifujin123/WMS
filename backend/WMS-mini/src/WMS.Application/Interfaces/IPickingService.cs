@@ -4,7 +4,7 @@ namespace WMS.Application.Interfaces;
 
 public interface IPickingService
 {
-    Task<List<PickingDto>> GetAllAsync();
+    Task<List<PickingDto>> GetAllAsync(Guid? assignToId = null);
     Task<PickingDto?> GetByIdAsync(Guid id);
     Task<PickingDto> CreateAsync(CreatePickingDto dto);
     Task<PickingDto?> AssignAsync(Guid id, Guid assignedToId);

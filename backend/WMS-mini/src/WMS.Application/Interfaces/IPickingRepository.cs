@@ -4,7 +4,7 @@ namespace WMS.Application.Interfaces;
 
 public interface IPickingRepository
 {
-    Task<List<Picking>> GetAllAsync();
+    Task<List<Picking>> GetAllAsync(Guid? assignToId = null);
     Task<Picking?> GetByIdAsync(Guid id);
     Task AddAsync(Picking picking);
     Task UpdateAsync(Picking picking);

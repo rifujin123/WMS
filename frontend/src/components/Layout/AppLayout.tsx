@@ -6,6 +6,7 @@ import {
   DatabaseOutlined,
   DownOutlined,
   EnvironmentOutlined,
+  ExportOutlined,
   FacebookFilled,
   FileTextOutlined,
   InboxOutlined,
@@ -38,6 +39,7 @@ function getMenuItems(roles: string[]): MenuProps['items'] {
         { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
         { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
         { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
+        { key: '/pickings', icon: <ExportOutlined />, label: 'Lấy hàng' },
         { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
     ]
   }
@@ -48,6 +50,7 @@ function getMenuItems(roles: string[]): MenuProps['items'] {
         { key: '/receivings', icon: <InboxOutlined />, label: 'Nhận hàng' },
         { key: '/putaway-tasks', icon: <CarryOutOutlined />, label: 'Cất hàng' },
         { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
+        { key: '/pickings', icon: <ExportOutlined />, label: 'Lấy hàng' },
         { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
     ]
   }

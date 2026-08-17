@@ -16,6 +16,7 @@ import ReceivingDetail from '../pages/Receivings/detail'
 import PutAwayTasks from '../pages/PutAwayTasks'
 import Stocks from '../pages/Stocks'
 import SaleOrders from '../pages/SaleOrders'
+import Pickings from '../pages/Pickings'
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
           { path: 'receivings/:id', element: <ReceivingDetail /> },
           { path: 'putaway-tasks', element: <PutAwayTasks /> },
           { path: 'sale-orders', element: <SaleOrders /> },
+          { path: 'pickings', element: <Pickings /> },
           { path: 'stock', element: <Stocks /> },
           { path: 'warehouses', element: <Warehouses /> },
           { path: 'warehouses/:id/locations', element: <WarehouseLocations /> },

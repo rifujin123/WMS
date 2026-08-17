@@ -83,7 +83,8 @@ public class MappingProfile : Profile
 
         CreateMap<Picking, PickingDto>()
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.Name))
-            .ForMember(d => d.AssignedToName, o => o.MapFrom(s => s.AssignedTo != null ? s.AssignedTo.UserName : null));
+            .ForMember(d => d.AssignedToName, o => o.MapFrom(s => s.AssignedTo != null ? s.AssignedTo.UserName : null))
+            .ForMember(d => d.AssignedToAvatarUrl, o => o.MapFrom(s => s.AssignedTo != null ? s.AssignedTo.AvatarUrl : null));
         CreateMap<CreatePickingDto, Picking>();
         CreateMap<PickingDetail, PickingDetailDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))

@@ -15,16 +15,21 @@ public class SqlPickingRepository : IPickingRepository
         _db = db;
     }
 
-    public async Task<List<Picking>> GetAllAsync()
+    public async Task<List<Picking>> GetAllAsync(Guid? assignToId = null)
     {
-        return await _db.Pickings
+        IQueryable<Picking> pickings = _db.Pickings
             .Include(p => p.Warehouse)
             .Include(p => p.AssignedTo)
             .Include(p => p.PickingDetails)
                 .ThenInclude(d => d.Product)
             .Include(p => p.PickingDetails)
                 .ThenInclude(d => d.Location)
-            .ToListAsync();
+            .AsNoTracking();
+
+        if (assignToId.HasValue)
+            pickings = pickings.Where(p => p.AssignedToId == assignToId.Value);
+
+        return await pickings.ToListAsync();
     }
 
     public async Task<Picking?> GetByIdAsync(Guid id)

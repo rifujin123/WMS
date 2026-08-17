@@ -73,7 +73,7 @@ function StaffDashboard() {
   const { message } = App.useApp()
   const { data: profile } = useProfile()
   const { data: putAwayTasks, isPending: putAwayPending } = usePutAwayTasks()
-  const { data: pickings, isPending: pickingsPending } = usePickings()
+  const { data: pickings, isPending: pickingsPending } = usePickings(undefined, { refetchInterval: 30000 })
   const startMutation = useStartPutAwayTask()
   const completeMutation = useCompletePutAwayTask()
 

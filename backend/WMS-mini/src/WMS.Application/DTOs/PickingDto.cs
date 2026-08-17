@@ -11,6 +11,7 @@ public class PickingDto
     public PickingStatus Status { get; set; }
     public Guid? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
+    public string? AssignedToAvatarUrl { get; set; }
     public DateTime CreatedDate { get; set; }
     public List<PickingDetailDto> Details { get; set; } = new();
 }

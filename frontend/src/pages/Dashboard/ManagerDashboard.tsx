@@ -57,7 +57,7 @@ function ManagerDashboard() {
   const { data: putAwayTasks, isPending: putAwayPending } = usePutAwayTasks(undefined, {
     refetchInterval: 30000,
   })
-  const { data: pickings, isPending: pickingsPending } = usePickings()
+  const { data: pickings, isPending: pickingsPending } = usePickings(undefined, { refetchInterval: 30000 })
   const { data: saleOrders, isPending: saleOrdersPending } = useSaleOrders({ refetchInterval: 30000 })
 
   const totalOnhand = useMemo(

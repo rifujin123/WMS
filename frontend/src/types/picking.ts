@@ -23,6 +23,25 @@ export interface PickingDto {
   status: PickingStatus
   assignedToId?: string
   assignedToName?: string
+  assignedToAvatarUrl?: string
   createdDate: string
   details: PickingDetailDto[]
+}
+
+export interface CreatePickingDto {
+  saleOrderId: string
+  warehouseId: string
+}
+
+export interface AssignPickingDto {
+  userId: string
+}
+
+export interface CompletePickingDetailDto {
+  detailId: string
+  qtyPicked: number
+}
+
+export interface CompletePickingDto {
+  details: CompletePickingDetailDto[]
 }

@@ -37,7 +37,7 @@ public class PickingService : IPickingService
         _mapper = mapper;
     }
 
-    public async Task<List<PickingDto>> GetAllAsync() => _mapper.Map<List<PickingDto>>(await _repo.GetAllAsync());
+    public async Task<List<PickingDto>> GetAllAsync(Guid? assignToId = null) => _mapper.Map<List<PickingDto>>(await _repo.GetAllAsync(assignToId));
 
     public async Task<PickingDto?> GetByIdAsync(Guid id)
     {
@@ -73,7 +73,14 @@ public class PickingService : IPickingService
                     picking.PickingDetails.Add(new PickingDetail { SaleOrderDetailId = sod.Id, ProductId = sod.ProductId, LocationId = stock.LocationId, QtyToPick = qtyToAllocate, QtyPicked = 0, Status = PickingDetailStatus.Pending, CreatedDate = now });
                     if (remaining == 0) break;
                 }
-                if (remaining > 0) throw new InvalidOperationException($"Insufficient stock for product '{sod.Product.Sku}'. Required: {requiredQty}, Available: {requiredQty - remaining}.");
+                if (remaining > 0)
+                {
+                    var available = await _stockRepo.GetAvailableByProductAndWarehouseAsync(sod.ProductId, dto.WarehouseId);
+                    var locations = available.Count > 0
+                        ? $" Available at: {string.Join(", ", available.Select(s => $"{s.Location.Code} ({s.OnhandQty - s.ReservedQty})"))}."
+                        : " No stock in this warehouse.";
+                    throw new InvalidOperationException($"Insufficient stock for product '{sod.Product.Sku}'. Required: {requiredQty}, Available: {requiredQty - remaining}.{locations}");
+                }
                 sod.Status = SaleOrderDetailStatus.Allocated;
             }
             if (picking.PickingDetails.Count == 0) throw new InvalidOperationException("No allocatable lines in this SaleOrder.");
