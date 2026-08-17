@@ -40,9 +40,9 @@ public class PutAwayService : IPutAwayService
         _mapper = mapper;
     }
 
-    public async Task<List<PutAwayTaskDto>> GetAllAsync()
+    public async Task<List<PutAwayTaskDto>> GetAllAsync(Guid? assignToId = null)
     {
-        var tasks = await _repo.GetAllAsync();
+        var tasks = await _repo.GetAllAsync(assignToId);
         return _mapper.Map<List<PutAwayTaskDto>>(tasks);
     }
 

@@ -49,7 +49,9 @@ public class MappingProfile : Profile
             .ForMember(d => d.AssignToName, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.FullName : null))
             .ForMember(d => d.AssignToAvatarUrl, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.AvatarUrl : null));
         CreateMap<CreatePutAwayTaskDto, PutAwayTask>();
-        CreateMap<UpdatePutAwayTaskDto, PutAwayTask>();
+        CreateMap<UpdatePutAwayTaskDto, PutAwayTask>()
+            // Assign chỉ qua endpoint /assign — update (đặt vị trí) không được phép đụng AssignToId
+            .ForMember(d => d.AssignToId, o => o.Ignore());
 
         CreateMap<Stock, StockDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))

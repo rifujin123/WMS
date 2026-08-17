@@ -10,8 +10,15 @@ import {
   updatePutAwayTask as updatePutAwayTaskRequest,
 } from '../services/putAwayTask'
 
-export function usePutAwayTasks() {
-  return useQuery({ queryKey: ['putAwayTasks'], queryFn: getPutAwayTasks })
+export function usePutAwayTasks(
+  params?: { assignToId?: string },
+  options?: { refetchInterval?: number },
+) {
+  return useQuery({
+    queryKey: ['putAwayTasks', params],
+    queryFn: () => getPutAwayTasks(params),
+    ...options,
+  })
 }
 
 export function usePutAwayTask(id: string | undefined) {

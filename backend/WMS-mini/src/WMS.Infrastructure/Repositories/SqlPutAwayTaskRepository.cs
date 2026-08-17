@@ -15,15 +15,20 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         _db = db;
     }
 
-    public async Task<List<PutAwayTask>> GetAllAsync()
+    public async Task<List<PutAwayTask>> GetAllAsync(Guid? assignToId = null)
     {
-        return await _db.PutAwayTasks
+        IQueryable<PutAwayTask> tasks = _db.PutAwayTasks
             .Include(t => t.Product)
             .Include(t => t.FromLocation)
             .Include(t => t.ToLocation)
             .Include(t => t.AssignTo)
             .Include(t => t.ReceivingDetail)
-            .ToListAsync();
+            .AsNoTracking();
+
+        if (assignToId.HasValue)
+            tasks = tasks.Where(t => t.AssignToId == assignToId.Value);
+
+        return await tasks.ToListAsync();
     }
 
     public async Task<PutAwayTask?> GetByIdAsync(Guid id)

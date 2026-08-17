@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
-  PlayCircleOutlined,
   UserAddOutlined,
 } from '@ant-design/icons'
 import {
@@ -35,6 +34,8 @@ import {
 import { useLocationsByWarehouse } from '../../hooks/useLocations'
 import { useWarehouses } from '../../hooks/useWarehouses'
 import { useWarehouseStaff } from '../../hooks/useUsers'
+import { useProfile } from '../../hooks/useUserProfile'
+import { useAuthContext } from '../../contexts/AuthContext'
 
 const statusLabel: Record<PutAwayTaskStatus, string> = {
   Open: 'Mở',
@@ -52,7 +53,13 @@ const statusColor: Record<PutAwayTaskStatus, string> = {
 
 function PutAwayTasks() {
   const { message } = App.useApp()
-  const { data: tasks, isPending } = usePutAwayTasks()
+  const { user } = useAuthContext()
+  const isStaff = user?.role === 'WarehouseStaff'
+  const { data: profile } = useProfile()
+  // Staff chỉ thấy task được giao cho mình (filter theo query assignToId)
+  const { data: tasks, isPending } = usePutAwayTasks(
+    isStaff && profile?.id ? { assignToId: profile.id } : undefined,
+  )
   const { data: warehouses } = useWarehouses()
   const { data: warehouseStaff } = useWarehouseStaff()
   const updateMutation = useUpdatePutAwayTask()
@@ -228,60 +235,74 @@ function PutAwayTasks() {
       width: 200,
       render: (_, row) => (
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {row.status === 'Open' && (
+          {isStaff ? (
             <>
-              <Tooltip title="Đặt vị trí đích">
+              {row.status === 'Assigned' && (
+                <Tooltip
+                  title={row.toLocationId ? 'Bắt đầu' : 'Cần đặt vị trí đích trước khi bắt đầu'}
+                >
+                  <Button
+                    type="primary"
+                    disabled={!row.toLocationId}
+                    onClick={() => handleStart(row)}
+                  >
+                    Bắt đầu
+                  </Button>
+                </Tooltip>
+              )}
+              {row.status === 'InProgress' && (
                 <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => openLocModal(row)}
-                />
-              </Tooltip>
-              <Tooltip title="Phân công nhân viên">
-                <Button
-                  type="text"
-                  icon={<UserAddOutlined />}
-                  onClick={() => openAssignModal(row)}
-                />
-              </Tooltip>
-              <Tooltip title="Xoá">
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDelete(row)}
-                />
-              </Tooltip>
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => handleComplete(row)}
+                >
+                  Hoàn thành
+                </Button>
+              )}
             </>
-          )}
-          {row.status === 'Assigned' && (
+          ) : (
             <>
-              {!row.toLocationId && (
+              {row.status === 'Open' && (
+                <>
+                  <Tooltip title="Đặt vị trí đích">
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => openLocModal(row)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Phân công nhân viên">
+                    <Button
+                      type="text"
+                      icon={<UserAddOutlined />}
+                      onClick={() => openAssignModal(row)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Xoá">
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDelete(row)}
+                    />
+                  </Tooltip>
+                </>
+              )}
+              {row.status === 'Assigned' && !row.toLocationId && (
                 <Tooltip title="Đặt vị trí đích">
                   <Button type="text" icon={<EditOutlined />} onClick={() => openLocModal(row)} />
                 </Tooltip>
               )}
-              <Tooltip title={row.toLocationId ? 'Bắt đầu' : 'Cần đặt vị trí đích trước khi bắt đầu'}>
+              {row.status === 'InProgress' && (
                 <Button
-                  type="link"
-                  icon={<PlayCircleOutlined />}
-                  style={{ paddingInline: 8 }}
-                  disabled={!row.toLocationId}
-                  onClick={() => handleStart(row)}
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => handleComplete(row)}
                 >
-                  Bắt đầu
+                  Hoàn thành
                 </Button>
-              </Tooltip>
+              )}
             </>
-          )}
-          {row.status === 'InProgress' && (
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleComplete(row)}
-            >
-              Hoàn thành
-            </Button>
           )}
         </div>
       ),

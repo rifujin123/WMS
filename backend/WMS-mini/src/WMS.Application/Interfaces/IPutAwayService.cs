@@ -4,7 +4,7 @@ namespace WMS.Application.Interfaces;
 
 public interface IPutAwayService
 {
-    Task<List<PutAwayTaskDto>> GetAllAsync();
+    Task<List<PutAwayTaskDto>> GetAllAsync(Guid? assignToId = null);
     Task<PutAwayTaskDto?> GetByIdAsync(Guid id);
     Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto);
     Task<PutAwayTaskDto?> UpdateAsync(Guid id, UpdatePutAwayTaskDto dto);

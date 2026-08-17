@@ -1,8 +1,8 @@
 import api from '../lib/axios'
 import type { PutAwayTaskDto, UpdatePutAwayTaskDto, AssignPutAwayDto } from '../types/putAwayTask'
 
-export const getPutAwayTasks = (): Promise<PutAwayTaskDto[]> =>
-  api.get('/PutAwayTasks')
+export const getPutAwayTasks = (params?: { assignToId?: string }): Promise<PutAwayTaskDto[]> =>
+  api.get('/PutAwayTasks', { params })
 
 export const getPutAwayTask = (id: string): Promise<PutAwayTaskDto> =>
   api.get(`/PutAwayTasks/${id}`)

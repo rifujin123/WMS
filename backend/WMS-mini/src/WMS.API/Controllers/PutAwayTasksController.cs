@@ -22,9 +22,9 @@ public class PutAwayTasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? assignToId)
     {
-        var result = await _service.GetAllAsync();
+        var result = await _service.GetAllAsync(assignToId);
         return Ok(result);
     }
 
