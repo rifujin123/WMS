@@ -10,17 +10,23 @@ public class SaleOrderService : ISaleOrderService
 {
     private readonly ISaleOrderRepository _repo;
     private readonly IProductRepository _productRepo;
+    private readonly IPickingRepository _pickingRepo;
+    private readonly IStockRepository _stockRepo;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public SaleOrderService(
         ISaleOrderRepository repo,
         IProductRepository productRepo,
+        IPickingRepository pickingRepo,
+        IStockRepository stockRepo,
         IMapper mapper,
         IUnitOfWork unitOfWork)
     {
         _repo = repo;
         _productRepo = productRepo;
+        _pickingRepo = pickingRepo;
+        _stockRepo = stockRepo;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
     }
@@ -115,6 +121,56 @@ public class SaleOrderService : ISaleOrderService
 
         await _repo.DeleteAsync(saleOrder);
         await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> CancelAsync(Guid id)
+    {
+        var saleOrder = await _repo.GetByIdAsync(id);
+        if (saleOrder == null)
+            return false;
+
+        if (saleOrder.Status is not (SaleOrderStatus.New or SaleOrderStatus.Allocated))
+            throw new InvalidOperationException(
+                $"Cannot cancel SaleOrder in '{saleOrder.Status}' status. Must be 'New' or 'Allocated'.");
+
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            if (saleOrder.Status == SaleOrderStatus.Allocated)
+            {
+                var pickings = await _pickingRepo.GetOpenBySaleOrderIdAsync(id);
+                foreach (var picking in pickings)
+                {
+                    foreach (var detail in picking.PickingDetails)
+                    {
+                        if (detail.LocationId != null)
+                        {
+                            var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId.Value);
+                            if (stock != null)
+                            {
+                                stock.ReservedQty -= detail.QtyToPick;
+                                await _stockRepo.UpdateAsync(stock);
+                            }
+                        }
+                        if (detail.SaleOrderDetailId != null)
+                        {
+                            var sod = await _repo.GetDetailByIdAsync(detail.SaleOrderDetailId.Value);
+                            if (sod != null)
+                            {
+                                sod.AllocatedQty -= detail.QtyToPick;
+                                sod.Status = SaleOrderDetailStatus.Pending;
+                            }
+                        }
+                    }
+                    await _pickingRepo.DeleteAsync(picking);
+                }
+            }
+
+            saleOrder.Status = SaleOrderStatus.Cancelled;
+            await _repo.UpdateAsync(saleOrder);
+            await _unitOfWork.SaveChangesAsync();
+        });
+
         return true;
     }
 

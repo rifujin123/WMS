@@ -58,7 +58,7 @@ function ManagerDashboard() {
     refetchInterval: 30000,
   })
   const { data: pickings, isPending: pickingsPending } = usePickings()
-  const { data: saleOrders, isPending: saleOrdersPending } = useSaleOrders()
+  const { data: saleOrders, isPending: saleOrdersPending } = useSaleOrders({ refetchInterval: 30000 })
 
   const totalOnhand = useMemo(
     () => (stocks ?? []).reduce((sum, s) => sum + s.onhandQty, 0),

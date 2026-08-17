@@ -37,6 +37,7 @@ function getMenuItems(roles: string[]): MenuProps['items'] {
         { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
         { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
         { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
+        { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
         { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
     ]
   }
@@ -46,6 +47,7 @@ function getMenuItems(roles: string[]): MenuProps['items'] {
         { key: '/purchase-orders', icon: <FileTextOutlined />, label: 'Đơn đặt hàng' },
         { key: '/receivings', icon: <InboxOutlined />, label: 'Nhận hàng' },
         { key: '/putaway-tasks', icon: <CarryOutOutlined />, label: 'Cất hàng' },
+        { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
         { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
     ]
   }

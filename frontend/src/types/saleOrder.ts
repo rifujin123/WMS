@@ -19,3 +19,15 @@ export interface SaleOrderDto {
   status: SaleOrderStatus
   saleOrderDetails: SaleOrderDetailDto[]
 }
+
+export interface CreateSaleOrderDetailDto {
+  productId: string
+  quantity: number
+}
+
+export interface CreateSaleOrderDto {
+  orderNo: string
+  customerName?: string
+  orderDate: string
+  saleOrderDetails: CreateSaleOrderDetailDto[]
+}

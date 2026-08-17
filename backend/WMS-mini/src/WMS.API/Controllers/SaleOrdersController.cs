@@ -53,4 +53,15 @@ public class SaleOrdersController : ControllerBase
         var deleted = await _service.DeleteAsync(id);
         return deleted ? Ok(new { message = "Deleted successfully" }) : NotFound();
     }
+
+    [HttpPost("{id}/cancel")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> Cancel([FromRoute] Guid id)
+    {
+        var cancelled = await _service.CancelAsync(id);
+        if (!cancelled)
+            return NotFound(new { message = "SaleOrder not found" });
+
+        return Ok(new { message = "Cancelled successfully" });
+    }
 }
