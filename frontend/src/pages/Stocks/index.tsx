@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons'
 import {
   Card,
@@ -25,9 +25,16 @@ import type { StockLocationRow, StockProductRow } from '../../lib/stockLogic'
 
 function Stocks() {
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [warehouseFilter, setWarehouseFilter] = useState<string | undefined>(undefined)
   const [locationFilter, setLocationFilter] = useState<string | undefined>(undefined)
   const [selectedProduct, setSelectedProduct] = useState<StockProductRow | null>(null)
+
+  // Debounce 1s: chỉ lọc khi người dùng ngừng gõ (pattern trang Users)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 1000)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const { data: stocks, isPending } = useStocks()
   const { data: warehouses } = useWarehouses()
@@ -54,8 +61,8 @@ function Stocks() {
 
   const visibleRows = useMemo(() => {
     const byLocation = selectProductsWithStockAtLocation(productRows, stocks ?? [], locationFilter)
-    return searchProductRows(byLocation, search)
-  }, [productRows, stocks, locationFilter, search])
+    return searchProductRows(byLocation, debouncedSearch)
+  }, [productRows, stocks, locationFilter, debouncedSearch])
 
   const selectedLocationRows = useMemo(
     () =>
