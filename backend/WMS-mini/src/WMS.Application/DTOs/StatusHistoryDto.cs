@@ -10,6 +10,7 @@ public class StatusHistoryDto
     public string Action { get; set; } = string.Empty;
     public Guid? ActorUserId { get; set; }
     public string? ActorDisplayName { get; set; }
+    public string? ActorAvatarUrl { get; set; }
     public DateTime OccurredAtUtc { get; set; }
     public string? Notes { get; set; }
     public string? MetadataJson { get; set; }

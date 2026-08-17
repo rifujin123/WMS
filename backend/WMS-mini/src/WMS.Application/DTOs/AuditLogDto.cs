@@ -8,6 +8,7 @@ public class AuditLogDto
     public string Action { get; set; } = string.Empty;
     public Guid? ActorUserId { get; set; }
     public string? ActorDisplayName { get; set; }
+    public string? ActorAvatarUrl { get; set; }
     public DateTime OccurredAtUtc { get; set; }
     public string? OldValuesJson { get; set; }
     public string? NewValuesJson { get; set; }

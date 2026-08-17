@@ -46,4 +46,22 @@ public class SqlAuditLogRepository : IAuditLogRepository
             .OrderByDescending(s => s.OccurredAtUtc)
             .ToListAsync();
     }
+
+    public async Task<List<StatusHistory>> GetStatusHistoriesAsync(StatusHistoryQueryDto query)
+    {
+        IQueryable<StatusHistory> histories = _db.StatusHistories
+            .AsNoTracking()
+            .Include(s => s.ActorUser);
+
+        if (!string.IsNullOrWhiteSpace(query.EntityType))
+            histories = histories.Where(s => s.EntityType == query.EntityType);
+        if (query.FromUtc.HasValue)
+            histories = histories.Where(s => s.OccurredAtUtc >= query.FromUtc.Value);
+        if (query.ToUtc.HasValue)
+            histories = histories.Where(s => s.OccurredAtUtc <= query.ToUtc.Value);
+
+        return await histories
+            .OrderByDescending(s => s.OccurredAtUtc)
+            .ToListAsync();
+    }
 }

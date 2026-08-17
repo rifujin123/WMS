@@ -55,7 +55,14 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code));
-        CreateMap<StockMovement, StockMovementDto>().ReverseMap();
+        CreateMap<StockMovement, StockMovementDto>()
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code))
+            .ForMember(d => d.OccurredAtUtc, o => o.MapFrom(s => s.CreatedDate))
+            .ForMember(d => d.ActorUserId, o => o.MapFrom(s => s.CreatedById))
+            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FullName : null))
+            .ForMember(d => d.ActorAvatarUrl, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.AvatarUrl : null));
 
         CreateMap<StockAdjustment, StockAdjustmentDto>();
         CreateMap<CreateStockAdjustmentDto, StockAdjustment>()
@@ -92,8 +99,10 @@ public class MappingProfile : Profile
         CreateMap<AssociationRule, AssociationRuleDto>().ReverseMap();
 
         CreateMap<AuditLog, AuditLogDto>()
-            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName));
+            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName))
+            .ForMember(d => d.ActorAvatarUrl, o => o.MapFrom(s => s.ActorUser != null ? s.ActorUser.AvatarUrl : null));
         CreateMap<StatusHistory, StatusHistoryDto>()
-            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName));
+            .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName))
+            .ForMember(d => d.ActorAvatarUrl, o => o.MapFrom(s => s.ActorUser != null ? s.ActorUser.AvatarUrl : null));
     }
 }

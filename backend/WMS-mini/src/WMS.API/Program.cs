@@ -123,6 +123,7 @@ builder.Services.AddScoped<IShipmentService, ShipmentService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();

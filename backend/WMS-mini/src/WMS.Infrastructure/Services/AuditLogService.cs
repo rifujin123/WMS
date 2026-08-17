@@ -26,4 +26,10 @@ public class AuditLogService : IAuditLogService
         var items = await _repository.GetStatusHistoryAsync(entityType, entityId);
         return _mapper.Map<List<StatusHistoryDto>>(items);
     }
+
+    public async Task<List<StatusHistoryDto>> GetStatusHistoriesAsync(StatusHistoryQueryDto query)
+    {
+        var items = await _repository.GetStatusHistoriesAsync(query);
+        return _mapper.Map<List<StatusHistoryDto>>(items);
+    }
 }
