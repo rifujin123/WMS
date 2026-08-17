@@ -1,8 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { getStocks, getStocksByLocation } from '../services/stock'
 
-export function useStocks() {
-  return useQuery({ queryKey: ['stocks'], queryFn: getStocks })
+interface StockQueryOptions {
+  refetchInterval?: number
+}
+
+export function useStocks(options?: StockQueryOptions) {
+  return useQuery({ queryKey: ['stocks'], queryFn: getStocks, ...options })
 }
 
 export function useStocksByLocation(locationId: string | undefined) {

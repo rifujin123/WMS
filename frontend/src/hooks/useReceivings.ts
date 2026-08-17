@@ -9,8 +9,8 @@ import {
   updateReceiving as updateReceivingRequest,
 } from '../services/receiving'
 
-export function useReceivings() {
-  return useQuery({ queryKey: ['receivings'], queryFn: getReceivings })
+export function useReceivings(options?: { refetchInterval?: number }) {
+  return useQuery({ queryKey: ['receivings'], queryFn: getReceivings, ...options })
 }
 
 export function useReceiving(id: string | undefined) {
