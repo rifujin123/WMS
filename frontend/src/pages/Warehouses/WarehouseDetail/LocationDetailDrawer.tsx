@@ -1,22 +1,22 @@
 import { useState } from 'react'
-import { Button, Descriptions, Drawer, Modal, Progress, Space, Table, Tag, Typography } from 'antd'
+import {
+  Button,
+  Descriptions,
+  Drawer,
+  Empty,
+  Modal,
+  Progress,
+  Skeleton,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from 'antd'
 import type { TableColumnsType } from 'antd'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import type { LocationDto } from '../../../types/location'
-
-// TODO: thay bằng API GET /Stocks?locationId=... khi backend nối xong — shape giống StockDto backend
-interface MockStockItem {
-  id: string
-  productSku: string
-  productName: string
-  onhandQty: number
-  reservedQty: number
-}
-
-const MOCK_STOCK: MockStockItem[] = [
-  { id: '1', productSku: 'SAM-A55-BLK', productName: 'Điện thoại Samsung A55 (đen)', onhandQty: 4, reservedQty: 1 },
-  { id: '2', productSku: 'IP15-PRO-256', productName: 'iPhone 15 Pro 256GB', onhandQty: 3, reservedQty: 0 },
-]
+import type { StockDto } from '../../../types/stock'
+import { useStocksByLocation } from '../../../hooks/useStocks'
 
 interface LocationDetailDrawerProps {
   location: LocationDto | null
@@ -32,7 +32,7 @@ const progressColor = (ratio: number) => {
   return '#389E0D'
 }
 
-const stockColumns: TableColumnsType<MockStockItem> = [
+const stockColumns: TableColumnsType<StockDto> = [
   {
     title: 'Sản phẩm',
     key: 'product',
@@ -63,11 +63,13 @@ const stockColumns: TableColumnsType<MockStockItem> = [
 
 function LocationDetailDrawer({ location, onClose, onEdit, onDelete }: LocationDetailDrawerProps) {
   const [isDeleting, setIsDeleting] = useState(false)
+  // Nối API thật theo ticket 03 (thay MOCK_STOCK cũ)
+  const { data: stocks, isPending } = useStocksByLocation(location?.id)
 
   if (!location) return null
 
   const ratio = location.maxQuantity > 0 ? location.currentQuantity / location.maxQuantity : 0
-  const totalOnhand = MOCK_STOCK.reduce((sum, item) => sum + item.onhandQty, 0)
+  const totalOnhand = (stocks ?? []).reduce((sum, item) => sum + item.onhandQty, 0)
 
   const handleDeleteClick = () => {
     Modal.confirm({
@@ -143,16 +145,20 @@ function LocationDetailDrawer({ location, onClose, onEdit, onDelete }: LocationD
       <Typography.Title level={5} style={{ marginTop: 24, marginBottom: 12 }}>
         Tồn kho tại vị trí
       </Typography.Title>
-      <Table<MockStockItem>
-        rowKey="id"
-        columns={stockColumns}
-        dataSource={MOCK_STOCK}
-        pagination={false}
-        size="small"
-        locale={{ emptyText: 'Chưa có hàng tại vị trí này' }}
-      />
+      {isPending ? (
+        <Skeleton active paragraph={{ rows: 3 }} />
+      ) : (
+        <Table<StockDto>
+          rowKey="id"
+          columns={stockColumns}
+          dataSource={stocks ?? []}
+          pagination={false}
+          size="small"
+          locale={{ emptyText: <Empty image={null} description="Chưa có hàng tại vị trí này" /> }}
+        />
+      )}
       <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-        Tổng tồn kho: {totalOnhand} — dữ liệu mẫu, chưa nối API thật.
+        Tổng tồn kho: {totalOnhand}
       </Typography.Text>
 
       <Space direction="vertical" style={{ width: '100%', marginTop: 24 }}>

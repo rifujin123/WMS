@@ -4,7 +4,7 @@ import type { RegisterFormValues } from '../../types/auth'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRegister } from '../../hooks/useAuth'
 import { useUpdateUser } from '../../hooks/useUsers'
-import type { UserListItem } from '../../types/user'
+import type { UserListItem, UserRole } from '../../types/user'
 
 const roleOptions = [
   { value: 'WarehouseStaff', label: 'Nhân viên kho' },
@@ -46,7 +46,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
         updateMutation.mutate(
           {
             id: user.id,
-            dto: { fullName: values.fullName, email: values.email, role: values.role },
+            dto: { fullName: values.fullName, email: values.email, role: values.role as UserRole },
           },
           {
             onSuccess: () => {

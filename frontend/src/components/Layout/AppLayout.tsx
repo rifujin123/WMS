@@ -3,6 +3,7 @@ import {
   AppstoreOutlined,
   CarryOutOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   DownOutlined,
   EnvironmentOutlined,
   FacebookFilled,
@@ -35,6 +36,7 @@ function getMenuItems(roles: string[]): MenuProps['items'] {
         { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
         { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
         { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
+        { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
         { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
     ]
   }
@@ -44,6 +46,7 @@ function getMenuItems(roles: string[]): MenuProps['items'] {
         { key: '/purchase-orders', icon: <FileTextOutlined />, label: 'Đơn đặt hàng' },
         { key: '/receivings', icon: <InboxOutlined />, label: 'Nhận hàng' },
         { key: '/putaway-tasks', icon: <CarryOutOutlined />, label: 'Cất hàng' },
+        { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
     ]
   }
   return []

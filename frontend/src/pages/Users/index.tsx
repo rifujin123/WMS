@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
+  App,
   Avatar,
   Button,
   Card,
@@ -57,6 +58,7 @@ function Users() {
 
   const { data: users, isPending, isError } = useUsers(filters)
   const lockMutation = useSetUserLock()
+  const { message } = App.useApp()
 
   const handleToggleLock = (row: UserListItem) => {
     const locked = row.status !== 'locked'
