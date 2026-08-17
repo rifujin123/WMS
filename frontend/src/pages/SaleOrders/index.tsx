@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -28,6 +28,7 @@ import {
   useDeleteSaleOrder,
   useSaleOrders,
 } from '../../hooks/useSaleOrders'
+import { useAuthContext } from '../../contexts/AuthContext'
 
 const statusColor: Record<SaleOrderStatus, string> = {
   New: 'blue',
@@ -59,6 +60,8 @@ function SaleOrders() {
   const { data: saleOrders, isPending } = useSaleOrders()
   const deleteMutation = useDeleteSaleOrder()
   const cancelMutation = useCancelSaleOrder()
+  const { user } = useAuthContext()
+  const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
 
   const filtered = useMemo(() => {
     if (!saleOrders) return []
@@ -144,35 +147,37 @@ function SaleOrders() {
     },
     {
       key: 'actions',
-      width: 110,
+      width: canManage ? 110 : 0,
       render: (_, row) => (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {row.status === 'New' && (
-            <>
-              <Tooltip title="Sửa">
-                <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-              </Tooltip>
-              <Tooltip title="Xoá">
+        canManage ? (
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            {row.status === 'New' && (
+              <>
+                <Tooltip title="Sửa">
+                  <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
+                </Tooltip>
+                <Tooltip title="Xoá">
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDelete(row)}
+                  />
+                </Tooltip>
+              </>
+            )}
+            {canCancel(row.status) && (
+              <Tooltip title="Huỷ đơn">
                 <Button
                   type="text"
                   danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDelete(row)}
+                  icon={<StopOutlined />}
+                  onClick={() => handleCancel(row)}
                 />
               </Tooltip>
-            </>
-          )}
-          {canCancel(row.status) && (
-            <Tooltip title="Huỷ đơn">
-              <Button
-                type="text"
-                danger
-                icon={<StopOutlined />}
-                onClick={() => handleCancel(row)}
-              />
-            </Tooltip>
-          )}
-        </div>
+            )}
+          </div>
+        ) : null
       ),
     },
   ]
@@ -197,17 +202,19 @@ function SaleOrders() {
             Quản lý đơn xuất hàng cho khách.
           </Typography.Text>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={() => {
-            setEditing(null)
-            setModalOpen(true)
-          }}
-        >
-          Tạo đơn bán
-        </Button>
+        {canManage && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="large"
+            onClick={() => {
+              setEditing(null)
+              setModalOpen(true)
+            }}
+          >
+            Tạo đơn bán
+          </Button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>

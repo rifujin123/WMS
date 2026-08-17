@@ -30,7 +30,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         form.setFieldsValue({
           orderNo: saleOrder.orderNo,
           customerName: saleOrder.customerName,
-          orderDate: saleOrder.orderDate,
+          orderDate: dayjs(saleOrder.orderDate),
           saleOrderDetails: saleOrder.saleOrderDetails.map((d) => ({
             productId: d.productId,
             quantity: d.quantity,
@@ -38,7 +38,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         })
       } else {
         form.resetFields()
-        form.setFieldValue('orderDate', dayjs().toISOString())
+        form.setFieldValue('orderDate', dayjs())
       }
     }
   }, [open, saleOrder, form])
@@ -50,14 +50,15 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         ...values,
         orderNo: values.orderNo.trim(),
         customerName: values.customerName?.trim() || undefined,
-        orderDate: values.orderDate,
+        orderDate: (values.orderDate as unknown as dayjs.Dayjs).toISOString(),
       }
       const onSuccess = () => {
         message.success(isEdit ? 'Đã cập nhật đơn bán.' : 'Đã tạo đơn bán.')
         onClose()
       }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật đơn bán thất bại.' : 'Tạo đơn bán thất bại.')
+      const onError = (err: Error) => {
+        message.error(isEdit ? `Cập nhật đơn bán thất bại: ${err.message}` : `Tạo đơn bán thất bại: ${err.message}`)
+      }
       if (isEdit && saleOrder) {
         updateMutation.mutate({ id: saleOrder.id, dto }, { onSuccess, onError })
       } else {
@@ -110,8 +111,6 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
               name="orderDate"
               label="Ngày đặt"
               rules={[{ required: true, message: 'Vui lòng chọn ngày đặt.' }]}
-              getValueFromEvent={(date: dayjs.Dayjs | null) => date?.toISOString()}
-              getValueProps={(value: string) => ({ value: value ? dayjs(value) : null })}
             >
               <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
             </Form.Item>
