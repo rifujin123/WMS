@@ -95,6 +95,7 @@ function Stocks() {
       dataIndex: 'totalOnhand',
       key: 'totalOnhand',
       align: 'right',
+      width: 90,
       sorter: (a, b) => a.totalOnhand - b.totalOnhand,
     },
     {
@@ -102,6 +103,7 @@ function Stocks() {
       dataIndex: 'totalReserved',
       key: 'totalReserved',
       align: 'right',
+      width: 90,
       sorter: (a, b) => a.totalReserved - b.totalReserved,
     },
     {
@@ -109,7 +111,7 @@ function Stocks() {
       dataIndex: 'locationCount',
       key: 'locationCount',
       align: 'right',
-      width: 180,
+      width: 200,
     },
   ]
 
