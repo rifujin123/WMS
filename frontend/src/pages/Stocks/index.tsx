@@ -87,6 +87,7 @@ function Stocks() {
       title: 'Tên sản phẩm',
       dataIndex: 'productName',
       key: 'productName',
+      width: 220,
       sorter: (a, b) => a.productName.localeCompare(b.productName),
     },
     {
@@ -108,7 +109,7 @@ function Stocks() {
       dataIndex: 'locationCount',
       key: 'locationCount',
       align: 'right',
-      width: 140,
+      width: 180,
     },
   ]
 
