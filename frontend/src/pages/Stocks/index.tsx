@@ -74,6 +74,7 @@ function Stocks() {
       title: 'SKU',
       dataIndex: 'productSku',
       key: 'productSku',
+      width: 140,
       sorter: (a, b) => a.productSku.localeCompare(b.productSku),
       defaultSortOrder: 'ascend',
       render: (sku: string) => (
