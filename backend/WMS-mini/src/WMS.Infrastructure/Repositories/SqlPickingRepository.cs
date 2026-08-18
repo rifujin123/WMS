@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Domain.Enums;
 using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Repositories;
@@ -14,31 +15,52 @@ public class SqlPickingRepository : IPickingRepository
         _db = db;
     }
 
-    public async Task<List<Picking>> GetAllAsync()
+    public async Task<List<Picking>> GetAllAsync(Guid? assignToId = null)
     {
-        return await _db.Pickings.ToListAsync();
+        IQueryable<Picking> pickings = _db.Pickings
+            .Include(p => p.Warehouse)
+            .Include(p => p.AssignedTo)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Product)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Location)
+            .AsNoTracking();
+
+        if (assignToId.HasValue)
+            pickings = pickings.Where(p => p.AssignedToId == assignToId.Value);
+
+        return await pickings.ToListAsync();
     }
 
     public async Task<Picking?> GetByIdAsync(Guid id)
     {
-        return await _db.Pickings.FindAsync(id);
+        return await _db.Pickings
+            .Include(p => p.Warehouse)
+            .Include(p => p.AssignedTo)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Product)
+            .Include(p => p.PickingDetails)
+                .ThenInclude(d => d.Location)
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task AddAsync(Picking picking)
     {
         await _db.Pickings.AddAsync(picking);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Picking picking)
     {
         _db.Pickings.Update(picking);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Picking picking)
     {
         _db.Pickings.Remove(picking);
-        await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<Guid>> GetPickingIdsExceptAsync(Guid excludeId)
+    {
+        return await _db.Pickings.Where(p => p.Id != excludeId).Select(p => p.Id).ToListAsync();
     }
 }

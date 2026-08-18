@@ -24,22 +24,27 @@ public class SqlProductRepository : IProductRepository
         return await _db.Products.FindAsync(id);
     }
 
+    public async Task<List<Guid>> GetExistingIdsAsync(List<Guid> productIds)
+    {
+        return await _db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .Select(p => p.Id)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Product product)
     {
         await _db.Products.AddAsync(product);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Product product)
     {
         _db.Products.Update(product);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Product product)
     {
         _db.Products.Remove(product);
-        await _db.SaveChangesAsync();
     }
 
     public async Task<bool> HasReferencesAsync(Guid productId)

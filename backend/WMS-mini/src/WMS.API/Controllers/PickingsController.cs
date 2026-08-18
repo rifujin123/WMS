@@ -1,9 +1,105 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using WMS.Application.DTOs;
+using WMS.Application.Interfaces;
+using WMS.Domain.Entities;
 
 namespace WMS.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class PickingsController : ControllerBase
 {
+    private readonly IPickingService _service;
+    private readonly UserManager<User> _userManager;
+    private readonly ICurrentUserService _currentUser;
+
+    public PickingsController(IPickingService service, UserManager<User> userManager, ICurrentUserService currentUser)
+    {
+        _service = service;
+        _userManager = userManager;
+        _currentUser = currentUser;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] Guid? assignToId)
+    {
+        // WarehouseStaff chỉ thấy phiếu được giao cho mình — không cho phép lọc theo người khác
+        if (_currentUser.IsInRole("WarehouseStaff"))
+            assignToId = _currentUser.UserId;
+
+        var result = await _service.GetAllAsync(assignToId);
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById([FromRoute] Guid id)
+    {
+        var result = await _service.GetByIdAsync(id);
+        if (result == null)
+            return NotFound(new { message = "Picking not found" });
+
+        return Ok(result);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> Create([FromBody] CreatePickingDto dto)
+    {
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> Delete([FromRoute] Guid id)
+    {
+        var deleted = await _service.DeleteAsync(id);
+        if (!deleted)
+            return NotFound(new { message = "Picking not found" });
+
+        return Ok(new { message = "Deleted successfully" });
+    }
+
+    [HttpPost("{id}/assign")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> Assign([FromRoute] Guid id, [FromBody] AssignPickingDto dto)
+    {
+        var target = await _userManager.FindByIdAsync(dto.UserId.ToString());
+        if (target == null)
+            return BadRequest(new { message = "User not found." });
+
+        if (!await _userManager.IsInRoleAsync(target, "WarehouseStaff"))
+            return BadRequest(new { message = "Can only assign to WarehouseStaff." });
+
+        var result = await _service.AssignAsync(id, dto.UserId);
+        if (result == null)
+            return NotFound(new { message = "Picking not found" });
+
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/start")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
+    public async Task<IActionResult> StartProgress([FromRoute] Guid id)
+    {
+        var result = await _service.StartProgressAsync(id);
+        if (result == null)
+            return NotFound(new { message = "Picking not found" });
+
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/complete")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
+    public async Task<IActionResult> Complete([FromRoute] Guid id, [FromBody] CompletePickingDto dto)
+    {
+        var result = await _service.CompleteAsync(id, dto);
+        if (result == null)
+            return NotFound(new { message = "Picking not found" });
+
+        return Ok(result);
+    }
 }

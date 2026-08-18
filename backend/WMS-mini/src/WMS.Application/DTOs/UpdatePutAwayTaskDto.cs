@@ -15,5 +15,4 @@ public class UpdatePutAwayTaskDto
 
     public Guid? FromLocationId { get; set; }
     public Guid? ToLocationId { get; set; }
-    public Guid? AssignToId { get; set; }
 }

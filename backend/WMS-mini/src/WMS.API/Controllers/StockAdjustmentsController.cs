@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -39,10 +38,7 @@ public class StockAdjustmentsController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Create([FromBody] CreateStockAdjustmentDto dto)
     {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.CreateAsync(dto, userId);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
@@ -50,10 +46,7 @@ public class StockAdjustmentsController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Approve([FromRoute] Guid id)
     {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.ApproveAsync(id, userId);
+        var result = await _service.ApproveAsync(id);
         if (result == null)
             return NotFound(new { message = "StockAdjustment not found" });
 

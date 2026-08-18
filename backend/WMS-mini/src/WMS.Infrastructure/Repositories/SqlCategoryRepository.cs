@@ -27,19 +27,16 @@ public class SqlCategoryRepository : ICategoryRepository
     public async Task AddAsync(Category category)
     {
         await _db.Categories.AddAsync(category);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Category category)
     {
         _db.Categories.Update(category);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Category category)
     {
         _db.Categories.Remove(category);
-        await _db.SaveChangesAsync();
     }
 
     public async Task<bool> HasProductsAsync(Guid categoryId)

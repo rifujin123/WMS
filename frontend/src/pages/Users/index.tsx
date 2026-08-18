@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
+  App,
   Avatar,
   Button,
   Card,
   Dropdown,
   Empty,
   Input,
+  Modal,
   Select,
   Table,
   Tag,
@@ -15,34 +17,18 @@ import {
 import type { MenuProps, TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import UserFormModal from './UserFormModal'
+import ResetPasswordModal from './ResetPasswordModal'
+import { useSetUserLock, useUsers } from '../../hooks/useUsers'
+import type { UserListItem } from '../../types/user'
+import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 
-interface UserRow {
-  id: string
-  fullName: string
-  username: string
-  email: string
-  role: 'Admin' | 'WarehouseManager' | 'WarehouseStaff'
-  status: 'active' | 'locked'
-  createdAt: string
-}
-
-// mock data, chưa nối API
-const mockUsers: UserRow[] = [
-  { id: 'u1', fullName: 'Nguyễn Hoài Nam', username: 'hoainam', email: 'hoainam@wms.local', role: 'Admin', status: 'active', createdAt: '2026-07-01' },
-  { id: 'u2', fullName: 'Trần Bảo Khánh', username: 'baokhanh', email: 'baokhanh@wms.local', role: 'WarehouseManager', status: 'active', createdAt: '2026-07-05' },
-  { id: 'u3', fullName: 'Lê Thuỳ Dương', username: 'thuyduong', email: 'thuyduong@wms.local', role: 'WarehouseStaff', status: 'active', createdAt: '2026-07-10' },
-  { id: 'u4', fullName: 'Phạm Quốc Đạt', username: 'quocdat', email: 'quocdat@wms.local', role: 'WarehouseStaff', status: 'locked', createdAt: '2026-07-15' },
-  { id: 'u5', fullName: 'Đỗ Minh Thư', username: 'minhthu', email: 'minhthu@wms.local', role: 'WarehouseManager', status: 'active', createdAt: '2026-07-20' },
-  { id: 'u6', fullName: 'Vũ Hải Đăng', username: 'haidang', email: 'haidang@wms.local', role: 'WarehouseStaff', status: 'active', createdAt: '2026-07-28' },
-]
-
-const roleLabel: Record<UserRow['role'], string> = {
+const roleLabel: Record<UserListItem['role'], string> = {
   Admin: 'Admin',
   WarehouseManager: 'Quản lý kho',
   WarehouseStaff: 'Nhân viên kho',
 }
 
-const roleColor: Record<UserRow['role'], string> = {
+const roleColor: Record<UserListItem['role'], string> = {
   Admin: 'blue',
   WarehouseManager: 'cyan',
   WarehouseStaff: 'default',
@@ -50,10 +36,50 @@ const roleColor: Record<UserRow['role'], string> = {
 
 function Users() {
   const [modalOpen, setModalOpen] = useState(false)
-  // Sẽ dùng làm loading cho Table khi nối API
-  const [loading] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [resetUser, setResetUser] = useState<UserListItem | null>(null)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  const actionMenu = (row: UserRow): MenuProps => ({
+  // Debounce 1s: chỉ gọi API khi người dùng ngừng gõ
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 1000)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const filters = useMemo(() => ({
+    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+    ...(roleFilter && roleFilter !== 'all' ? { role: roleFilter } : {}),
+    ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+  }), [debouncedSearch, roleFilter, statusFilter])
+
+  const { data: users, isPending, isError } = useUsers(filters)
+  const lockMutation = useSetUserLock()
+  const { message } = App.useApp()
+
+  const handleToggleLock = (row: UserListItem) => {
+    const locked = row.status !== 'locked'
+    Modal.confirm({
+      title: locked ? 'Khoá tài khoản' : 'Mở khoá tài khoản',
+      content: `Bạn chắc chắn muốn ${locked ? 'khoá' : 'mở khoá'} tài khoản "${row.fullName}"?`,
+      okText: locked ? 'Khoá' : 'Mở khoá',
+      okButtonProps: locked ? { danger: true } : undefined,
+      cancelText: 'Huỷ',
+      onOk: () =>
+        lockMutation.mutate(
+          { id: row.id, locked },
+          {
+            onSuccess: () => message.success(locked ? 'Đã khoá tài khoản.' : 'Đã mở khoá tài khoản.'),
+            onError: () => message.error('Thao tác thất bại.'),
+          },
+        ),
+    })
+  }
+
+  const actionMenu = (row: UserListItem): MenuProps => ({
     items: [
       { key: 'edit', label: 'Sửa' },
       { key: 'reset', label: 'Đặt lại mật khẩu' },
@@ -63,18 +89,28 @@ function Users() {
         danger: true,
       },
     ],
+    onClick: ({ key }) => {
+      if (key === 'edit') {
+        setEditingUser(row)
+        setEditModalOpen(true)
+      }
+      if (key === 'reset') {
+        setResetUser(row)
+      }
+      if (key === 'lock') {
+        handleToggleLock(row)
+      }
+    },
   })
 
-  const columns: TableColumnsType<UserRow> = [
+  const columns: TableColumnsType<UserListItem> = [
     {
       title: 'Người dùng',
       dataIndex: 'fullName',
       key: 'fullName',
       render: (_, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar style={{ backgroundColor: '#1677FF', flexShrink: 0 }}>
-            {row.fullName.charAt(0)}
-          </Avatar>
+          <Avatar src={row.avatarUrl || DEFAULT_AVATAR_URL} style={{ flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 500 }}>{row.fullName}</div>
             <div style={{ fontSize: 12, color: '#5A6672' }}>@{row.username}</div>
@@ -87,7 +123,7 @@ function Users() {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      render: (role: UserRow['role']) => (
+      render: (role: UserListItem['role']) => (
         <Tag color={roleColor[role]}>{roleLabel[role]}</Tag>
       ),
     },
@@ -95,7 +131,7 @@ function Users() {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (status: UserRow['status']) =>
+      render: (status: UserListItem['status']) =>
         status === 'active' ? (
           <Tag color="success">Đang hoạt động</Tag>
         ) : (
@@ -166,12 +202,16 @@ function Users() {
           prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
           placeholder="Tìm theo tên hoặc tên đăng nhập"
           style={{ width: 280 }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <Select
           placeholder="Vai trò"
-          allowClear
           style={{ width: 180 }}
+          value={roleFilter}
+          onChange={(value) => setRoleFilter(value)}
           options={[
+            { value: 'all', label: 'Tất cả' },
             { value: 'Admin', label: 'Admin' },
             { value: 'WarehouseManager', label: 'Quản lý kho' },
             { value: 'WarehouseStaff', label: 'Nhân viên kho' },
@@ -179,9 +219,11 @@ function Users() {
         />
         <Select
           placeholder="Trạng thái"
-          allowClear
           style={{ width: 150 }}
+          value={statusFilter}
+          onChange={(value) => setStatusFilter(value)}
           options={[
+            { value: 'all', label: 'Tất cả' },
             { value: 'active', label: 'Đang hoạt động' },
             { value: 'locked', label: 'Đã khoá' },
           ]}
@@ -189,18 +231,28 @@ function Users() {
       </div>
 
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        <Table<UserRow>
+        {isError ? (
+          <Empty image={null} description="Không tải được danh sách người dùng" />
+        ) : (
+        <Table<UserListItem>
           rowKey="id"
           columns={columns}
-          dataSource={mockUsers}
-          loading={loading}
-          pagination={{ pageSize: 8, showSizeChanger: false }}
+          dataSource={users ?? []}
+          loading={isPending}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
           scroll={{ x: 720 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có người dùng nào" /> }}
         />
+        )}
       </Card>
 
-      <UserFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <UserFormModal open={modalOpen} user={null} onClose={() => setModalOpen(false)} />
+      <UserFormModal
+        open={editModalOpen}
+        user={editingUser}
+        onClose={() => { setEditModalOpen(false); setEditingUser(null) }}
+      />
+      <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} />
     </div>
   )
 }

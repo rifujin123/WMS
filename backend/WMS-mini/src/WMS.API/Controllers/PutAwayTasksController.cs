@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,17 +14,23 @@ public class PutAwayTasksController : ControllerBase
 {
     private readonly IPutAwayService _service;
     private readonly UserManager<User> _userManager;
+    private readonly ICurrentUserService _currentUser;
 
-    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager)
+    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager, ICurrentUserService currentUser)
     {
         _service = service;
         _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? assignToId)
     {
-        var result = await _service.GetAllAsync();
+        // WarehouseStaff chỉ thấy task được giao cho mình — không cho phép lọc theo người khác
+        if (_currentUser.IsInRole("WarehouseStaff"))
+            assignToId = _currentUser.UserId;
+
+        var result = await _service.GetAllAsync(assignToId);
         return Ok(result);
     }
 
@@ -43,10 +48,7 @@ public class PutAwayTasksController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseManager")]
     public async Task<IActionResult> Create([FromBody] CreatePutAwayTaskDto dto)
     {
-        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
-            return Unauthorized();
-
-        var result = await _service.CreateAsync(dto, userId);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 

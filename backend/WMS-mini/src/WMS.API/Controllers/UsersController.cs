@@ -18,6 +18,41 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    [HttpGet]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> GetAll([FromQuery] string? role, [FromQuery] string? search, [FromQuery] string? status)
+    {
+        var users = await _userService.GetAllAsync(role, search, status);
+        return Ok(users);
+    }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto dto)
+    {
+        var updated = await _userService.UpdateUserAsync(id, dto);
+        if (!updated) return NotFound(new { message = "User not found." });
+        return Ok(new { message = "Updated successfully." });
+    }
+
+    [HttpPost("{id:guid}/reset-password")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordDto dto)
+    {
+        var updated = await _userService.ResetPasswordAsync(id, dto.NewPassword);
+        if (!updated) return NotFound(new { message = "User not found." });
+        return Ok(new { message = "Password reset successfully." });
+    }
+
+    [HttpPatch("{id:guid}/lock")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetLock(Guid id, [FromBody] SetUserLockDto dto)
+    {
+        var updated = await _userService.SetLockAsync(id, dto.Locked);
+        if (!updated) return NotFound(new { message = "User not found." });
+        return Ok(new { message = dto.Locked ? "Account locked." : "Account unlocked." });
+    }
+
     [HttpGet("me")]
     public async Task<IActionResult> GetProfile()
     {

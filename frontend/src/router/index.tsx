@@ -10,6 +10,13 @@ import Profile from '../pages/Profile'
 import Users from '../pages/Users'
 import Warehouses from '../pages/Warehouses'
 import WarehouseLocations from '../pages/Warehouses/WarehouseDetail/locations'
+import PurchaseOrders from '../pages/PurchaseOrders'
+import Receivings from '../pages/Receivings'
+import ReceivingDetail from '../pages/Receivings/detail'
+import PutAwayTasks from '../pages/PutAwayTasks'
+import Stocks from '../pages/Stocks'
+import SaleOrders from '../pages/SaleOrders'
+import Pickings from '../pages/Pickings'
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +34,13 @@ export const router = createBrowserRouter([
           { path: 'dashboard', element: <Dashboard /> },
           { path: 'products', element: <Products /> },
           { path: 'categories', element: <Categories /> },
+          { path: 'purchase-orders', element: <PurchaseOrders /> },
+          { path: 'receivings', element: <Receivings /> },
+          { path: 'receivings/:id', element: <ReceivingDetail /> },
+          { path: 'putaway-tasks', element: <PutAwayTasks /> },
+          { path: 'sale-orders', element: <SaleOrders /> },
+          { path: 'pickings', element: <Pickings /> },
+          { path: 'stock', element: <Stocks /> },
           { path: 'warehouses', element: <Warehouses /> },
           { path: 'warehouses/:id/locations', element: <WarehouseLocations /> },
           { path: 'users', element: <Users /> },

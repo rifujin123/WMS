@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 
-using System.Security.Claims;
 namespace WMS.API.Controllers;
 
 [ApiController]
@@ -39,8 +38,6 @@ public class ProductsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromForm] CreateProductDto dto, [FromForm] IFormFile? file)
     {
-        if(!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
-
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "Vui lòng chọn ảnh sản phẩm." });
 
@@ -54,7 +51,7 @@ public class ProductsController : ControllerBase
         try
         {
             await using var stream = file.OpenReadStream();
-            var result = await _service.CreateAsync(dto, userId, stream, file.FileName);
+            var result = await _service.CreateAsync(dto, stream, file.FileName);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
         catch (Exception ex)

@@ -27,18 +27,16 @@ public class SqlAssociationRuleRepository : IAssociationRuleRepository
     public async Task AddAsync(AssociationRule rule)
     {
         await _db.AssociationRules.AddAsync(rule);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(AssociationRule rule)
     {
         _db.AssociationRules.Update(rule);
-        await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(AssociationRule rule)
+    public Task DeleteAsync(AssociationRule rule)
     {
         _db.AssociationRules.Remove(rule);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 }

@@ -79,9 +79,7 @@ function AvatarCard({ profile }: AvatarCardProps) {
             size={112}
             src={preview || profile.avatarUrl || DEFAULT_AVATAR_URL}
             style={{ fontSize: 40, backgroundColor: '#1677FF' }}
-          >
-            {profile.fullName.charAt(0)}
-          </Avatar>
+          />
           <div
             style={{
               position: 'absolute',

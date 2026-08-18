@@ -17,6 +17,6 @@ public class PutAwayTaskDto
     public PutAwayTaskStatus Status { get; set; }
     public Guid? AssignToId { get; set; }
     public string? AssignToName { get; set; }
-    public Guid? CreatedById { get; set; }
+    public string? AssignToAvatarUrl { get; set; }
     public DateTime CreatedDate { get; set; }
 }

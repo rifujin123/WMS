@@ -8,8 +8,8 @@ import {
   updateWarehouse as updateWarehouseRequest,
 } from '../services/warehouse'
 
-export function useWarehouses() {
-  return useQuery({ queryKey: ['warehouses'], queryFn: getWarehouses })
+export function useWarehouses(options?: { refetchInterval?: number }) {
+  return useQuery({ queryKey: ['warehouses'], queryFn: getWarehouses, ...options })
 }
 
 export function useWarehouse(id: string | undefined) {

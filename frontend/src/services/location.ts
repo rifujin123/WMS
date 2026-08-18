@@ -4,6 +4,9 @@ import type { CreateLocationDto, LocationDto, UpdateLocationDto } from '../types
 export const getLocationsByWarehouse = (warehouseId: string): Promise<LocationDto[]> =>
   api.get('/Locations', { params: { warehouseId } })
 
+export const getAllLocations = (): Promise<LocationDto[]> =>
+  api.get('/Locations')
+
 export const getLocation = (id: string): Promise<LocationDto> =>
   api.get(`/Locations/${id}`)
 

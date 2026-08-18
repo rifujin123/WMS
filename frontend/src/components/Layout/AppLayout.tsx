@@ -1,10 +1,15 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   AppstoreOutlined,
+  CarryOutOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   DownOutlined,
   EnvironmentOutlined,
+  ExportOutlined,
   FacebookFilled,
+  FileTextOutlined,
+  InboxOutlined,
   InstagramFilled,
   LogoutOutlined,
   MailOutlined,
@@ -24,18 +29,40 @@ import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 
 const { Header, Content, Footer, Sider } = Layout
 
-// Menu item map với route thật — thêm mục mới khi làm thêm page
-const menuItems: MenuProps['items'] = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
-  { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
-  { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
-  { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
-]
+// Menu hiển thị theo vai trò người dùng
+function getMenuItems(roles: string[]): MenuProps['items'] {
+  if (roles.includes('Admin')) {
+    return [
+        { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+        { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
+        { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
+        { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
+        { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
+        { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
+        { key: '/pickings', icon: <ExportOutlined />, label: 'Lấy hàng' },
+        { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
+    ]
+  }
+  if (roles.includes('WarehouseManager') || roles.includes('WarehouseStaff')) {
+    return [
+        { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+        { key: '/purchase-orders', icon: <FileTextOutlined />, label: 'Đơn đặt hàng' },
+        { key: '/receivings', icon: <InboxOutlined />, label: 'Nhận hàng' },
+        { key: '/putaway-tasks', icon: <CarryOutOutlined />, label: 'Cất hàng' },
+        { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
+        { key: '/pickings', icon: <ExportOutlined />, label: 'Lấy hàng' },
+        { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
+    ]
+  }
+  return []
+}
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuthContext()
+  // Role được lấy trực tiếp từ JWT (AuthContext decode claim khi login)
+  const roles = user?.role ? [user.role] : []
+  const menuItems = useMemo(() => getMenuItems(roles), [roles])
   const navigate = useNavigate()
   const location = useLocation()
   const {

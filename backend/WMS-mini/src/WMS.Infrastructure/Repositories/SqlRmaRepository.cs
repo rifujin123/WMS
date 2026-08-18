@@ -27,18 +27,15 @@ public class SqlRmaRepository : IRmaRepository
     public async Task AddAsync(Rma rma)
     {
         await _db.Rmas.AddAsync(rma);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Rma rma)
     {
         _db.Rmas.Update(rma);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Rma rma)
     {
         _db.Rmas.Remove(rma);
-        await _db.SaveChangesAsync();
     }
 }

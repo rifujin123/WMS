@@ -178,14 +178,84 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<double>("Lift")
                         .HasColumnType("float");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("AssociationRules", (string)null);
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("AssociationRules");
+                });
+
+            modelBuilder.Entity("WMS.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChangedFieldsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NewValuesJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OldValuesJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequestPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId", "OccurredAtUtc");
+
+                    b.HasIndex("EntityType", "EntityId", "OccurredAtUtc");
+
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Category", b =>
@@ -200,16 +270,35 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("Categories", (string)null);
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Location", b =>
@@ -237,6 +326,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("CurrentQuantity")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Level")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -253,6 +351,12 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -260,9 +364,13 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("UpdatedById");
+
                     b.HasIndex("WarehouseId");
 
-                    b.ToTable("Locations", (string)null);
+                    b.ToTable("Locations");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Picking", b =>
@@ -271,8 +379,20 @@ namespace WMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("AssignedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AssignedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("AssignedToId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CompletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uniqueidentifier");
@@ -280,21 +400,60 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PickingNo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("StartedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignedById");
+
                     b.HasIndex("AssignedToId");
+
+                    b.HasIndex("CompletedById");
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("PickingNo")
+                        .IsUnique();
+
+                    b.HasIndex("StartedById");
+
+                    b.HasIndex("UpdatedById");
+
                     b.HasIndex("WarehouseId");
 
-                    b.ToTable("Pickings", (string)null);
+                    b.ToTable("Pickings");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PickingDetail", b =>
@@ -308,6 +467,15 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<Guid?>("LocationId")
                         .HasColumnType("uniqueidentifier");
@@ -330,9 +498,17 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("LocationId");
 
@@ -342,7 +518,9 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("SaleOrderDetailId");
 
-                    b.ToTable("PickingDetails", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("PickingDetails");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Product", b =>
@@ -360,6 +538,12 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Dimension")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -367,6 +551,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -385,16 +572,26 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("DeletedById");
+
                     b.HasIndex("Sku")
                         .IsUnique();
 
-                    b.ToTable("Products", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrder", b =>
@@ -409,11 +606,26 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("ClosedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ClosedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("PoNumber")
                         .IsRequired()
@@ -423,6 +635,12 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("VendorName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -431,12 +649,18 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("ApprovedById");
 
+                    b.HasIndex("ClosedById");
+
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("PoNumber")
                         .IsUnique();
 
-                    b.ToTable("PurchaseOrders", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("PurchaseOrders");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrderDetail", b =>
@@ -451,6 +675,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<int>("OrderedQuantity")
                         .HasColumnType("int");
 
@@ -463,15 +696,31 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("ReceivedQuantity")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderDetails", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("PurchaseOrderDetails");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PutAwayTask", b =>
@@ -483,14 +732,35 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid?>("AssignToId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("AssignedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AssignedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CompletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("FromLocationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
@@ -501,17 +771,35 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid>("ReceivingDetailId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("StartedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<Guid?>("ToLocationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignToId");
 
+                    b.HasIndex("AssignedById");
+
+                    b.HasIndex("CompletedById");
+
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("FromLocationId");
 
@@ -519,9 +807,13 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("ReceivingDetailId");
 
+                    b.HasIndex("StartedById");
+
                     b.HasIndex("ToLocationId");
 
-                    b.ToTable("PutAwayTasks", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("PutAwayTasks");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Receiving", b =>
@@ -530,11 +822,26 @@ namespace WMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ConfirmedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ConfirmedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -549,18 +856,38 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("ReceivedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ReceivingNo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("ConfirmedById");
+
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("PurchaseOrderId");
 
                     b.HasIndex("ReceivedById");
 
-                    b.ToTable("Receivings", (string)null);
+                    b.HasIndex("ReceivingNo")
+                        .IsUnique();
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("Receivings");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.ReceivingDetail", b =>
@@ -581,8 +908,17 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("ExpectedQuantity")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
@@ -590,15 +926,25 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid>("ReceivingId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ReceivingId");
 
-                    b.ToTable("ReceivingDetails", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("ReceivingDetails");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Rma", b =>
@@ -613,6 +959,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -623,13 +978,23 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("DeletedById");
+
                     b.HasIndex("SaleOrderId");
 
-                    b.ToTable("Rmas", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("Rmas");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.RmaDetail", b =>
@@ -647,8 +1012,17 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Disposition")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
@@ -659,15 +1033,25 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid>("RmaId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("RmaId");
 
-                    b.ToTable("RmaDetails", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("RmaDetails");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrder", b =>
@@ -686,6 +1070,15 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
@@ -694,17 +1087,35 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<Guid?>("PackedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("PackedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("DeletedById");
+
                     b.HasIndex("OrderNo")
                         .IsUnique();
 
-                    b.ToTable("SaleOrders", (string)null);
+                    b.HasIndex("PackedById");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("SaleOrders");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>
@@ -722,6 +1133,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
@@ -734,15 +1154,25 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("SaleOrderId");
 
-                    b.ToTable("SaleOrderDetails", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("SaleOrderDetails");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Shipment", b =>
@@ -761,6 +1191,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("SaleOrderId")
                         .HasColumnType("uniqueidentifier");
 
@@ -771,13 +1210,74 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("SaleOrderId");
+                    b.HasIndex("DeletedById");
 
-                    b.ToTable("Shipments", (string)null);
+                    b.HasIndex("SaleOrderId")
+                        .IsUnique();
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("Shipments");
+                });
+
+            modelBuilder.Entity("WMS.Domain.Entities.StatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId", "OccurredAtUtc");
+
+                    b.HasIndex("EntityType", "EntityId", "OccurredAtUtc");
+
+                    b.ToTable("StatusHistories");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Stock", b =>
@@ -792,6 +1292,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -804,16 +1313,26 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("ReservedQty")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("DeletedById");
+
                     b.HasIndex("LocationId");
+
+                    b.HasIndex("UpdatedById");
 
                     b.HasIndex("ProductId", "LocationId")
                         .IsUnique();
 
-                    b.ToTable("Stocks", (string)null);
+                    b.ToTable("Stocks");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.StockAdjustment", b =>
@@ -839,12 +1358,27 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -855,7 +1389,11 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("StockAdjustments", (string)null);
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("StockAdjustments");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.StockAdjustmentDetail", b =>
@@ -873,6 +1411,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -882,9 +1429,17 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid>("StockAdjustmentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("LocationId");
 
@@ -892,7 +1447,9 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("StockAdjustmentId");
 
-                    b.ToTable("StockAdjustmentDetails", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("StockAdjustmentDetails");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.StockMovement", b =>
@@ -906,6 +1463,15 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uniqueidentifier");
@@ -923,15 +1489,25 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<int>("Qty")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
 
                     b.HasIndex("LocationId");
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("StockMovements", (string)null);
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("StockMovements");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.User", b =>
@@ -1031,10 +1607,25 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -1043,7 +1634,11 @@ namespace WMS.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("Warehouses", (string)null);
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("Warehouses");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -1104,7 +1699,31 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("WMS.Domain.Entities.AuditLog", b =>
+                {
+                    b.HasOne("WMS.Domain.Entities.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ActorUser");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Category", b =>
@@ -1114,7 +1733,21 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Location", b =>
@@ -1122,6 +1755,16 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
@@ -1132,19 +1775,48 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Navigation("CreatedBy");
 
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
+
                     b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Picking", b =>
                 {
+                    b.HasOne("WMS.Domain.Entities.User", "AssignedBy")
+                        .WithMany()
+                        .HasForeignKey("AssignedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.User", "AssignedTo")
                         .WithMany()
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "CompletedBy")
+                        .WithMany()
+                        .HasForeignKey("CompletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "StartedBy")
+                        .WithMany()
+                        .HasForeignKey("StartedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
@@ -1153,9 +1825,19 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.Navigation("AssignedBy");
+
                     b.Navigation("AssignedTo");
 
+                    b.Navigation("CompletedBy");
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("StartedBy");
+
+                    b.Navigation("UpdatedBy");
 
                     b.Navigation("Warehouse");
                 });
@@ -1165,6 +1847,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Location", "Location")
@@ -1189,7 +1876,14 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("SaleOrderDetailId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Location");
 
@@ -1198,6 +1892,8 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("SaleOrderDetail");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Product", b =>
@@ -1213,9 +1909,23 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Category");
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrder", b =>
@@ -1225,14 +1935,35 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("ApprovedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "ClosedBy")
+                        .WithMany()
+                        .HasForeignKey("ClosedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("ApprovedBy");
 
+                    b.Navigation("ClosedBy");
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrderDetail", b =>
@@ -1240,6 +1971,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Product", "Product")
@@ -1254,11 +1990,20 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Product");
 
                     b.Navigation("PurchaseOrder");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PutAwayTask", b =>
@@ -1268,9 +2013,24 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("AssignToId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "AssignedBy")
+                        .WithMany()
+                        .HasForeignKey("AssignedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "CompletedBy")
+                        .WithMany()
+                        .HasForeignKey("CompletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Location", "FromLocation")
@@ -1290,14 +2050,30 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "StartedBy")
+                        .WithMany()
+                        .HasForeignKey("StartedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.Location", "ToLocation")
                         .WithMany()
                         .HasForeignKey("ToLocationId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("AssignTo");
 
+                    b.Navigation("AssignedBy");
+
+                    b.Navigation("CompletedBy");
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("FromLocation");
 
@@ -1305,14 +2081,28 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Navigation("ReceivingDetail");
 
+                    b.Navigation("StartedBy");
+
                     b.Navigation("ToLocation");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Receiving", b =>
                 {
+                    b.HasOne("WMS.Domain.Entities.User", "ConfirmedBy")
+                        .WithMany()
+                        .HasForeignKey("ConfirmedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.PurchaseOrder", "PurchaseOrder")
@@ -1326,11 +2116,22 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("ReceivedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ConfirmedBy");
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("PurchaseOrder");
 
                     b.Navigation("ReceivedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.ReceivingDetail", b =>
@@ -1338,6 +2139,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Product", "Product")
@@ -1352,11 +2158,20 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Product");
 
                     b.Navigation("Receiving");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Rma", b =>
@@ -1366,15 +2181,29 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.SaleOrder", "SaleOrder")
                         .WithMany("Rmas")
                         .HasForeignKey("SaleOrderId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
 
+                    b.Navigation("DeletedBy");
+
                     b.Navigation("SaleOrder");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.RmaDetail", b =>
@@ -1382,6 +2211,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Product", "Product")
@@ -1396,11 +2230,20 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Product");
 
                     b.Navigation("Rma");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrder", b =>
@@ -1410,7 +2253,28 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "PackedBy")
+                        .WithMany()
+                        .HasForeignKey("PackedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("PackedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>
@@ -1418,6 +2282,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Product", "Product")
@@ -1432,11 +2301,20 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Product");
 
                     b.Navigation("SaleOrder");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Shipment", b =>
@@ -1446,15 +2324,39 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("WMS.Domain.Entities.SaleOrder", "SaleOrder")
-                        .WithMany("Shipments")
-                        .HasForeignKey("SaleOrderId")
+                        .WithOne("Shipment")
+                        .HasForeignKey("WMS.Domain.Entities.Shipment", "SaleOrderId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
 
+                    b.Navigation("DeletedBy");
+
                     b.Navigation("SaleOrder");
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("WMS.Domain.Entities.StatusHistory", b =>
+                {
+                    b.HasOne("WMS.Domain.Entities.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ActorUser");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Stock", b =>
@@ -1462,6 +2364,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Location", "Location")
@@ -1476,11 +2383,20 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Location");
 
                     b.Navigation("Product");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.StockAdjustment", b =>
@@ -1495,9 +2411,23 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("ApprovedBy");
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.StockAdjustmentDetail", b =>
@@ -1505,6 +2435,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Location", "Location")
@@ -1525,13 +2460,22 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Location");
 
                     b.Navigation("Product");
 
                     b.Navigation("StockAdjustment");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.StockMovement", b =>
@@ -1539,6 +2483,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("WMS.Domain.Entities.Location", "Location")
@@ -1553,11 +2502,20 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
 
                     b.Navigation("Location");
 
                     b.Navigation("Product");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Warehouse", b =>
@@ -1567,7 +2525,21 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Category", b =>
@@ -1608,7 +2580,7 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Navigation("SaleOrderDetails");
 
-                    b.Navigation("Shipments");
+                    b.Navigation("Shipment");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>

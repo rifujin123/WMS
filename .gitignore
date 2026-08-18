@@ -11,6 +11,8 @@
 project.lock.json
 project.fragment.lock.json
 artifacts/
+.vscode/
+./backend/WMS-mini/TESTING_PICKING.md
 
 ## Sensitive config
 **/appsettings.Development.json

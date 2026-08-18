@@ -9,11 +9,13 @@ public class LocationService : ILocationService
 {
     private readonly ILocationRepository _repo;
     private readonly IMapper _mapper;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public LocationService(ILocationRepository repo, IMapper mapper)
+    public LocationService(ILocationRepository repo, IMapper mapper, IUnitOfWork unitOfWork)
     {
         _repo = repo;
         _mapper = mapper;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<LocationDto>> GetAllAsync()
@@ -35,15 +37,15 @@ public class LocationService : ILocationService
         return _mapper.Map<List<LocationDto>>(locations);
     }
 
-    public async Task<LocationDto> CreateAsync(CreateLocationDto dto, Guid userId)
+    public async Task<LocationDto> CreateAsync(CreateLocationDto dto)
     {
         var existing = await _repo.GetByWarehouseAndCodeAsync(dto.WarehouseId, dto.Code);
         if (existing != null)
             throw new InvalidOperationException("Location code already exists in this warehouse.");
 
         var location = _mapper.Map<Location>(dto);
-        location.CreatedById = userId;
         await _repo.AddAsync(location);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<LocationDto>(location);
     }
 
@@ -61,6 +63,7 @@ public class LocationService : ILocationService
 
         _mapper.Map(dto, location);
         await _repo.UpdateAsync(location);
+        await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<LocationDto>(location);
     }
 
@@ -73,6 +76,7 @@ public class LocationService : ILocationService
             throw new InvalidOperationException("Cannot delete location that has stock.");
 
         await _repo.DeleteAsync(location);
+        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 }

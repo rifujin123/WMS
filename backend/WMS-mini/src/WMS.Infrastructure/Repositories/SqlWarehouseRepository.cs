@@ -32,18 +32,15 @@ public class SqlWarehouseRepository : IWarehouseRepository
     public async Task AddAsync(Warehouse warehouse)
     {
         await _db.Warehouses.AddAsync(warehouse);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Warehouse warehouse)
     {
         _db.Warehouses.Update(warehouse);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Warehouse warehouse)
     {
         _db.Warehouses.Remove(warehouse);
-        await _db.SaveChangesAsync();
     }
 }

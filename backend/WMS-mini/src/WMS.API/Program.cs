@@ -88,6 +88,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
 
 // Cloudinary (dùng chung 1 instance, thread-safe)
 var cloudName = builder.Configuration["Cloudinary:CloudName"];
@@ -111,10 +112,18 @@ builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IPutAwayService, PutAwayService>();
 builder.Services.AddScoped<IReceivingService, ReceivingService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
+builder.Services.AddScoped<ISaleOrderService, SaleOrderService>();
+builder.Services.AddScoped<IPickingService, PickingService>();
+builder.Services.AddScoped<IShipmentService, ShipmentService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();
@@ -132,6 +141,7 @@ builder.Services.AddScoped<IShipmentRepository, SqlShipmentRepository>();
 builder.Services.AddScoped<IRmaRepository, SqlRmaRepository>();
 builder.Services.AddScoped<IAssociationRuleRepository, SqlAssociationRuleRepository>();
 builder.Services.AddScoped<IStockAdjustmentRepository, SqlStockAdjustmentRepository>();
+builder.Services.AddScoped<IAuditLogRepository, SqlAuditLogRepository>();
 
 var app = builder.Build();
 

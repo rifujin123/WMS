@@ -7,7 +7,7 @@ public interface ILocationService
     Task<List<LocationDto>> GetAllAsync();
     Task<LocationDto?> GetByIdAsync(Guid id);
     Task<List<LocationDto>> GetByWarehouseAsync(Guid warehouseId);
-    Task<LocationDto> CreateAsync(CreateLocationDto dto, Guid userId);
+    Task<LocationDto> CreateAsync(CreateLocationDto dto);
     Task<LocationDto?> UpdateAsync(Guid id, UpdateLocationDto dto);
     Task<bool> DeleteAsync(Guid id);
 }

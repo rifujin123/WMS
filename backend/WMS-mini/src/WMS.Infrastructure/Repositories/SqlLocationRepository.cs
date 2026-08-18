@@ -34,19 +34,16 @@ public class SqlLocationRepository : ILocationRepository
     public async Task AddAsync(Location location)
     {
         await _db.Locations.AddAsync(location);
-        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Location location)
     {
         _db.Locations.Update(location);
-        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Location location)
     {
         _db.Locations.Remove(location);
-        await _db.SaveChangesAsync();
     }
 
     public async Task<bool> HasStockAsync(Guid locationId)

@@ -18,6 +18,10 @@ public class PurchaseOrder : BaseAuditableEntity
     public User? ApprovedBy { get; set; }
     public DateTime? ApprovedDate { get; set; }
 
+    public Guid? ClosedById { get; set; }
+    public User? ClosedBy { get; set; }
+    public DateTime? ClosedDate { get; set; }
+
     public ICollection<PurchaseOrderDetail> PurchaseOrderDetails { get; set; } = new List<PurchaseOrderDetail>();
     public ICollection<Receiving> Receivings { get; set; } = new List<Receiving>();
 }

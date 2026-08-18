@@ -3,6 +3,7 @@ import type { UpdateLocationDto } from '../types/location'
 import {
   createLocation as createLocationRequest,
   deleteLocation as deleteLocationRequest,
+  getAllLocations,
   getLocationsByWarehouse,
   updateLocation as updateLocationRequest,
 } from '../services/location'
@@ -15,14 +16,20 @@ export function useLocationsByWarehouse(warehouseId: string | undefined) {
   })
 }
 
+export function useAllLocations(options?: { refetchInterval?: number }) {
+  return useQuery({ queryKey: ['allLocations'], queryFn: getAllLocations, ...options })
+}
+
 export function useCreateLocation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createLocationRequest,
     onSuccess: (location) =>
       queryClient.invalidateQueries({ queryKey: ['locations', location.warehouseId] }),
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Tạo vị trí thất bại'
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Tạo vị trí thất bại'
       throw new Error(message)
     },
   })
@@ -35,8 +42,10 @@ export function useUpdateLocation() {
       updateLocationRequest(id, dto),
     onSuccess: (location) =>
       queryClient.invalidateQueries({ queryKey: ['locations', location.warehouseId] }),
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Sửa vị trí thất bại'
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Sửa vị trí thất bại'
       throw new Error(message)
     },
   })
@@ -47,8 +56,10 @@ export function useDeleteLocation() {
   return useMutation({
     mutationFn: deleteLocationRequest,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['locations'] }),
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Xoá vị trí thất bại'
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Xoá vị trí thất bại'
       throw new Error(message)
     },
   })
