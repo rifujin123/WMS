@@ -1,7 +1,7 @@
 import { App, Button, Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useEffect } from 'react'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import type {
   CreateSaleOrderDetailDto,
   CreateSaleOrderDto,
@@ -16,8 +16,13 @@ interface SaleOrderFormModalProps {
   onClose: () => void
 }
 
+// Form lưu orderDate là Dayjs (DatePicker), khác CreateSaleOrderDto (string ISO) — tách riêng type form
+interface SaleOrderFormValues extends Omit<CreateSaleOrderDto, 'orderDate'> {
+  orderDate: Dayjs
+}
+
 function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProps) {
-  const [form] = Form.useForm<CreateSaleOrderDto>()
+  const [form] = Form.useForm<SaleOrderFormValues>()
   const { message } = App.useApp()
   const { data: products, isPending: productsPending } = useProducts()
   const createMutation = useCreateSaleOrder()
@@ -50,7 +55,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         ...values,
         orderNo: values.orderNo.trim(),
         customerName: values.customerName?.trim() || undefined,
-        orderDate: (values.orderDate as unknown as dayjs.Dayjs).toISOString(),
+        orderDate: values.orderDate.toISOString(),
       }
       const onSuccess = () => {
         message.success(isEdit ? 'Đã cập nhật đơn bán.' : 'Đã tạo đơn bán.')
@@ -82,7 +87,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
       cancelText="Huỷ"
       confirmLoading={createMutation.isPending || updateMutation.isPending}
     >
-      <Form<CreateSaleOrderDto>
+      <Form<SaleOrderFormValues>
         form={form}
         layout="vertical"
         size="large"

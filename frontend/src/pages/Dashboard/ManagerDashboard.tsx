@@ -19,25 +19,8 @@ import { useReceivings } from '../../hooks/useReceivings'
 import { usePutAwayTasks } from '../../hooks/usePutAwayTasks'
 import { usePickings } from '../../hooks/usePickings'
 import { useSaleOrders } from '../../hooks/useSaleOrders'
+import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 import type { SaleOrderStatus } from '../../types/saleOrder'
-
-const SO_STATUS_LABEL: Record<SaleOrderStatus, string> = {
-  New: 'Mới',
-  Allocated: 'Đã phân bổ',
-  Picking: 'Đang lấy hàng',
-  Packed: 'Đã đóng gói',
-  Shipped: 'Đã giao',
-  Cancelled: 'Đã hủy',
-}
-
-const SO_STATUS_COLOR: Record<SaleOrderStatus, string> = {
-  New: 'orange',
-  Allocated: 'blue',
-  Picking: 'blue',
-  Packed: 'green',
-  Shipped: 'green',
-  Cancelled: 'red',
-}
 
 function isInRange(date: string, range: { fromUtc?: string; toUtc?: string }) {
   const d = dayjs(date)
@@ -177,9 +160,9 @@ function ManagerDashboard() {
           <Empty image={null} description="Đang tải..." />
         ) : (
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {(Object.keys(SO_STATUS_LABEL) as SaleOrderStatus[]).map((status) => (
-              <Tag key={status} color={SO_STATUS_COLOR[status]} style={{ fontSize: 13, padding: '4px 10px' }}>
-                {SO_STATUS_LABEL[status]}: <b>{soByStatus[status] ?? 0}</b>
+            {(Object.keys(SALE_ORDER_STATUS_LABEL) as SaleOrderStatus[]).map((status) => (
+              <Tag key={status} color={SALE_ORDER_STATUS_COLOR[status]} style={{ fontSize: 13, padding: '4px 10px' }}>
+                {SALE_ORDER_STATUS_LABEL[status]}: <b>{soByStatus[status] ?? 0}</b>
               </Tag>
             ))}
           </div>

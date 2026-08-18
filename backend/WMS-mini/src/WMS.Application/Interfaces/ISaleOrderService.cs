@@ -9,5 +9,4 @@ public interface ISaleOrderService
     Task<SaleOrderDto> CreateAsync(CreateSaleOrderDto dto);
     Task<SaleOrderDto?> UpdateAsync(Guid id, CreateSaleOrderDto dto);
     Task<bool> DeleteAsync(Guid id);
-    Task<bool> CancelAsync(Guid id);
 }

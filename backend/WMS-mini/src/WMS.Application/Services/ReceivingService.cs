@@ -35,11 +35,13 @@ public class ReceivingService : IReceivingService
     {
         var po = await GetPurchaseOrderAsync(dto);
         ValidateDetails(dto, po);
+        var now = DateTime.UtcNow;
         var receiving = new Receiving
         {
+            ReceivingNo = $"RC-{now:yyyyMMddHHmmssfff}-{Guid.NewGuid().ToString("N")[..8]}",
             PurchaseOrderId = dto.PurchaseOrderId, 
             ReceivedById = _currentUser.UserId, 
-            ReceivedDate = DateTime.UtcNow,
+            ReceivedDate = now,
             Status = ReceivingStatus.Draft, 
             Notes = dto.Notes,
             ReceivingDetails = dto.Details.Select(d => new ReceivingDetail { ProductId = d.ProductId, ExpectedQuantity = d.ExpectedQuantity, ActualQuantity = d.ActualQuantity, Condition = d.Condition }).ToList()

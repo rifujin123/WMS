@@ -6,6 +6,10 @@ namespace WMS.Domain.Entities;
 
 public class Receiving : BaseAuditableEntity
 {
+    [Required]
+    [MaxLength(50)]
+    public string ReceivingNo { get; set; } = string.Empty;
+
     public Guid PurchaseOrderId { get; set; }
 
     [Required]

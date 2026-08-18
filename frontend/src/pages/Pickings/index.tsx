@@ -43,20 +43,7 @@ import { useWarehouses } from '../../hooks/useWarehouses'
 import { useWarehouseStaff } from '../../hooks/useUsers'
 import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/AuthContext'
-
-const statusLabel: Record<PickingStatus, string> = {
-  Open: 'Mở',
-  Assigned: 'Đã phân công',
-  InProgress: 'Đang lấy',
-  Completed: 'Hoàn thành',
-}
-
-const statusColor: Record<PickingStatus, string> = {
-  Open: 'default',
-  Assigned: 'processing',
-  InProgress: 'warning',
-  Completed: 'success',
-}
+import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL } from '../../lib/statusMaps'
 
 function Pickings() {
   const { message } = App.useApp()
@@ -272,7 +259,7 @@ function Pickings() {
       dataIndex: 'status',
       key: 'status',
       render: (status: PickingStatus) => (
-        <Tag color={statusColor[status]}>{statusLabel[status]}</Tag>
+        <Tag color={PICKING_STATUS_COLOR[status]}>{PICKING_STATUS_LABEL[status]}</Tag>
       ),
     },
     {
@@ -389,7 +376,7 @@ function Pickings() {
           placeholder="Lọc theo trạng thái"
           allowClear
           style={{ width: 200 }}
-          options={Object.entries(statusLabel).map(([value, label]) => ({ value, label }))}
+          options={Object.entries(PICKING_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}
         />

@@ -14,6 +14,3 @@ export const updateSaleOrder = (id: string, dto: CreateSaleOrderDto): Promise<Sa
 
 export const deleteSaleOrder = (id: string): Promise<void> =>
   api.delete(`/SaleOrders/${id}`)
-
-export const cancelSaleOrder = (id: string): Promise<void> =>
-  api.post(`/SaleOrders/${id}/cancel`)

@@ -15,7 +15,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     private static readonly HashSet<string> ExcludedAuditProperties = new(StringComparer.OrdinalIgnoreCase)
     {
         "CreatedBy", "UpdatedBy", "DeletedBy", "PasswordHash", "Password", "SecurityStamp",
-        "ConcurrencyStamp", "NormalizedUserName", "NormalizedEmail", "PhoneNumber", "RefreshToken"
+        "ConcurrencyStamp", "NormalizedUserName", "NormalizedEmail", "RefreshToken"
     };
 
     private readonly ICurrentUserService? _currentUserService;
@@ -96,6 +96,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.Entity<SaleOrder>()
             .HasIndex(s => s.OrderNo)
+            .IsUnique();
+
+        modelBuilder.Entity<Receiving>()
+            .HasIndex(r => r.ReceivingNo)
             .IsUnique();
 
         modelBuilder.Entity<StockAdjustment>()

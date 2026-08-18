@@ -52,6 +52,9 @@ public class PutAwayService : IPutAwayService
         if (task == null)
             return null;
 
+        if (task.AssignToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
+            return null;
+
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
@@ -119,6 +122,8 @@ public class PutAwayService : IPutAwayService
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Assigned)
             throw new InvalidOperationException($"Cannot start task in '{task.Status}' status. Must be 'Assigned'.");
+        if (task.AssignToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
+            throw new InvalidOperationException("You can only start a task assigned to you.");
         if (task.ToLocationId == null)
             throw new InvalidOperationException("ToLocation must be set before starting putaway.");
 
@@ -140,6 +145,8 @@ public class PutAwayService : IPutAwayService
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.InProgress)
             throw new InvalidOperationException($"Cannot complete task in '{task.Status}' status. Must be 'InProgress'.");
+        if (task.AssignToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
+            throw new InvalidOperationException("You can only complete a task assigned to you.");
         if (task.ToLocationId == null)
             throw new InvalidOperationException("ToLocation must be set to complete putaway.");
 

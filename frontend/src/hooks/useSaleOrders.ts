@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateSaleOrderDto } from '../types/saleOrder'
 import {
-  cancelSaleOrder as cancelSaleOrderRequest,
   createSaleOrder as createSaleOrderRequest,
   deleteSaleOrder as deleteSaleOrderRequest,
   getSaleOrders,
@@ -37,14 +36,6 @@ export function useDeleteSaleOrder() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deleteSaleOrderRequest,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['saleOrders'] }),
-  })
-}
-
-export function useCancelSaleOrder() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: cancelSaleOrderRequest,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['saleOrders'] }),
   })
 }

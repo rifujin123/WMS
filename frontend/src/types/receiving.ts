@@ -14,6 +14,7 @@ export interface ReceivingDetailDto {
 
 export interface ReceivingDto {
   id: string
+  receivingNo: string
   purchaseOrderId: string
   poNumber?: string
   receivedById?: string

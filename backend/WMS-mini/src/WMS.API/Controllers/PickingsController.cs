@@ -14,16 +14,22 @@ public class PickingsController : ControllerBase
 {
     private readonly IPickingService _service;
     private readonly UserManager<User> _userManager;
+    private readonly ICurrentUserService _currentUser;
 
-    public PickingsController(IPickingService service, UserManager<User> userManager)
+    public PickingsController(IPickingService service, UserManager<User> userManager, ICurrentUserService currentUser)
     {
         _service = service;
         _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? assignToId)
     {
+        // WarehouseStaff chỉ thấy phiếu được giao cho mình — không cho phép lọc theo người khác
+        if (_currentUser.IsInRole("WarehouseStaff"))
+            assignToId = _currentUser.UserId;
+
         var result = await _service.GetAllAsync(assignToId);
         return Ok(result);
     }

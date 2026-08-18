@@ -24,8 +24,12 @@ function KpiCard({ title, value, icon, onClick, loading }: KpiCardProps) {
       {loading ? (
         <Skeleton active paragraph={{ rows: 1 }} title={false} />
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {icon && <div style={{ fontSize: 26, color: '#1677FF' }}>{icon}</div>}
+        <div style={{ display: 'flex', gap: 12 }}>
+          {icon && (
+            <div style={{ fontSize: 26, color: '#1677FF', alignSelf: 'flex-end' }}>
+              {icon}
+            </div>
+          )}
           <div>
             <Typography.Text type="secondary" style={{ fontSize: 13 }}>
               {title}

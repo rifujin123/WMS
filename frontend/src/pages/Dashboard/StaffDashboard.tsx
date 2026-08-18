@@ -10,36 +10,11 @@ import {
   useStartPutAwayTask,
 } from '../../hooks/usePutAwayTasks'
 import { usePickings } from '../../hooks/usePickings'
-import type { PutAwayTaskDto } from '../../types/putAwayTask'
-import type { PickingDto } from '../../types/picking'
+import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL, PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
+import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
+import type { PickingDto, PickingStatus } from '../../types/picking'
 
 const OPEN_STATUSES = ['Open', 'Assigned', 'InProgress']
-
-function statusColor(status: string) {
-  switch (status) {
-    case 'Open':
-      return 'orange'
-    case 'Assigned':
-      return 'blue'
-    case 'InProgress':
-      return 'blue'
-    default:
-      return 'default'
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case 'Open':
-      return 'Mở'
-    case 'Assigned':
-      return 'Đã phân công'
-    case 'InProgress':
-      return 'Đang thực hiện'
-    default:
-      return status
-  }
-}
 
 const pickingColumns: TableColumnsType<PickingDto> = [
   {
@@ -64,7 +39,9 @@ const pickingColumns: TableColumnsType<PickingDto> = [
     dataIndex: 'status',
     key: 'status',
     width: 130,
-    render: (status: string) => <Tag color={statusColor(status)}>{statusLabel(status)}</Tag>,
+    render: (status: PickingStatus) => (
+      <Tag color={PICKING_STATUS_COLOR[status]}>{PICKING_STATUS_LABEL[status]}</Tag>
+    ),
   },
 ]
 
@@ -170,7 +147,9 @@ function StaffDashboard() {
       dataIndex: 'status',
       key: 'status',
       width: 130,
-      render: (status: string) => <Tag color={statusColor(status)}>{statusLabel(status)}</Tag>,
+      render: (status: PutAwayTaskStatus) => (
+        <Tag color={PUT_AWAY_STATUS_COLOR[status]}>{PUT_AWAY_STATUS_LABEL[status]}</Tag>
+      ),
     },
     {
       title: 'Thao tác',

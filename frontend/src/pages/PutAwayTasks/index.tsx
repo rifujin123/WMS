@@ -36,20 +36,7 @@ import { useWarehouses } from '../../hooks/useWarehouses'
 import { useWarehouseStaff } from '../../hooks/useUsers'
 import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/AuthContext'
-
-const statusLabel: Record<PutAwayTaskStatus, string> = {
-  Open: 'Mở',
-  Assigned: 'Đã phân công',
-  InProgress: 'Đang cất',
-  Completed: 'Hoàn thành',
-}
-
-const statusColor: Record<PutAwayTaskStatus, string> = {
-  Open: 'default',
-  Assigned: 'processing',
-  InProgress: 'warning',
-  Completed: 'success',
-}
+import { PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
 
 function PutAwayTasks() {
   const { message } = App.useApp()
@@ -227,7 +214,7 @@ function PutAwayTasks() {
       dataIndex: 'status',
       key: 'status',
       render: (status: PutAwayTaskStatus) => (
-        <Tag color={statusColor[status]}>{statusLabel[status]}</Tag>
+        <Tag color={PUT_AWAY_STATUS_COLOR[status]}>{PUT_AWAY_STATUS_LABEL[status]}</Tag>
       ),
     },
     {
@@ -336,7 +323,7 @@ function PutAwayTasks() {
           placeholder="Lọc theo trạng thái"
           allowClear
           style={{ width: 200 }}
-          options={Object.entries(statusLabel).map(([value, label]) => ({ value, label }))}
+          options={Object.entries(PUT_AWAY_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}
         />

@@ -1,4 +1,4 @@
-export type SaleOrderStatus = 'New' | 'Allocated' | 'Picking' | 'Packed' | 'Shipped' | 'Cancelled'
+export type SaleOrderStatus = 'New' | 'Allocated' | 'Picking' | 'Packed' | 'Shipped'
 export type SaleOrderDetailStatus = 'Pending' | 'Allocated' | 'Picked'
 
 export interface SaleOrderDetailDto {

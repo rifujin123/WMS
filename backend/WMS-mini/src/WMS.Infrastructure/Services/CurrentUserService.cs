@@ -28,4 +28,10 @@ public class CurrentUserService : ICurrentUserService
     public string? UserName => _httpContextAccessor.HttpContext?.User.Identity?.Name;
 
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;
+
+    public bool IsInRole(params string[] roles)
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        return user != null && roles.Any(user.IsInRole);
+    }
 }

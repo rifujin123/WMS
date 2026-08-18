@@ -14,16 +14,22 @@ public class PutAwayTasksController : ControllerBase
 {
     private readonly IPutAwayService _service;
     private readonly UserManager<User> _userManager;
+    private readonly ICurrentUserService _currentUser;
 
-    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager)
+    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager, ICurrentUserService currentUser)
     {
         _service = service;
         _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? assignToId)
     {
+        // WarehouseStaff chỉ thấy task được giao cho mình — không cho phép lọc theo người khác
+        if (_currentUser.IsInRole("WarehouseStaff"))
+            assignToId = _currentUser.UserId;
+
         var result = await _service.GetAllAsync(assignToId);
         return Ok(result);
     }

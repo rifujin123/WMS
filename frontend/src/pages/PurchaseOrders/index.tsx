@@ -28,20 +28,7 @@ import {
   useDeletePurchaseOrder,
   usePurchaseOrders,
 } from '../../hooks/usePurchaseOrders'
-
-const statusColor: Record<PurchaseOrderStatus, string> = {
-  Pending: 'default',
-  Approved: 'green',
-  Received: 'blue',
-  Closed: 'gray',
-}
-
-const statusLabel: Record<PurchaseOrderStatus, string> = {
-  Pending: 'Chờ duyệt',
-  Approved: 'Đã duyệt',
-  Received: 'Đã nhận hàng',
-  Closed: 'Đã đóng',
-}
+import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 
 function PurchaseOrders() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -125,7 +112,7 @@ function PurchaseOrders() {
       dataIndex: 'status',
       key: 'status',
       render: (status: PurchaseOrderStatus) => (
-        <Tag color={statusColor[status]}>{statusLabel[status]}</Tag>
+        <Tag color={PURCHASE_ORDER_STATUS_COLOR[status]}>{PURCHASE_ORDER_STATUS_LABEL[status]}</Tag>
       ),
     },
     {
@@ -216,7 +203,7 @@ function PurchaseOrders() {
           placeholder="Trạng thái"
           allowClear
           style={{ width: 180 }}
-          options={Object.entries(statusLabel).map(([value, label]) => ({ value, label }))}
+          options={Object.entries(PURCHASE_ORDER_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}
         />

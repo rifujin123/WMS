@@ -4,7 +4,6 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
-  StopOutlined,
 } from '@ant-design/icons'
 import {
   App,
@@ -23,33 +22,9 @@ import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import SaleOrderFormModal from './SaleOrderFormModal'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
-import {
-  useCancelSaleOrder,
-  useDeleteSaleOrder,
-  useSaleOrders,
-} from '../../hooks/useSaleOrders'
+import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
+import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
 import { useAuthContext } from '../../contexts/AuthContext'
-
-const statusColor: Record<SaleOrderStatus, string> = {
-  New: 'blue',
-  Allocated: 'purple',
-  Picking: 'gold',
-  Packed: 'orange',
-  Shipped: 'green',
-  Cancelled: 'gray',
-}
-
-const statusLabel: Record<SaleOrderStatus, string> = {
-  New: 'Mới',
-  Allocated: 'Đã phân bổ',
-  Picking: 'Đang lấy hàng',
-  Packed: 'Đã đóng gói',
-  Shipped: 'Đã giao',
-  Cancelled: 'Đã hủy',
-}
-
-const canCancel = (status: SaleOrderStatus) =>
-  status === 'New' || status === 'Allocated'
 
 function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -59,7 +34,6 @@ function SaleOrders() {
   const { message } = App.useApp()
   const { data: saleOrders, isPending } = useSaleOrders()
   const deleteMutation = useDeleteSaleOrder()
-  const cancelMutation = useCancelSaleOrder()
   const { user } = useAuthContext()
   const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
 
@@ -91,27 +65,12 @@ function SaleOrders() {
     })
   }
 
-  const handleCancel = (row: SaleOrderDto) => {
-    Modal.confirm({
-      title: 'Huỷ đơn bán',
-      content: `Xác nhận huỷ đơn bán "${row.orderNo}"? Hàng giữ chỗ sẽ được trả về.`,
-      okText: 'Huỷ đơn',
-      okButtonProps: { danger: true },
-      cancelText: 'Đóng',
-      onOk: () =>
-        cancelMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã huỷ đơn bán.'),
-          onError: () => message.error('Huỷ đơn bán thất bại.'),
-        }),
-    })
-  }
-
   const openEdit = (row: SaleOrderDto) => {
     setEditing(row)
     setModalOpen(true)
   }
 
-  const columns: TableColumnsType<SaleOrderDto> = [
+  const baseColumns: TableColumnsType<SaleOrderDto> = [
     {
       title: 'Số đơn',
       dataIndex: 'orderNo',
@@ -136,7 +95,7 @@ function SaleOrders() {
       dataIndex: 'status',
       key: 'status',
       render: (status: SaleOrderStatus) => (
-        <Tag color={statusColor[status]}>{statusLabel[status]}</Tag>
+        <Tag color={SALE_ORDER_STATUS_COLOR[status]}>{SALE_ORDER_STATUS_LABEL[status]}</Tag>
       ),
     },
     {
@@ -145,42 +104,36 @@ function SaleOrders() {
       key: 'orderDate',
       render: (orderDate: string) => dayjs(orderDate).format('DD/MM/YYYY'),
     },
-    {
-      key: 'actions',
-      width: canManage ? 110 : 0,
-      render: (_, row) => (
-        canManage ? (
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            {row.status === 'New' && (
-              <>
-                <Tooltip title="Sửa">
-                  <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-                </Tooltip>
-                <Tooltip title="Xoá">
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDelete(row)}
-                  />
-                </Tooltip>
-              </>
-            )}
-            {canCancel(row.status) && (
-              <Tooltip title="Huỷ đơn">
-                <Button
-                  type="text"
-                  danger
-                  icon={<StopOutlined />}
-                  onClick={() => handleCancel(row)}
-                />
-              </Tooltip>
-            )}
-          </div>
-        ) : null
-      ),
-    },
   ]
+
+  const actionsColumn: TableColumnsType<SaleOrderDto>[number] = {
+    key: 'actions',
+    width: 110,
+    render: (_, row) => (
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        {row.status === 'New' && (
+          <>
+            <Tooltip title="Sửa">
+              <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
+            </Tooltip>
+            <Tooltip title="Xoá">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDelete(row)}
+              />
+            </Tooltip>
+          </>
+        )}
+      </div>
+    ),
+  }
+
+  // Chỉ thêm cột thao tác khi user có quyền quản lý — tránh cột 0-width
+  const columns: TableColumnsType<SaleOrderDto> = canManage
+    ? [...baseColumns, actionsColumn]
+    : baseColumns
 
   return (
     <div>
@@ -230,7 +183,7 @@ function SaleOrders() {
           placeholder="Trạng thái"
           allowClear
           style={{ width: 180 }}
-          options={Object.entries(statusLabel).map(([value, label]) => ({ value, label }))}
+          options={Object.entries(SALE_ORDER_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}
         />

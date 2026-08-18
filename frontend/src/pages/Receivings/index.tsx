@@ -66,11 +66,11 @@ function Receivings() {
   const columns: TableColumnsType<ReceivingDto> = [
     {
       title: 'Mã phiếu',
-      dataIndex: 'id',
-      key: 'id',
-      render: (id: string, row) => (
+      dataIndex: 'receivingNo',
+      key: 'receivingNo',
+      render: (receivingNo: string, row) => (
         <Typography.Link onClick={() => navigate(`/receivings/${row.id}`)}>
-          RC-{id.slice(0, 8)}
+          {receivingNo}
         </Typography.Link>
       ),
     },

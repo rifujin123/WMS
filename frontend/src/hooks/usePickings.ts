@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AssignPickingDto, CompletePickingDto, CreatePickingDto } from '../types/picking'
+import type { AssignPickingDto, CompletePickingDto } from '../types/picking'
 import {
   assignPicking as assignPickingRequest,
   completePicking as completePickingRequest,

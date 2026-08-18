@@ -6,6 +6,5 @@ public enum SaleOrderStatus
     Allocated,
     Picking,
     Packed,
-    Shipped,
-    Cancelled
+    Shipped
 }

@@ -63,16 +63,4 @@ public class SqlPickingRepository : IPickingRepository
     {
         return await _db.Pickings.Where(p => p.Id != excludeId).Select(p => p.Id).ToListAsync();
     }
-
-    public async Task<List<Picking>> GetOpenBySaleOrderIdAsync(Guid saleOrderId)
-    {
-        return await _db.Pickings
-            .Include(p => p.PickingDetails)
-                .ThenInclude(d => d.Product)
-            .Include(p => p.PickingDetails)
-                .ThenInclude(d => d.Location)
-            .Where(p => p.Status == PickingStatus.Open || p.Status == PickingStatus.Assigned || p.Status == PickingStatus.InProgress)
-            .Where(p => p.PickingDetails.Any(d => d.SaleOrderDetail != null && d.SaleOrderDetail.SaleOrderId == saleOrderId))
-            .ToListAsync();
-    }
 }

@@ -1,20 +1,24 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
 
 public class UserService : IUserService
 {
     private readonly UserManager<User> _userManager;
+    private readonly WmsDbContext _db;
     private readonly IMapper _mapper;
     private readonly IImageService _imageService;
 
-    public UserService(UserManager<User> userManager, IMapper mapper, IImageService imageService)
+    public UserService(UserManager<User> userManager, WmsDbContext db, IMapper mapper, IImageService imageService)
     {
         _userManager = userManager;
+        _db = db;
         _mapper = mapper;
         _imageService = imageService;
     }
@@ -22,11 +26,23 @@ public class UserService : IUserService
     public async Task<List<UserListItemDto>> GetAllAsync(string? role = null, string? search = null, string? status = null)
     {
         var users = _userManager.Users.OrderByDescending(u => u.CreatedAt).ToList();
+
+        // 1 query lấy toàn bộ vai trò, tránh N+1 khi gọi GetRolesAsync trong vòng lặp
+        var roleNames = await _db.UserRoles
+            .Join(_db.Roles,
+                ur => ur.RoleId,
+                r => r.Id,
+                (ur, r) => new { ur.UserId, RoleName = r.Name })
+            .ToListAsync();
+        var rolesByUserId = roleNames
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.RoleName!).ToList());
+
         var result = new List<UserListItemDto>();
 
         foreach (var user in users)
         {
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = rolesByUserId.TryGetValue(user.Id, out var userRoles) ? userRoles : new List<string>();
             if (!string.IsNullOrWhiteSpace(role) && !roles.Contains(role)) continue;
 
             if (!string.IsNullOrWhiteSpace(search))

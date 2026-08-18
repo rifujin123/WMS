@@ -42,7 +42,10 @@ public class PickingService : IPickingService
     public async Task<PickingDto?> GetByIdAsync(Guid id)
     {
         var picking = await _repo.GetByIdAsync(id);
-        return picking == null ? null : _mapper.Map<PickingDto>(picking);
+        if (picking == null) return null;
+        if (picking.AssignedToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
+            return null;
+        return _mapper.Map<PickingDto>(picking);
     }
 
     public async Task<PickingDto> CreateAsync(CreatePickingDto dto)
@@ -115,6 +118,8 @@ public class PickingService : IPickingService
         if (picking == null) return null;
         if (picking.Status != PickingStatus.Assigned) throw new InvalidOperationException($"Cannot start picking in '{picking.Status}' status. Must be 'Assigned'.");
         if (picking.AssignedToId == null) throw new InvalidOperationException("Picking must be assigned before starting.");
+        if (picking.AssignedToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
+            throw new InvalidOperationException("You can only start a picking assigned to you.");
 
         picking.Status = PickingStatus.InProgress;
         picking.StartedById = _currentUser.UserId;
@@ -129,6 +134,8 @@ public class PickingService : IPickingService
         var picking = await _repo.GetByIdAsync(id);
         if (picking == null) return null;
         if (picking.Status != PickingStatus.InProgress) throw new InvalidOperationException($"Cannot complete picking in '{picking.Status}' status. Must be 'InProgress'.");
+        if (picking.AssignedToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
+            throw new InvalidOperationException("You can only complete a picking assigned to you.");
         var byId = dto.Details.ToDictionary(d => d.DetailId);
         foreach (var detail in picking.PickingDetails)
         {

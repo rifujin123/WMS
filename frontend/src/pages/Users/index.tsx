@@ -239,7 +239,7 @@ function Users() {
           columns={columns}
           dataSource={users ?? []}
           loading={isPending}
-          pagination={{ pageSize: 8, showSizeChanger: false }}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
           scroll={{ x: 720 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có người dùng nào" /> }}
         />
