@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   App,
@@ -51,12 +51,12 @@ function Users() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const filters = useMemo(() => ({
+  const filters = {
     page,
     ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
     ...(roleFilter && roleFilter !== 'all' ? { role: roleFilter } : {}),
     ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
-  }), [page, debouncedSearch, roleFilter, statusFilter])
+  }
 
   const { data: users, isPending, isError } = useUsersPage(filters)
   const lockMutation = useSetUserLock()

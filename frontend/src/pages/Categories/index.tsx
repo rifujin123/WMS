@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   App,
@@ -22,10 +22,10 @@ function Categories() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
-  const categoryParams = useMemo(() => ({
+  const categoryParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
-  }), [page, search])
+  }
   const { data: categories, isPending } = useCategories(categoryParams)
   const deleteMutation = useDeleteCategory()
 

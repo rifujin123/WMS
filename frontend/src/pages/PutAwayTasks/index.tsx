@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -35,7 +35,7 @@ import { useLocationsByWarehouse } from '../../hooks/useLocations'
 import { useWarehouses } from '../../hooks/useWarehouses'
 import { useWarehouseStaff } from '../../hooks/useUsers'
 import { useProfile } from '../../hooks/useUserProfile'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
 
 function PutAwayTasks() {
@@ -45,11 +45,11 @@ function PutAwayTasks() {
   const { data: profile } = useProfile()
   const [statusFilter, setStatusFilter] = useState<PutAwayTaskStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
-  const putAwayParams = useMemo(() => ({
+  const putAwayParams = {
     page,
     ...(isStaff && profile?.id ? { assignToId: profile.id } : {}),
     ...(statusFilter ? { status: statusFilter } : {}),
-  }), [page, isStaff, profile?.id, statusFilter])
+  }
   const { data: tasks, isPending } = usePutAwayTasksPage(putAwayParams)
   const { data: warehouses } = useWarehouses()
   const { data: warehouseStaff } = useWarehouseStaff()

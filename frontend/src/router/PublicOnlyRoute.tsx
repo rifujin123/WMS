@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuthContext } from '../contexts/AuthContext'
+import { useAuthContext } from '../contexts/useAuthContext'
 
 // Chặn người dùng đã đăng nhập truy cập trang login — ngược lại với ProtectedRoute
 function PublicOnlyRoute() {

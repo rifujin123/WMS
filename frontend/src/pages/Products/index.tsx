@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -32,11 +32,11 @@ function Products() {
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined)
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
-  const productParams = useMemo(() => ({
+  const productParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
     ...(categoryFilter ? { categoryId: categoryFilter } : {}),
-  }), [page, search, categoryFilter])
+  }
   const { data: products, isPending } = useProducts(productParams)
   const { data: categories, isPending: categoriesPending } = useCategoryLookup()
   const deleteMutation = useDeleteProduct()
@@ -238,6 +238,7 @@ function Products() {
       </Card>
 
       <ProductFormModal
+        key={`${editing?.id ?? 'new'}-${modalOpen}`}
         open={modalOpen}
         product={editing}
         onClose={() => {

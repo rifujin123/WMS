@@ -42,7 +42,7 @@ import { useSaleOrders } from '../../hooks/useSaleOrders'
 import { useWarehouses } from '../../hooks/useWarehouses'
 import { useWarehouseStaff } from '../../hooks/useUsers'
 import { useProfile } from '../../hooks/useUserProfile'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL } from '../../lib/statusMaps'
 
 function Pickings() {

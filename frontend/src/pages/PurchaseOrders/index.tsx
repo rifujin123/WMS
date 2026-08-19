@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CheckOutlined,
   DeleteOutlined,
@@ -37,11 +37,11 @@ function PurchaseOrders() {
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
-  const purchaseOrderParams = useMemo(() => ({
+  const purchaseOrderParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
     ...(statusFilter ? { status: statusFilter } : {}),
-  }), [page, search, statusFilter])
+  }
   const { data: purchaseOrders, isPending } = usePurchaseOrdersPage(purchaseOrderParams)
   const approveMutation = useApprovePurchaseOrder()
   const deleteMutation = useDeletePurchaseOrder()

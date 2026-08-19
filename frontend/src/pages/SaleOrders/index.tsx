@@ -24,7 +24,7 @@ import SaleOrderFormModal from './SaleOrderFormModal'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 
 function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)

@@ -11,13 +11,17 @@ import { useDeleteLocation, useLocationsByWarehouse, useLocationsPage } from '..
 
 function WarehouseLocations() {
   const { id: warehouseId } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { message } = App.useApp()
 
   if (!warehouseId) {
     return <Empty image={null} description="Mã kho không hợp lệ" />
   }
 
+  return <WarehouseLocationsContent warehouseId={warehouseId} />
+}
+
+function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
+  const navigate = useNavigate()
+  const { message } = App.useApp()
   const { data: warehouse, isPending: warehousePending } = useWarehouse(warehouseId)
   const [locationPage, setLocationPage] = useState(1)
   const { data: locationsPage, isPending: locationsPending } = useLocationsPage({

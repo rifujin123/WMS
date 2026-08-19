@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useAuthContext } from '../contexts/AuthContext'
+import { useAuthContext } from '../contexts/useAuthContext'
 import {
   changePassword as changePasswordRequest,
   getProfile,

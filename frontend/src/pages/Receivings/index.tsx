@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { CheckCircleOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { App, Button, Card, Empty, Input, Modal, Skeleton, Table, Tag, Tooltip, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
@@ -15,10 +15,10 @@ function Receivings() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const navigate = useNavigate()
-  const receivingParams = useMemo(() => ({
+  const receivingParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
-  }), [page, search])
+  }
   const { data: receivings, isPending, isError } = useReceivingsPage(receivingParams)
   const confirmMutation = useConfirmReceiving()
   const deleteMutation = useDeleteReceiving()
