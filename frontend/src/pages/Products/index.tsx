@@ -22,7 +22,7 @@ import {
 import type { TableColumnsType } from 'antd'
 import ProductFormModal from './ProductFormModal'
 import type { ProductDto } from '../../types/product'
-import { useCategories } from '../../hooks/useCategories'
+import { useCategoryLookup } from '../../hooks/useCategories'
 import { useDeleteProduct, useProducts } from '../../hooks/useProducts'
 
 function Products() {
@@ -30,26 +30,21 @@ function Products() {
   const [editing, setEditing] = useState<ProductDto | null>(null)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined)
+  const [page, setPage] = useState(1)
   const { message } = App.useApp()
-  const { data: products, isPending } = useProducts()
-  const { data: categories, isPending: categoriesPending } = useCategories()
+  const productParams = useMemo(() => ({
+    page,
+    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(categoryFilter ? { categoryId: categoryFilter } : {}),
+  }), [page, search, categoryFilter])
+  const { data: products, isPending } = useProducts(productParams)
+  const { data: categories, isPending: categoriesPending } = useCategoryLookup()
   const deleteMutation = useDeleteProduct()
 
   const categoryName = (id: string) =>
     categories?.find((c) => c.id === id)?.name ?? '—'
 
-  const filtered = useMemo(() => {
-    if (!products) return []
-    const keyword = search.trim().toLowerCase()
-    return products.filter((p) => {
-      const matchesKeyword =
-        !keyword ||
-        p.name.toLowerCase().includes(keyword) ||
-        p.sku.toLowerCase().includes(keyword)
-      const matchesCategory = !categoryFilter || p.categoryId === categoryFilter
-      return matchesKeyword && matchesCategory
-    })
-  }, [products, search, categoryFilter])
+  const resetToFirstPage = () => setPage(1)
 
   const handleDelete = (row: ProductDto) => {
     Modal.confirm({
@@ -205,7 +200,10 @@ function Products() {
           placeholder="Tìm theo tên hoặc mã SKU"
           style={{ width: 280 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            resetToFirstPage()
+          }}
         />
         <Select
           placeholder="Danh mục"
@@ -214,7 +212,10 @@ function Products() {
           loading={categoriesPending}
           options={categories?.map((c) => ({ value: c.id, label: c.name }))}
           value={categoryFilter}
-          onChange={(value) => setCategoryFilter(value)}
+          onChange={(value) => {
+            setCategoryFilter(value)
+            resetToFirstPage()
+          }}
         />
       </div>
 
@@ -222,9 +223,15 @@ function Products() {
         <Table<ProductDto>
           rowKey="id"
           columns={columns}
-          dataSource={filtered}
+          dataSource={products?.items ?? []}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+             current: products?.page ?? page,
+             pageSize: products?.pageSize ?? 10,
+             total: products?.totalCount ?? 0,
+             showSizeChanger: false,
+           }}
+           onChange={(pagination) => setPage(pagination.current ?? 1)}
           scroll={{ x: 720 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có sản phẩm nào" /> }}
         />

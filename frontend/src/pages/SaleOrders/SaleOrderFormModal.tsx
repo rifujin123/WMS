@@ -7,7 +7,7 @@ import type {
   CreateSaleOrderDto,
   SaleOrderDto,
 } from '../../types/saleOrder'
-import { useProducts } from '../../hooks/useProducts'
+import { useProductLookup } from '../../hooks/useProducts'
 import { useCreateSaleOrder, useUpdateSaleOrder } from '../../hooks/useSaleOrders'
 
 interface SaleOrderFormModalProps {
@@ -24,7 +24,7 @@ interface SaleOrderFormValues extends Omit<CreateSaleOrderDto, 'orderDate'> {
 function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProps) {
   const [form] = Form.useForm<SaleOrderFormValues>()
   const { message } = App.useApp()
-  const { data: products, isPending: productsPending } = useProducts()
+  const { data: products, isPending: productsPending } = useProductLookup()
   const createMutation = useCreateSaleOrder()
   const updateMutation = useUpdateSaleOrder()
   const isEdit = saleOrder !== null

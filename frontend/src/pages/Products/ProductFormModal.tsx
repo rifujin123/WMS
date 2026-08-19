@@ -2,7 +2,7 @@ import { App, Col, Form, Input, InputNumber, Modal, Row, Select, Upload } from '
 import { PlusOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import type { CreateProductDto, ProductDto } from '../../types/product'
-import { useCategories } from '../../hooks/useCategories'
+import { useCategoryLookup } from '../../hooks/useCategories'
 import { useCreateProduct, useUpdateProduct } from '../../hooks/useProducts'
 
 interface ProductFormModalProps {
@@ -14,7 +14,7 @@ interface ProductFormModalProps {
 function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
   const [form] = Form.useForm<CreateProductDto>()
   const { message } = App.useApp()
-  const { data: categories, isPending: categoriesPending } = useCategories()
+  const { data: categories, isPending: categoriesPending } = useCategoryLookup()
   const createMutation = useCreateProduct()
   const updateMutation = useUpdateProduct()
   const isEdit = product !== null

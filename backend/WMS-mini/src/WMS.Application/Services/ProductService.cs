@@ -26,6 +26,12 @@ public class ProductService : IProductService
         return _mapper.Map<List<ProductDto>>(products);
     }
 
+    public Task<PagedResult<ProductDto>> GetPagedAsync(
+        ProductListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetPagedAsync(query, pageSize, cancellationToken);
+
     public async Task<ProductDto?> GetByIdAsync(Guid id)
     {
         var product = await _repo.GetByIdAsync(id);

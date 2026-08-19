@@ -1,6 +1,6 @@
 namespace WMS.Application.DTOs;
 
-public sealed class PagedResult<T>
+public class PagedResult<T>
 {
     public IReadOnlyList<T> Items { get; }
     public int Page { get; }

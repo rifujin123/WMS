@@ -47,8 +47,13 @@ namespace WMS.Application.Services
         {
             var categories = await _repo.GetAllAsync();
             return _mapper.Map<List<CategoryDto>>(categories);
-            
         }
+
+        public Task<PagedResult<CategoryDto>> GetPagedAsync(
+            CategoryListQuery query,
+            int pageSize,
+            CancellationToken cancellationToken = default) =>
+            _repo.GetPagedAsync(query, pageSize, cancellationToken);
 
         public async Task<CategoryDto?> GetByIdAsync(Guid id)
         {

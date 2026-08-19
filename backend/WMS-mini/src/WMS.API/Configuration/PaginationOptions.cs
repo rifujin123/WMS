@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WMS.API.Configuration;
 
-public sealed class PaginationOptions
+public class PaginationOptions
 {
     public const string SectionName = "Pagination";
 
