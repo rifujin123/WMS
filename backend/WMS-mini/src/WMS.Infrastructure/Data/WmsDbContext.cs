@@ -102,6 +102,11 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(r => r.ReceivingNo)
             .IsUnique();
 
+        modelBuilder.Entity<Receiving>()
+            .HasIndex(r => r.PurchaseOrderId)
+            .IsUnique()
+            .HasFilter("[Status] = 1");
+
         modelBuilder.Entity<StockAdjustment>()
             .HasIndex(a => a.AdjustmentNo)
             .IsUnique();

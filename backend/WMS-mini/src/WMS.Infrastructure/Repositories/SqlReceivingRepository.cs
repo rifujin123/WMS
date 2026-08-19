@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Domain.Enums;
 using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Repositories;
@@ -30,6 +31,12 @@ public class SqlReceivingRepository : IReceivingRepository
             .Include(r => r.ReceivingDetails)
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task<Receiving?> GetConfirmedByPurchaseOrderIdAsync(Guid purchaseOrderId)
+    {
+        return await _db.Receivings
+            .FirstOrDefaultAsync(r => r.PurchaseOrderId == purchaseOrderId && r.Status == ReceivingStatus.Confirmed);
     }
 
     public async Task<ReceivingDetail?> GetDetailByIdAsync(Guid id)

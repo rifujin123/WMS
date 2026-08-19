@@ -13,6 +13,7 @@ public class ReceivingDto
     public DateTime ReceivedDate { get; set; }
     public ReceivingStatus Status { get; set; }
     public string? Notes { get; set; }
+    public string? InvoiceImageUrl { get; set; }
     public List<ReceivingDetailDto> Details { get; set; } = new();
     public DateTime CreatedDate { get; set; }
 }

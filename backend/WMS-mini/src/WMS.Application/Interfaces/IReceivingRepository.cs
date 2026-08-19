@@ -6,6 +6,7 @@ public interface IReceivingRepository
 {
     Task<List<Receiving>> GetAllAsync();
     Task<Receiving?> GetByIdAsync(Guid id);
+    Task<Receiving?> GetConfirmedByPurchaseOrderIdAsync(Guid purchaseOrderId);
     Task<ReceivingDetail?> GetDetailByIdAsync(Guid id);
     Task AddAsync(Receiving receiving);
     Task UpdateAsync(Receiving receiving);

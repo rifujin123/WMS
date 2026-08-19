@@ -26,5 +26,8 @@ public class Receiving : BaseAuditableEntity
     [MaxLength(500)]
     public string? Notes { get; set; }
 
+    [MaxLength(1000)]
+    public string? InvoiceImageUrl { get; set; }
+
     public ICollection<ReceivingDetail> ReceivingDetails { get; set; } = new List<ReceivingDetail>();
 }
