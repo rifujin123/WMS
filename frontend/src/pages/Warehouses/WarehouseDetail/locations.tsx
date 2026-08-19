@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons'
-import { App, Button, Card, Empty, Modal, Skeleton, Tag, Typography } from 'antd'
+import { App, Button, Card, Empty, Modal, Pagination, Skeleton, Tag, Typography } from 'antd'
 import { useNavigate, useParams } from 'react-router-dom'
 import WarehouseLocationGrid from '../../../components/WarehouseLocationGrid'
 import LocationFormModal from './LocationFormModal'
 import LocationDetailDrawer from './LocationDetailDrawer'
 import type { LocationDto } from '../../../types/location'
 import { useWarehouse } from '../../../hooks/useWarehouses'
-import { useDeleteLocation, useLocationsByWarehouse } from '../../../hooks/useLocations'
+import { useDeleteLocation, useLocationsByWarehouse, useLocationsPage } from '../../../hooks/useLocations'
 
 function WarehouseLocations() {
   const { id: warehouseId } = useParams<{ id: string }>()
@@ -19,7 +19,13 @@ function WarehouseLocations() {
   }
 
   const { data: warehouse, isPending: warehousePending } = useWarehouse(warehouseId)
-  const { data: locations, isPending: locationsPending } = useLocationsByWarehouse(warehouseId)
+  const [locationPage, setLocationPage] = useState(1)
+  const { data: locationsPage, isPending: locationsPending } = useLocationsPage({
+    page: locationPage,
+    warehouseId,
+  })
+  const { data: allLocations } = useLocationsByWarehouse(warehouseId)
+  const locations = locationsPage?.items ?? []
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingLocation, setEditingLocation] = useState<LocationDto | null>(null)
@@ -103,12 +109,22 @@ function WarehouseLocations() {
           <Card variant="borderless">
             <Skeleton active paragraph={{ rows: 4 }} />
           </Card>
-        ) : locations && locations.length > 0 ? (
-          <WarehouseLocationGrid
-            locations={locations}
-            onLocationClick={setDrawerLocation}
-            selectedLocationId={drawerLocation?.id}
-          />
+        ) : locations.length > 0 ? (
+          <>
+            <WarehouseLocationGrid
+              locations={locations}
+              onLocationClick={setDrawerLocation}
+              selectedLocationId={drawerLocation?.id}
+            />
+            <Pagination
+              style={{ marginTop: 16, textAlign: 'right' }}
+              current={locationsPage?.page ?? locationPage}
+              pageSize={locationsPage?.pageSize ?? 10}
+              total={locationsPage?.totalCount ?? 0}
+              showSizeChanger={false}
+              onChange={setLocationPage}
+            />
+          </>
         ) : (
           <Card variant="borderless">
             <Empty image={null} description="Chưa có vị trí nào trong kho này" />
@@ -120,7 +136,7 @@ function WarehouseLocations() {
         open={modalOpen}
         warehouseId={warehouseId!}
         location={editingLocation}
-        locations={locations ?? []}
+        locations={allLocations ?? []}
         onClose={() => {
           setModalOpen(false)
           setEditingLocation(null)

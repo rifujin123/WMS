@@ -24,6 +24,12 @@ public class LocationService : ILocationService
         return _mapper.Map<List<LocationDto>>(locations);
     }
 
+    public Task<PagedResult<LocationDto>> GetPagedAsync(
+        LocationListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetPagedAsync(query, pageSize, cancellationToken);
+
     public async Task<LocationDto?> GetByIdAsync(Guid id)
     {
         var location = await _repo.GetByIdAsync(id);

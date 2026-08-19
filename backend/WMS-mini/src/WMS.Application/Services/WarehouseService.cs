@@ -25,6 +25,12 @@ public class WarehouseService : IWarehouseService
         return _mapper.Map<List<WarehouseDto>>(warehouses);
     }
 
+    public Task<PagedResult<WarehouseDto>> GetPagedAsync(
+        WarehouseListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetPagedAsync(query, pageSize, cancellationToken);
+
     public async Task<WarehouseDto?> GetByIdAsync(Guid id)
     {
         var warehouse = await _repo.GetByIdAsync(id);
