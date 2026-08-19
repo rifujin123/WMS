@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Infrastructure.Data;
@@ -20,6 +21,52 @@ public class SqlStockRepository : IStockRepository
             .Include(s => s.Product)
             .Include(s => s.Location)
             .ToListAsync();
+    }
+
+    public async Task<PagedResult<StockSummaryDto>> GetSummaryPagedAsync(
+        StockSummaryQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var stocks = _db.Stocks
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (query.LocationId.HasValue)
+        {
+            var productIdsAtLocation = _db.Stocks
+                .Where(s => s.LocationId == query.LocationId.Value)
+                .Select(s => s.ProductId);
+            stocks = stocks.Where(s => productIdsAtLocation.Contains(s.ProductId));
+        }
+
+        var search = query.Search?.Trim();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            stocks = stocks.Where(s => s.Product.Name.Contains(search) || s.Product.Sku.Contains(search));
+        }
+
+        var grouped = stocks
+            .GroupBy(s => new { s.ProductId, s.Product.Sku, s.Product.Name });
+        var totalCount = await grouped.CountAsync(cancellationToken);
+        var page = query.Page;
+        var items = await grouped
+            .OrderBy(g => g.Key.Sku)
+            .ThenBy(g => g.Key.ProductId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(g => new StockSummaryDto
+            {
+                ProductId = g.Key.ProductId,
+                ProductSku = g.Key.Sku,
+                ProductName = g.Key.Name,
+                TotalOnhand = g.Sum(s => s.OnhandQty),
+                TotalReserved = g.Sum(s => s.ReservedQty),
+                LocationCount = g.Select(s => s.LocationId).Distinct().Count(),
+            })
+            .ToListAsync(cancellationToken);
+
+        return PagedResult<StockSummaryDto>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<Stock?> GetByIdAsync(Guid id)

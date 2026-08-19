@@ -1,3 +1,4 @@
+using WMS.Application.DTOs;
 using WMS.Domain.Entities;
 
 namespace WMS.Application.Interfaces;
@@ -5,6 +6,7 @@ namespace WMS.Application.Interfaces;
 public interface IStockRepository
 {
     Task<List<Stock>> GetAllAsync();
+    Task<PagedResult<StockSummaryDto>> GetSummaryPagedAsync(StockSummaryQuery query, int pageSize, CancellationToken cancellationToken = default);
     Task<Stock?> GetByIdAsync(Guid id);
     Task<List<Stock>> GetByProductAsync(Guid productId);
     Task<List<Stock>> GetAvailableByProductAndWarehouseAsync(Guid productId, Guid warehouseId);

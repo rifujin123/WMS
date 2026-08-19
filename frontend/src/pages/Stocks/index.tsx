@@ -13,13 +13,10 @@ import {
 } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { useAllLocations } from '../../hooks/useLocations'
-import { useStocks } from '../../hooks/useStocks'
+import { useStockSummaryPage, useStocksByProduct } from '../../hooks/useStocks'
 import { useWarehouses } from '../../hooks/useWarehouses'
 import {
-  aggregateStockByProduct,
   getLocationDetailsForProduct,
-  searchProductRows,
-  selectProductsWithStockAtLocation,
 } from '../../lib/stockLogic'
 import type { StockLocationRow, StockProductRow } from '../../lib/stockLogic'
 
@@ -28,6 +25,7 @@ function Stocks() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [warehouseFilter, setWarehouseFilter] = useState<string | undefined>(undefined)
   const [locationFilter, setLocationFilter] = useState<string | undefined>(undefined)
+  const [page, setPage] = useState(1)
   const [selectedProduct, setSelectedProduct] = useState<StockProductRow | null>(null)
 
   // Debounce 1s: chỉ lọc khi người dùng ngừng gõ (pattern trang Users)
@@ -36,7 +34,13 @@ function Stocks() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const { data: stocks, isPending } = useStocks()
+  const stockParams = useMemo(() => ({
+    page,
+    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+    ...(locationFilter ? { locationId: locationFilter } : {}),
+  }), [page, debouncedSearch, locationFilter])
+  const { data: stocks, isPending } = useStockSummaryPage(stockParams)
+  const { data: selectedStocks, isPending: selectedStocksPending } = useStocksByProduct(selectedProduct?.productId)
   const { data: warehouses } = useWarehouses()
   const { data: locations } = useAllLocations()
 
@@ -57,23 +61,18 @@ function Stocks() {
     [locations, warehouseFilter],
   )
 
-  const productRows = useMemo(() => aggregateStockByProduct(stocks ?? []), [stocks])
-
-  const visibleRows = useMemo(() => {
-    const byLocation = selectProductsWithStockAtLocation(productRows, stocks ?? [], locationFilter)
-    return searchProductRows(byLocation, debouncedSearch)
-  }, [productRows, stocks, locationFilter, debouncedSearch])
+  const productRows = stocks?.items ?? []
 
   const selectedLocationRows = useMemo(
     () =>
       selectedProduct
         ? getLocationDetailsForProduct(
-            stocks ?? [],
+            selectedStocks ?? [],
             selectedProduct.productId,
             warehouseNameByLocationId,
           )
         : [],
-    [stocks, selectedProduct, warehouseNameByLocationId],
+    [selectedStocks, selectedProduct, warehouseNameByLocationId],
   )
 
   const columns: TableColumnsType<StockProductRow> = [
@@ -82,8 +81,6 @@ function Stocks() {
       dataIndex: 'productSku',
       key: 'productSku',
       width: 140,
-      sorter: (a, b) => a.productSku.localeCompare(b.productSku),
-      defaultSortOrder: 'ascend',
       render: (sku: string) => (
         <Tag color="blue" style={{ fontFamily: 'monospace' }}>
           {sku}
@@ -95,7 +92,6 @@ function Stocks() {
       dataIndex: 'productName',
       key: 'productName',
       width: 220,
-      sorter: (a, b) => a.productName.localeCompare(b.productName),
     },
     {
       title: 'Tồn kho',
@@ -103,7 +99,6 @@ function Stocks() {
       key: 'totalOnhand',
       align: 'right',
       width: 90,
-      sorter: (a, b) => a.totalOnhand - b.totalOnhand,
     },
     {
       title: 'Giữ chỗ',
@@ -111,7 +106,6 @@ function Stocks() {
       key: 'totalReserved',
       align: 'right',
       width: 90,
-      sorter: (a, b) => a.totalReserved - b.totalReserved,
     },
     {
       title: 'Số vị trí đang chứa',
@@ -185,7 +179,10 @@ function Stocks() {
           placeholder="Tìm theo SKU hoặc tên sản phẩm"
           style={{ width: 280 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
         />
         <Select
           placeholder="Kho"
@@ -196,6 +193,7 @@ function Stocks() {
           onChange={(value) => {
             setWarehouseFilter(value)
             setLocationFilter(undefined)
+            setPage(1)
           }}
         />
         <Select
@@ -205,7 +203,10 @@ function Stocks() {
           disabled={!warehouseFilter}
           options={locationsOfWarehouse.map((l) => ({ value: l.id, label: l.code }))}
           value={locationFilter}
-          onChange={setLocationFilter}
+          onChange={(value) => {
+            setLocationFilter(value)
+            setPage(1)
+          }}
         />
       </div>
 
@@ -213,9 +214,15 @@ function Stocks() {
         <Table<StockProductRow>
           rowKey="productId"
           columns={columns}
-          dataSource={visibleRows}
+          dataSource={productRows}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+            current: stocks?.page ?? page,
+            pageSize: stocks?.pageSize ?? 10,
+            total: stocks?.totalCount ?? 0,
+            showSizeChanger: false,
+          }}
+          onChange={(pagination) => setPage(pagination.current ?? 1)}
           scroll={{ x: 640 }}
           onRow={(row) => ({
             onClick: () => setSelectedProduct(row),
@@ -244,7 +251,7 @@ function Stocks() {
         onClose={() => setSelectedProduct(null)}
         destroyOnHidden
       >
-        {isPending ? (
+        {selectedStocksPending ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
           <Table<StockLocationRow>

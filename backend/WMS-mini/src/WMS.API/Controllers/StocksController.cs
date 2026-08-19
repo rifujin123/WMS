@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using WMS.API.Configuration;
+using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 
 namespace WMS.API.Controllers;
@@ -10,10 +13,12 @@ namespace WMS.API.Controllers;
 public class StocksController : ControllerBase
 {
     private readonly IStockService _service;
+    private readonly PaginationOptions _paginationOptions;
 
-    public StocksController(IStockService service)
+    public StocksController(IStockService service, IOptions<PaginationOptions> paginationOptions)
     {
         _service = service;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpGet]
@@ -26,6 +31,16 @@ public class StocksController : ControllerBase
             return Ok(await _service.GetByLocationAsync(locationId.Value));
 
         var result = await _service.GetAllAsync();
+        return Ok(result);
+    }
+
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary([FromQuery] StockSummaryQuery query, CancellationToken cancellationToken)
+    {
+        if (query.Page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        var result = await _service.GetSummaryPagedAsync(query, _paginationOptions.PageSize, cancellationToken);
         return Ok(result);
     }
 

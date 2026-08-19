@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using WMS.API.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 
@@ -12,17 +14,30 @@ namespace WMS.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly PaginationOptions _paginationOptions;
 
-    public UsersController(IUserService userService)
+    public UsersController(IUserService userService, IOptions<PaginationOptions> paginationOptions)
     {
         _userService = userService;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpGet]
     [Authorize(Roles = "Admin,WarehouseManager")]
-    public async Task<IActionResult> GetAll([FromQuery] string? role, [FromQuery] string? search, [FromQuery] string? status)
+    public async Task<IActionResult> GetAll([FromQuery] UserListQuery query, CancellationToken cancellationToken)
     {
-        var users = await _userService.GetAllAsync(role, search, status);
+        if (query.Page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        var users = await _userService.GetPagedAsync(query, _paginationOptions.PageSize, cancellationToken);
+        return Ok(users);
+    }
+
+    [HttpGet("lookup")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> Lookup([FromQuery] string? role)
+    {
+        var users = await _userService.GetAllAsync(role);
         return Ok(users);
     }
 
