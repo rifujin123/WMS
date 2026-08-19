@@ -1,7 +1,7 @@
 import { App, Button, Col, Empty, Form, Input, InputNumber, Modal, Row, Select, Skeleton, Typography, Upload } from 'antd'
 import type { UploadProps } from 'antd'
 import { DeleteOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import type {
   CreateReceivingDetailDto,
   CreateReceivingDto,
@@ -65,10 +65,10 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     label: `${detail.productSku} — ${detail.productName}`,
   }))
 
-  const getExpectedQuantity = (productId?: string) => {
+  const getExpectedQuantity = useCallback((productId?: string) => {
     const poDetail = selectedPurchaseOrder?.purchaseOrderDetails.find((item) => item.productId === productId)
     return poDetail ? getRemainingQuantity(poDetail) : undefined
-  }
+  }, [selectedPurchaseOrder])
 
   const getQuantityRule = (index: number) => {
     const detail = formDetails?.[index]
@@ -101,7 +101,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     } else {
       form.resetFields()
     }
-  }, [open, receiving, form])
+  }, [open, receiving, form, getExpectedQuantity])
 
   const handlePOChange = (purchaseOrderId: string) => {
     const purchaseOrder = approvedPurchaseOrders.find((item) => item.id === purchaseOrderId)

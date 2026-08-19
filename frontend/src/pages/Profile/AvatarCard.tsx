@@ -3,7 +3,7 @@ import { CalendarOutlined, CameraOutlined, UploadOutlined } from '@ant-design/ic
 import { App, Avatar, Button, Card, Divider, Spin, Tag, Typography, Upload } from 'antd'
 import dayjs from 'dayjs'
 import type { UserProfile } from '../../types/user'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { useUploadAvatar } from '../../hooks/useUserProfile'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 

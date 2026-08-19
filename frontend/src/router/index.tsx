@@ -17,6 +17,8 @@ import PutAwayTasks from '../pages/PutAwayTasks'
 import Stocks from '../pages/Stocks'
 import SaleOrders from '../pages/SaleOrders'
 import Pickings from '../pages/Pickings'
+import Forbidden from '../pages/Forbidden'
+
 
 export const router = createBrowserRouter([
   {
@@ -31,20 +33,33 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
+          { path: '403', element: <Forbidden /> },
           { path: 'dashboard', element: <Dashboard /> },
-          { path: 'products', element: <Products /> },
-          { path: 'categories', element: <Categories /> },
-          { path: 'purchase-orders', element: <PurchaseOrders /> },
-          { path: 'receivings', element: <Receivings /> },
-          { path: 'receivings/:id', element: <ReceivingDetail /> },
-          { path: 'putaway-tasks', element: <PutAwayTasks /> },
-          { path: 'sale-orders', element: <SaleOrders /> },
-          { path: 'pickings', element: <Pickings /> },
-          { path: 'stock', element: <Stocks /> },
-          { path: 'warehouses', element: <Warehouses /> },
-          { path: 'warehouses/:id/locations', element: <WarehouseLocations /> },
-          { path: 'users', element: <Users /> },
           { path: 'profile', element: <Profile /> },
+          {
+            element: <ProtectedRoute allowedRoles={['Admin']} />,
+            children: [
+              { path: 'users', element: <Users /> },
+              { path: 'products', element: <Products /> },
+              { path: 'categories', element: <Categories /> },
+              { path: 'warehouses', element: <Warehouses /> },
+              { path: 'warehouses/:id/locations', element: <WarehouseLocations /> },
+            ],
+          },
+          {
+            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'WarehouseStaff']} />,
+
+            children: [
+              { path: 'purchase-orders', element: <PurchaseOrders /> },
+              { path: 'receivings', element: <Receivings /> },
+              { path: 'receivings/:id', element: <ReceivingDetail /> },
+              { path: 'putaway-tasks', element: <PutAwayTasks /> },
+              { path: 'sale-orders', element: <SaleOrders /> },
+              { path: 'pickings', element: <Pickings /> },
+              { path: 'stock', element: <Stocks /> },
+            ],
+          },
+          { path: '*', element: <Navigate to="/dashboard" replace /> },
         ],
       },
     ],

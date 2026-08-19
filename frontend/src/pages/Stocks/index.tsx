@@ -34,11 +34,11 @@ function Stocks() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const stockParams = useMemo(() => ({
+  const stockParams = {
     page,
     ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
     ...(locationFilter ? { locationId: locationFilter } : {}),
-  }), [page, debouncedSearch, locationFilter])
+  }
   const { data: stocks, isPending } = useStockSummaryPage(stockParams)
   const { data: selectedStocks, isPending: selectedStocksPending } = useStocksByProduct(selectedProduct?.productId)
   const { data: warehouses } = useWarehouses()
@@ -56,9 +56,8 @@ function Stocks() {
   }, [locations, warehouses])
 
   // Vị trí thuộc kho đang chọn (cascade Kho → Vị trí)
-  const locationsOfWarehouse = useMemo(
-    () => (locations ?? []).filter((l) => l.warehouseId === warehouseFilter),
-    [locations, warehouseFilter],
+  const locationsOfWarehouse = (locations ?? []).filter(
+    (location) => location.warehouseId === warehouseFilter,
   )
 
   const productRows = stocks?.items ?? []

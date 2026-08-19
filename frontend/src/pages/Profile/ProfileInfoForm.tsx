@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons'
 import { App, Button, Card, Col, Divider, Form, Input, Row } from 'antd'
 import type { UserProfile } from '../../types/user'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { useUpdateProfile } from '../../hooks/useUserProfile'
 
 interface ProfileInfoFormProps {

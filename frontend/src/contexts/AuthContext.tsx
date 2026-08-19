@@ -1,27 +1,11 @@
-import { createContext, useContext, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthResponse } from '../types/auth'
-
+import { isValidRole, type UserRole } from '../router/routeRoles'
+import { AuthContext, type AuthUser } from './authContextValue'
 
 const TOKEN_KEY = 'accessToken'
 const USER_KEY = 'user'
-
-export interface AuthUser{
-    username: string
-    email: string
-    fullName: string
-    role: string
-    avatarUrl?: string
-}
-
-interface AuthContextValue{
-    user: AuthUser | null
-    login: (res: AuthResponse) => void
-    logout: () => void
-    updateUser: (patch: Partial<AuthUser>) => void
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
     try{
@@ -37,14 +21,16 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     }
 }
 
-function getRoleFromToken(token:string): string{
+function getRoleFromToken(token: string): UserRole | undefined {
     const payload = decodeJwtPayload(token)
-    if(!payload) return ''
-    // .NET phát JWT lưu role claim dưới URI đầy đủ của ClaimTypes.Role (đã xác minh từ token thật)
+    if (!payload) return undefined
+
+    // .NET phát JWT lưu role claim dưới URI đầy đủ của ClaimTypes.Role.
     const raw = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
         ?? payload.role
-    if(!raw) return ''
-    return (Array.isArray(raw) ? String(raw[0]) : String(raw)).trim()
+    const role = Array.isArray(raw) ? String(raw[0]).trim() : String(raw ?? '').trim()
+
+    return isValidRole(role) ? role : undefined
 }
 
 function getInitialUser(): AuthUser | null{
@@ -59,20 +45,41 @@ function getInitialUser(): AuthUser | null{
         localStorage.removeItem(USER_KEY)
         return null
     }
-    const savedUser = JSON.parse(saved) as AuthUser
-    // Refresh role từ token mỗi lần khởi động — sửa trường hợp role bị lưu sai/rỗng trước đó
-    return { ...savedUser, role: getRoleFromToken(token) || savedUser.role }
+    try {
+        const savedUser = JSON.parse(saved) as AuthUser
+        const role = getRoleFromToken(token)
+        if (!role) {
+            localStorage.removeItem(TOKEN_KEY)
+            localStorage.removeItem(USER_KEY)
+            return null
+        }
+
+        // Refresh role từ token mỗi lần khởi động.
+        return { ...savedUser, role }
+    } catch {
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(USER_KEY)
+        return null
+    }
 }
 
 export function AuthProvider({children}:{children: ReactNode}){
     const [user, setUser] = useState<AuthUser | null>(getInitialUser)
 
     const login = (res: AuthResponse) => {
+        const role = getRoleFromToken(res.accessToken)
+        if (!role) {
+            localStorage.removeItem(TOKEN_KEY)
+            localStorage.removeItem(USER_KEY)
+            setUser(null)
+            return
+        }
+
         const nextUser: AuthUser = {
             username: res.username,
             email: res.email,
             fullName: res.fullName,
-            role: getRoleFromToken(res.accessToken),
+            role,
             avatarUrl: res.avatarUrl,
         }
         localStorage.setItem(TOKEN_KEY, res.accessToken)
@@ -101,10 +108,4 @@ export function AuthProvider({children}:{children: ReactNode}){
             {children}
         </AuthContext.Provider>
     )
-}
-
-export function useAuthContext(){
-    const ctx = useContext(AuthContext)
-    if(!ctx) throw new Error('useAuthContext must be used within an AuthProvider')
-    return ctx
 }

@@ -1,7 +1,8 @@
 import { Fragment, useMemo } from 'react'
 import { Card, Empty, Typography } from 'antd'
 import type { LocationDto } from '../../types/location'
-import LocationCell, { LOCATION_STATUS_META, type LocationStatus } from './LocationCell'
+import LocationCell from './LocationCell'
+import { LOCATION_STATUS_META, type LocationStatus } from './locationCellMeta'
 
 interface WarehouseLocationGridProps {
   locations: LocationDto[]

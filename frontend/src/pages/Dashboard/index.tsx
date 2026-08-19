@@ -1,5 +1,5 @@
 import { Empty } from 'antd'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import AdminDashboard from './AdminDashboard'
 import ManagerDashboard from './ManagerDashboard'
 import StaffDashboard from './StaffDashboard'

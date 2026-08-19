@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   App,
@@ -24,10 +24,10 @@ function Warehouses() {
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
   const navigate = useNavigate()
-  const warehouseParams = useMemo(() => ({
+  const warehouseParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
-  }), [page, search])
+  }
   const { data: warehouses, isPending } = useWarehousesPage(warehouseParams)
   const deleteMutation = useDeleteWarehouse()
 

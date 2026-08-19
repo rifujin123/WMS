@@ -19,19 +19,14 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
   const updateMutation = useUpdateProduct()
   const isEdit = product !== null
   const [imageFile, setImageFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined)
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(product?.imageUrl)
 
   useEffect(() => {
-    if (open) {
-      if (product) {
-        form.setFieldsValue(product)
-        setImageFile(null)
-        setPreviewUrl(product.imageUrl)
-      } else {
-        form.resetFields()
-        setImageFile(null)
-        setPreviewUrl(undefined)
-      }
+    if (!open) return
+    if (product) {
+      form.setFieldsValue(product)
+    } else {
+      form.resetFields()
     }
   }, [open, product, form])
 

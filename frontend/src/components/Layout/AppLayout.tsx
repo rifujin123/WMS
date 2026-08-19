@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   AppstoreOutlined,
   CarryOutOutlined,
@@ -24,45 +24,78 @@ import type { MenuProps } from 'antd'
 import { Avatar, Button, Dropdown, Layout, Menu, theme } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../Logo'
-import { useAuthContext } from '../../contexts/AuthContext'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
+import { hasRole, type UserRole } from '../../router/routeRoles'
 
 const { Header, Content, Footer, Sider } = Layout
 
-// Menu hiển thị theo vai trò người dùng
-function getMenuItems(roles: string[]): MenuProps['items'] {
-  if (roles.includes('Admin')) {
-    return [
-        { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-        { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
-        { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
-        { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng' },
-        { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
-        { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
-        { key: '/pickings', icon: <ExportOutlined />, label: 'Lấy hàng' },
-        { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
-    ]
-  }
-  if (roles.includes('WarehouseManager') || roles.includes('WarehouseStaff')) {
-    return [
-        { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-        { key: '/purchase-orders', icon: <FileTextOutlined />, label: 'Đơn đặt hàng' },
-        { key: '/receivings', icon: <InboxOutlined />, label: 'Nhận hàng' },
-        { key: '/putaway-tasks', icon: <CarryOutOutlined />, label: 'Cất hàng' },
-        { key: '/sale-orders', icon: <ShoppingOutlined />, label: 'Đơn bán' },
-        { key: '/pickings', icon: <ExportOutlined />, label: 'Lấy hàng' },
-        { key: '/stock', icon: <DatabaseOutlined />, label: 'Tồn kho' },
-    ]
-  }
-  return []
+interface AppMenuItem {
+  key: string
+  icon: ReactNode
+  label: string
+  allowedRoles: UserRole[]
+}
+
+const appMenuItems: AppMenuItem[] = [
+  {
+    key: '/dashboard',
+    icon: <DashboardOutlined />,
+    label: 'Dashboard',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  { key: '/users', icon: <TeamOutlined />, label: 'Người dùng', allowedRoles: ['Admin'] },
+  { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm', allowedRoles: ['Admin'] },
+  { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục', allowedRoles: ['Admin'] },
+  { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng', allowedRoles: ['Admin'] },
+  {
+    key: '/purchase-orders',
+    icon: <FileTextOutlined />,
+    label: 'Đơn đặt hàng',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/receivings',
+    icon: <InboxOutlined />,
+    label: 'Nhận hàng',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/putaway-tasks',
+    icon: <CarryOutOutlined />,
+    label: 'Cất hàng',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/sale-orders',
+    icon: <ShoppingOutlined />,
+    label: 'Đơn bán',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/pickings',
+    icon: <ExportOutlined />,
+    label: 'Lấy hàng',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/stock',
+    icon: <DatabaseOutlined />,
+    label: 'Tồn kho',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+]
+
+function getMenuItems(role: UserRole | undefined): MenuProps['items'] {
+  return appMenuItems
+    .filter((item) => hasRole(role, item.allowedRoles))
+    .map((item) => ({ key: item.key, icon: item.icon, label: item.label }))
 }
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const { user, logout } = useAuthContext()
-  // Role được lấy trực tiếp từ JWT (AuthContext decode claim khi login)
-  const roles = user?.role ? [user.role] : []
-  const menuItems = useMemo(() => getMenuItems(roles), [roles])
+  const menuItems = getMenuItems(user?.role)
   const navigate = useNavigate()
   const location = useLocation()
   const {
