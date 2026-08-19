@@ -20,11 +20,23 @@ artifacts/
 **/appsettings.*.local.json
 **/Properties/launchSettings.json
 
+# Environment files and local secrets. Keep only example templates.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Certificates and private keys
+*.pem
+*.p12
+*.pfx
+*.key
+*.cer
+
 ## ── Frontend ─────────────────────────────────────
 **/node_modules/
-**/.env
-**/.env.local
-**/.env.*.local
 **/dist/
 **/build/
 **/.next/
@@ -39,6 +51,9 @@ logs/
 
 ## ── IDE ──────────────────────────────────────────
 .idea/
+.vscode/
+**/.cursor/
+**/.claude/
 *.swp
 *.swo
 

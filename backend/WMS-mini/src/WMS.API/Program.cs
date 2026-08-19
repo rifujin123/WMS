@@ -145,6 +145,12 @@ builder.Services.AddScoped<IAuditLogRepository, SqlAuditLogRepository>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<WmsDbContext>();
+    db.Database.Migrate();
+}
+
 // Seed roles and default admin
 using (var scope = app.Services.CreateScope())
 {
