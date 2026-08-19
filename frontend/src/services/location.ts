@@ -1,11 +1,20 @@
 import api from '../lib/axios'
 import type { CreateLocationDto, LocationDto, UpdateLocationDto } from '../types/location'
+import type { PagedResponse } from '../types/pagination'
+
+export interface LocationListParams {
+  page: number
+  warehouseId?: string
+}
 
 export const getLocationsByWarehouse = (warehouseId: string): Promise<LocationDto[]> =>
-  api.get('/Locations', { params: { warehouseId } })
+  api.get('/Locations/lookup', { params: { warehouseId } })
 
 export const getAllLocations = (): Promise<LocationDto[]> =>
-  api.get('/Locations')
+  api.get('/Locations/lookup')
+
+export const getLocationsPage = (params: LocationListParams): Promise<PagedResponse<LocationDto>> =>
+  api.get('/Locations', { params })
 
 export const getLocation = (id: string): Promise<LocationDto> =>
   api.get(`/Locations/${id}`)

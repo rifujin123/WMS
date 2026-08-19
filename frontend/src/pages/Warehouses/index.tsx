@@ -15,27 +15,21 @@ import type { TableColumnsType } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import WarehouseFormModal from './WarehouseFormModal'
 import type { WarehouseDto } from '../../types/warehouse'
-import { useDeleteWarehouse, useWarehouses } from '../../hooks/useWarehouses'
+import { useDeleteWarehouse, useWarehousesPage } from '../../hooks/useWarehouses'
 
 function Warehouses() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<WarehouseDto | null>(null)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const { message } = App.useApp()
   const navigate = useNavigate()
-  const { data: warehouses, isPending } = useWarehouses()
+  const warehouseParams = useMemo(() => ({
+    page,
+    ...(search.trim() ? { search: search.trim() } : {}),
+  }), [page, search])
+  const { data: warehouses, isPending } = useWarehousesPage(warehouseParams)
   const deleteMutation = useDeleteWarehouse()
-
-  const filtered = useMemo(() => {
-    if (!warehouses) return []
-    const keyword = search.trim().toLowerCase()
-    return warehouses.filter(
-      (w) =>
-        !keyword ||
-        w.name.toLowerCase().includes(keyword) ||
-        w.code.toLowerCase().includes(keyword),
-    )
-  }, [warehouses, search])
 
   const handleDelete = (row: WarehouseDto) => {
     Modal.confirm({
@@ -137,7 +131,10 @@ function Warehouses() {
           placeholder="Tìm theo tên hoặc mã kho"
           style={{ width: 280 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
         />
       </div>
 
@@ -145,9 +142,15 @@ function Warehouses() {
         <Table<WarehouseDto>
           rowKey="id"
           columns={columns}
-          dataSource={filtered}
+          dataSource={warehouses?.items ?? []}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+             current: warehouses?.page ?? page,
+             pageSize: warehouses?.pageSize ?? 10,
+             total: warehouses?.totalCount ?? 0,
+             showSizeChanger: false,
+           }}
+           onChange={(pagination) => setPage(pagination.current ?? 1)}
           onRow={(record) => ({
             onClick: () => navigate(`/warehouses/${record.id}/locations`),
             style: { cursor: 'pointer' },

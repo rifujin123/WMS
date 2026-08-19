@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using CloudinaryDotNet;
+using WMS.API.Configuration;
 using WMS.API.Middlewares;
 using WMS.Application.Interfaces;
 using WMS.Application.Services;
@@ -22,6 +23,11 @@ builder.Host.UseSerilog((context, config) =>
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+builder.Services.AddOptions<PaginationOptions>()
+    .Bind(builder.Configuration.GetSection(PaginationOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var frontendOrigin = builder.Configuration["Frontend:Origin"]
     ?? "http://localhost:5173";

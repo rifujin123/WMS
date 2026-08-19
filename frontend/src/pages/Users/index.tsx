@@ -18,7 +18,7 @@ import type { MenuProps, TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import UserFormModal from './UserFormModal'
 import ResetPasswordModal from './ResetPasswordModal'
-import { useSetUserLock, useUsers } from '../../hooks/useUsers'
+import { useSetUserLock, useUsersPage } from '../../hooks/useUsers'
 import type { UserListItem } from '../../types/user'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 
@@ -43,6 +43,7 @@ function Users() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
 
   // Debounce 1s: chỉ gọi API khi người dùng ngừng gõ
   useEffect(() => {
@@ -51,12 +52,13 @@ function Users() {
   }, [search])
 
   const filters = useMemo(() => ({
+    page,
     ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
     ...(roleFilter && roleFilter !== 'all' ? { role: roleFilter } : {}),
     ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
-  }), [debouncedSearch, roleFilter, statusFilter])
+  }), [page, debouncedSearch, roleFilter, statusFilter])
 
-  const { data: users, isPending, isError } = useUsers(filters)
+  const { data: users, isPending, isError } = useUsersPage(filters)
   const lockMutation = useSetUserLock()
   const { message } = App.useApp()
 
@@ -203,13 +205,19 @@ function Users() {
           placeholder="Tìm theo tên hoặc tên đăng nhập"
           style={{ width: 280 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
         />
         <Select
           placeholder="Vai trò"
           style={{ width: 180 }}
           value={roleFilter}
-          onChange={(value) => setRoleFilter(value)}
+          onChange={(value) => {
+            setRoleFilter(value)
+            setPage(1)
+          }}
           options={[
             { value: 'all', label: 'Tất cả' },
             { value: 'Admin', label: 'Admin' },
@@ -221,7 +229,10 @@ function Users() {
           placeholder="Trạng thái"
           style={{ width: 150 }}
           value={statusFilter}
-          onChange={(value) => setStatusFilter(value)}
+          onChange={(value) => {
+            setStatusFilter(value)
+            setPage(1)
+          }}
           options={[
             { value: 'all', label: 'Tất cả' },
             { value: 'active', label: 'Đang hoạt động' },
@@ -237,9 +248,15 @@ function Users() {
         <Table<UserListItem>
           rowKey="id"
           columns={columns}
-          dataSource={users ?? []}
+          dataSource={users?.items ?? []}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+             current: users?.page ?? page,
+             pageSize: users?.pageSize ?? 10,
+             total: users?.totalCount ?? 0,
+             showSizeChanger: false,
+           }}
+           onChange={(pagination) => setPage(pagination.current ?? 1)}
           scroll={{ x: 720 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có người dùng nào" /> }}
         />

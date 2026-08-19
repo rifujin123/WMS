@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using WMS.API.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 
@@ -11,20 +13,31 @@ namespace WMS.API.Controllers;
 public class LocationsController : ControllerBase
 {
     private readonly ILocationService _service;
+    private readonly PaginationOptions _paginationOptions;
 
-    public LocationsController(ILocationService service)
+    public LocationsController(ILocationService service, IOptions<PaginationOptions> paginationOptions)
     {
         _service = service;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] Guid? warehouseId)
+    public async Task<IActionResult> GetAll([FromQuery] LocationListQuery query, CancellationToken cancellationToken)
+    {
+        if (query.Page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        var result = await _service.GetPagedAsync(query, _paginationOptions.PageSize, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("lookup")]
+    public async Task<IActionResult> Lookup([FromQuery] Guid? warehouseId)
     {
         if (warehouseId.HasValue)
             return Ok(await _service.GetByWarehouseAsync(warehouseId.Value));
 
-        var result = await _service.GetAllAsync();
-        return Ok(result);
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]

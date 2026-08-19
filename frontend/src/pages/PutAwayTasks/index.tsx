@@ -27,7 +27,7 @@ import {
   useAssignPutAwayTask,
   useCompletePutAwayTask,
   useDeletePutAwayTask,
-  usePutAwayTasks,
+  usePutAwayTasksPage,
   useStartPutAwayTask,
   useUpdatePutAwayTask,
 } from '../../hooks/usePutAwayTasks'
@@ -43,10 +43,14 @@ function PutAwayTasks() {
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
   const { data: profile } = useProfile()
-  // Staff chỉ thấy task được giao cho mình (filter theo query assignToId)
-  const { data: tasks, isPending } = usePutAwayTasks(
-    isStaff && profile?.id ? { assignToId: profile.id } : undefined,
-  )
+  const [statusFilter, setStatusFilter] = useState<PutAwayTaskStatus | undefined>(undefined)
+  const [page, setPage] = useState(1)
+  const putAwayParams = useMemo(() => ({
+    page,
+    ...(isStaff && profile?.id ? { assignToId: profile.id } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+  }), [page, isStaff, profile?.id, statusFilter])
+  const { data: tasks, isPending } = usePutAwayTasksPage(putAwayParams)
   const { data: warehouses } = useWarehouses()
   const { data: warehouseStaff } = useWarehouseStaff()
   const updateMutation = useUpdatePutAwayTask()
@@ -55,19 +59,12 @@ function PutAwayTasks() {
   const completeMutation = useCompletePutAwayTask()
   const deleteMutation = useDeletePutAwayTask()
 
-  const [statusFilter, setStatusFilter] = useState<PutAwayTaskStatus | undefined>(undefined)
   const [locTask, setLocTask] = useState<PutAwayTaskDto | null>(null)
   const [assignTask, setAssignTask] = useState<PutAwayTaskDto | null>(null)
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(undefined)
   const [selectedLocId, setSelectedLocId] = useState<string | undefined>(undefined)
   const [assignForm] = Form.useForm<{ userId: string }>()
   const { data: locations } = useLocationsByWarehouse(selectedWarehouseId)
-
-  const filtered = useMemo(() => {
-    if (!tasks) return []
-    if (!statusFilter) return tasks
-    return tasks.filter((t) => t.status === statusFilter)
-  }, [tasks, statusFilter])
 
   const openLocModal = (task: PutAwayTaskDto) => {
     setLocTask(task)
@@ -325,7 +322,10 @@ function PutAwayTasks() {
           style={{ width: 200 }}
           options={Object.entries(PUT_AWAY_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
           value={statusFilter}
-          onChange={(value) => setStatusFilter(value)}
+          onChange={(value) => {
+            setStatusFilter(value)
+            setPage(1)
+          }}
         />
       </div>
 
@@ -333,9 +333,15 @@ function PutAwayTasks() {
         <Table<PutAwayTaskDto>
           rowKey="id"
           columns={columns}
-          dataSource={filtered}
+          dataSource={tasks?.items ?? []}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+            current: tasks?.page ?? page,
+            pageSize: tasks?.pageSize ?? 10,
+            total: tasks?.totalCount ?? 0,
+            showSizeChanger: false,
+          }}
+          onChange={(pagination) => setPage(pagination.current ?? 1)}
           scroll={{ x: 900 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có task cất hàng nào" /> }}
         />

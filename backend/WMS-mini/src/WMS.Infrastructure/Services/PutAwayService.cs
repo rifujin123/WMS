@@ -46,6 +46,12 @@ public class PutAwayService : IPutAwayService
         return _mapper.Map<List<PutAwayTaskDto>>(tasks);
     }
 
+    public Task<PagedResult<PutAwayTaskDto>> GetPagedAsync(
+        PutAwayTaskListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetPagedAsync(query, pageSize, cancellationToken);
+
     public async Task<PutAwayTaskDto?> GetByIdAsync(Guid id)
     {
         var task = await _repo.GetByIdAsync(id);

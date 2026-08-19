@@ -23,6 +23,12 @@ public class PurchaseOrderService : IPurchaseOrderService
 
     public async Task<List<PurchaseOrderDto>> GetAllAsync() => _mapper.Map<List<PurchaseOrderDto>>(await _repo.GetAllAsync());
 
+    public Task<PagedResult<PurchaseOrderDto>> GetPagedAsync(
+        PurchaseOrderListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetPagedAsync(query, pageSize, cancellationToken);
+
     public async Task<PurchaseOrderDto?> GetByIdAsync(Guid id)
     {
         var entity = await _repo.GetByIdAsync(id);

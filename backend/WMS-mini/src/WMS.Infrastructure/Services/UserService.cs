@@ -23,6 +23,77 @@ public class UserService : IUserService
         _imageService = imageService;
     }
 
+    public async Task<PagedResult<UserListItemDto>> GetPagedAsync(
+        UserListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var users = _userManager.Users.AsNoTracking().AsQueryable();
+        var search = query.Search?.Trim();
+        var role = query.Role?.Trim();
+        var status = query.Status?.Trim().ToLowerInvariant();
+        var now = DateTimeOffset.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            users = users.Where(u => _db.UserRoles
+                .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .Any(x => x.UserId == u.Id && x.Name == role));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            users = users.Where(u => (u.FullName != null && u.FullName.Contains(search))
+                || (u.UserName != null && u.UserName.Contains(search)));
+        }
+
+        if (status == "locked")
+        {
+            users = users.Where(u => u.LockoutEnabled && u.LockoutEnd.HasValue && u.LockoutEnd > now);
+        }
+        else if (status == "active")
+        {
+            users = users.Where(u => !u.LockoutEnabled || !u.LockoutEnd.HasValue || u.LockoutEnd <= now);
+        }
+
+        var totalCount = await users.CountAsync(cancellationToken);
+        var pageUsers = await users
+            .OrderByDescending(u => u.CreatedAt)
+            .ThenBy(u => u.Id)
+            .Skip((query.Page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var roleNames = await _db.UserRoles
+            .Where(ur => pageUsers.Select(u => u.Id).Contains(ur.UserId))
+            .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, RoleName = r.Name })
+            .ToListAsync(cancellationToken);
+        var rolesByUserId = roleNames
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.RoleName!).ToList());
+
+        var items = pageUsers.Select(user =>
+        {
+            var isLocked = user.LockoutEnabled && user.LockoutEnd is { } end && end > now;
+            var roles = rolesByUserId.TryGetValue(user.Id, out var userRoles)
+                ? userRoles
+                : [];
+            return new UserListItemDto
+            {
+                Id = user.Id,
+                Username = user.UserName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
+                FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
+                Role = roles.FirstOrDefault() ?? string.Empty,
+                Status = isLocked ? "locked" : "active",
+                CreatedAt = user.CreatedAt,
+            };
+        }).ToList();
+
+        return PagedResult<UserListItemDto>.Create(items, query.Page, pageSize, totalCount);
+    }
+
     public async Task<List<UserListItemDto>> GetAllAsync(string? role = null, string? search = null, string? status = null)
     {
         var users = _userManager.Users.OrderByDescending(u => u.CreatedAt).ToList();

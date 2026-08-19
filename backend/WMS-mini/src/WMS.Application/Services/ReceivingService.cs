@@ -24,6 +24,12 @@ public class ReceivingService : IReceivingService
     }
 
     public async Task<List<ReceivingDto>> GetAllAsync() => _mapper.Map<List<ReceivingDto>>(await _repo.GetAllAsync());
+
+    public Task<PagedResult<ReceivingDto>> GetPagedAsync(
+        ReceivingListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetPagedAsync(query, pageSize, cancellationToken);
     public async Task<ReceivingDto?> GetByIdAsync(Guid id) {
         var receiving = await _repo.GetByIdAsync(id);
         if(receiving == null)

@@ -1,5 +1,6 @@
 // Service trang Thông tin cá nhân — gọi API thật từ backend WMS.API
 import api from '../lib/axios'
+import type { PagedResponse } from '../types/pagination'
 import type {
   ChangePasswordDto,
   ResetPasswordDto,
@@ -9,7 +10,18 @@ import type {
   UserProfile,
 } from '../types/user'
 
+export interface UserListParams {
+  page: number
+  role?: string
+  search?: string
+  status?: string
+}
+
 export function getUsers(params?: { role?: string; search?: string; status?: string }): Promise<UserListItem[]> {
+  return api.get('/Users/lookup', { params })
+}
+
+export function getUsersPage(params: UserListParams): Promise<PagedResponse<UserListItem>> {
   return api.get('/Users', { params })
 }
 

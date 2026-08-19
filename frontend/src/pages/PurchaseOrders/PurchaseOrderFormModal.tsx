@@ -6,7 +6,7 @@ import type {
   CreatePurchaseOrderDetailDto,
   PurchaseOrderDto,
 } from '../../types/purchaseOrder'
-import { useProducts } from '../../hooks/useProducts'
+import { useProductLookup } from '../../hooks/useProducts'
 import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../../hooks/usePurchaseOrders'
 
 interface PurchaseOrderFormModalProps {
@@ -18,7 +18,7 @@ interface PurchaseOrderFormModalProps {
 function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalProps) {
   const [form] = Form.useForm<CreatePurchaseOrderDto>()
   const { message } = App.useApp()
-  const { data: products, isPending: productsPending } = useProducts()
+  const { data: products, isPending: productsPending } = useProductLookup()
   const createMutation = useCreatePurchaseOrder()
   const updateMutation = useUpdatePurchaseOrder()
   const isEdit = po !== null

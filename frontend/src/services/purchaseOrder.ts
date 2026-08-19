@@ -1,8 +1,18 @@
 import api from '../lib/axios'
-import type { PurchaseOrderDto, CreatePurchaseOrderDto } from '../types/purchaseOrder'
+import type { PurchaseOrderDto, CreatePurchaseOrderDto, PurchaseOrderStatus } from '../types/purchaseOrder'
+import type { PagedResponse } from '../types/pagination'
+
+export interface PurchaseOrderListParams {
+  page: number
+  search?: string
+  status?: PurchaseOrderStatus
+}
 
 export const getPurchaseOrders = (): Promise<PurchaseOrderDto[]> =>
-  api.get('/PurchaseOrders')
+  api.get('/PurchaseOrders/lookup')
+
+export const getPurchaseOrdersPage = (params: PurchaseOrderListParams): Promise<PagedResponse<PurchaseOrderDto>> =>
+  api.get('/PurchaseOrders', { params })
 
 export const getPurchaseOrder = (id: string): Promise<PurchaseOrderDto> =>
   api.get(`/PurchaseOrders/${id}`)

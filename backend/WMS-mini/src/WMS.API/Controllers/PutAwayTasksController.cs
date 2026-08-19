@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using WMS.API.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
@@ -15,23 +17,36 @@ public class PutAwayTasksController : ControllerBase
     private readonly IPutAwayService _service;
     private readonly UserManager<User> _userManager;
     private readonly ICurrentUserService _currentUser;
+    private readonly PaginationOptions _paginationOptions;
 
-    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager, ICurrentUserService currentUser)
+    public PutAwayTasksController(IPutAwayService service, UserManager<User> userManager, ICurrentUserService currentUser, IOptions<PaginationOptions> paginationOptions)
     {
         _service = service;
         _userManager = userManager;
         _currentUser = currentUser;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] Guid? assignToId)
+    public async Task<IActionResult> GetAll([FromQuery] PutAwayTaskListQuery query, CancellationToken cancellationToken)
     {
-        // WarehouseStaff chỉ thấy task được giao cho mình — không cho phép lọc theo người khác
+        if (query.Page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        if (_currentUser.IsInRole("WarehouseStaff"))
+            query = new PutAwayTaskListQuery { Page = query.Page, Status = query.Status, AssignToId = _currentUser.UserId };
+
+        var result = await _service.GetPagedAsync(query, _paginationOptions.PageSize, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("lookup")]
+    public async Task<IActionResult> Lookup([FromQuery] Guid? assignToId)
+    {
         if (_currentUser.IsInRole("WarehouseStaff"))
             assignToId = _currentUser.UserId;
 
-        var result = await _service.GetAllAsync(assignToId);
-        return Ok(result);
+        return Ok(await _service.GetAllAsync(assignToId));
     }
 
     [HttpGet("{id}")]

@@ -15,6 +15,12 @@ public class StockService : IStockService
         _mapper = mapper;
     }
 
+    public Task<PagedResult<StockSummaryDto>> GetSummaryPagedAsync(
+        StockSummaryQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default) =>
+        _repo.GetSummaryPagedAsync(query, pageSize, cancellationToken);
+
     public async Task<List<StockDto>> GetAllAsync()
     {
         var results = await _repo.GetAllAsync();

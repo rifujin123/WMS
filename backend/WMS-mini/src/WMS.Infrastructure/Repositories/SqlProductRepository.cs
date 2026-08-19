@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Infrastructure.Data;
@@ -17,6 +18,47 @@ public class SqlProductRepository : IProductRepository
     public async Task<List<Product>> GetAllAsync()
     {
         return await _db.Products.ToListAsync();
+    }
+
+    public async Task<PagedResult<ProductDto>> GetPagedAsync(
+        ProductListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var products = _db.Products.AsNoTracking().AsQueryable();
+        var search = query.Search?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            products = products.Where(p => p.Name.Contains(search) || p.Sku.Contains(search));
+        }
+
+        if (query.CategoryId.HasValue)
+        {
+            products = products.Where(p => p.CategoryId == query.CategoryId.Value);
+        }
+
+        var totalCount = await products.CountAsync(cancellationToken);
+        var page = query.Page;
+        var items = await products
+            .OrderBy(p => p.Name)
+            .ThenBy(p => p.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Sku = p.Sku,
+                Name = p.Name,
+                CategoryId = p.CategoryId,
+                Unit = p.Unit,
+                Price = p.Price,
+                Dimension = p.Dimension,
+                ImageUrl = p.ImageUrl,
+            })
+            .ToListAsync(cancellationToken);
+
+        return PagedResult<ProductDto>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<Product?> GetByIdAsync(Guid id)

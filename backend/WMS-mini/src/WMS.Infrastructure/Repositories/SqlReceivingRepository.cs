@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Domain.Enums;
@@ -22,6 +23,47 @@ public class SqlReceivingRepository : IReceivingRepository
             .Include(r => r.ReceivingDetails)
                 .ThenInclude(d => d.Product)
             .ToListAsync();
+    }
+
+    public async Task<PagedResult<ReceivingDto>> GetPagedAsync(
+        ReceivingListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var receivings = _db.Receivings.AsNoTracking().AsQueryable();
+        var search = query.Search?.Trim();
+        if (!string.IsNullOrWhiteSpace(search))
+            receivings = receivings.Where(r => r.ReceivingNo.Contains(search)
+                || (r.PurchaseOrder.PoNumber != null && r.PurchaseOrder.PoNumber.Contains(search))
+                || (r.ReceivedBy != null && r.ReceivedBy.FullName.Contains(search)));
+        if (query.Status.HasValue)
+            receivings = receivings.Where(r => r.Status == query.Status.Value);
+
+        var totalCount = await receivings.CountAsync(cancellationToken);
+        var page = query.Page;
+        var items = await receivings
+            .OrderByDescending(r => r.ReceivedDate)
+            .ThenBy(r => r.ReceivingNo)
+            .ThenBy(r => r.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new ReceivingDto
+            {
+                Id = r.Id,
+                ReceivingNo = r.ReceivingNo,
+                PurchaseOrderId = r.PurchaseOrderId,
+                PoNumber = r.PurchaseOrder.PoNumber,
+                ReceivedById = r.ReceivedById,
+                ReceivedByName = r.ReceivedBy == null ? null : r.ReceivedBy.FullName,
+                ReceivedDate = r.ReceivedDate,
+                Status = r.Status,
+                Notes = r.Notes,
+                InvoiceImageUrl = r.InvoiceImageUrl,
+                CreatedDate = r.CreatedDate,
+            })
+            .ToListAsync(cancellationToken);
+
+        return PagedResult<ReceivingDto>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<Receiving?> GetByIdAsync(Guid id)

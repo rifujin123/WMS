@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
 using WMS.Infrastructure.Data;
@@ -17,6 +18,42 @@ public class SqlLocationRepository : ILocationRepository
     public async Task<List<Location>> GetAllAsync()
     {
         return await _db.Locations.ToListAsync();
+    }
+
+    public async Task<PagedResult<LocationDto>> GetPagedAsync(
+        LocationListQuery query,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var locations = _db.Locations.AsNoTracking().AsQueryable();
+
+        if (query.WarehouseId.HasValue)
+        {
+            locations = locations.Where(l => l.WarehouseId == query.WarehouseId.Value);
+        }
+
+        var totalCount = await locations.CountAsync(cancellationToken);
+        var page = query.Page;
+        var items = await locations
+            .OrderBy(l => l.Code)
+            .ThenBy(l => l.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(l => new LocationDto
+            {
+                Id = l.Id,
+                WarehouseId = l.WarehouseId,
+                Code = l.Code,
+                Aisle = l.Aisle,
+                Rack = l.Rack,
+                Level = l.Level,
+                LocationType = l.LocationType,
+                MaxQuantity = l.MaxQuantity,
+                CurrentQuantity = l.CurrentQuantity,
+            })
+            .ToListAsync(cancellationToken);
+
+        return PagedResult<LocationDto>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<Location?> GetByIdAsync(Guid id)

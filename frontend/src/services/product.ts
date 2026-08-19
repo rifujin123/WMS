@@ -1,8 +1,18 @@
 import api from '../lib/axios'
 import type { CreateProductDto, ProductDto } from '../types/product'
+import type { PagedResponse } from '../types/pagination'
 
-export const getProducts = (): Promise<ProductDto[]> =>
-  api.get('/Products')
+export interface ProductListParams {
+  page: number
+  search?: string
+  categoryId?: string
+}
+
+export const getProducts = (params: ProductListParams): Promise<PagedResponse<ProductDto>> =>
+  api.get('/Products', { params })
+
+export const getProductLookup = (): Promise<ProductDto[]> =>
+  api.get('/Products/lookup')
 
 export const createProduct = (
   dto: CreateProductDto,

@@ -20,16 +20,14 @@ function Categories() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CategoryDto | null>(null)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const { message } = App.useApp()
-  const { data: categories, isPending } = useCategories()
+  const categoryParams = useMemo(() => ({
+    page,
+    ...(search.trim() ? { search: search.trim() } : {}),
+  }), [page, search])
+  const { data: categories, isPending } = useCategories(categoryParams)
   const deleteMutation = useDeleteCategory()
-
-  const filtered = useMemo(() => {
-    if (!categories) return []
-    const keyword = search.trim().toLowerCase()
-    if (!keyword) return categories
-    return categories.filter((c) => c.name.toLowerCase().includes(keyword))
-  }, [categories, search])
 
   const handleDelete = (row: CategoryDto) => {
     Modal.confirm({
@@ -119,7 +117,10 @@ function Categories() {
           placeholder="Tìm theo tên danh mục"
           style={{ width: 240 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
         />
       </div>
 
@@ -127,9 +128,15 @@ function Categories() {
         <Table<CategoryDto>
           rowKey="id"
           columns={columns}
-          dataSource={filtered}
+          dataSource={categories?.items ?? []}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+             current: categories?.page ?? page,
+             pageSize: categories?.pageSize ?? 10,
+             total: categories?.totalCount ?? 0,
+             showSizeChanger: false,
+           }}
+           onChange={(pagination) => setPage(pagination.current ?? 1)}
           locale={{ emptyText: <Empty image={null} description="Chưa có danh mục nào" /> }}
         />
       </Card>

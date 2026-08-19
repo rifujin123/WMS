@@ -1,12 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UpdateLocationDto } from '../types/location'
+import type { LocationListParams } from '../services/location'
 import {
   createLocation as createLocationRequest,
   deleteLocation as deleteLocationRequest,
   getAllLocations,
   getLocationsByWarehouse,
+  getLocationsPage,
   updateLocation as updateLocationRequest,
 } from '../services/location'
+
+export function useLocationsPage(params: LocationListParams) {
+  return useQuery({
+    queryKey: ['locationsPage', params],
+    queryFn: () => getLocationsPage(params),
+  })
+}
 
 export function useLocationsByWarehouse(warehouseId: string | undefined) {
   return useQuery({
@@ -24,8 +33,11 @@ export function useCreateLocation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createLocationRequest,
-    onSuccess: (location) =>
-      queryClient.invalidateQueries({ queryKey: ['locations', location.warehouseId] }),
+    onSuccess: (location) => {
+      queryClient.invalidateQueries({ queryKey: ['locations', location.warehouseId] })
+      queryClient.invalidateQueries({ queryKey: ['locationsPage'] })
+      queryClient.invalidateQueries({ queryKey: ['allLocations'] })
+    },
     onError: (error: unknown) => {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -40,8 +52,11 @@ export function useUpdateLocation() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateLocationDto }) =>
       updateLocationRequest(id, dto),
-    onSuccess: (location) =>
-      queryClient.invalidateQueries({ queryKey: ['locations', location.warehouseId] }),
+    onSuccess: (location) => {
+      queryClient.invalidateQueries({ queryKey: ['locations', location.warehouseId] })
+      queryClient.invalidateQueries({ queryKey: ['locationsPage'] })
+      queryClient.invalidateQueries({ queryKey: ['allLocations'] })
+    },
     onError: (error: unknown) => {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -55,7 +70,11 @@ export function useDeleteLocation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deleteLocationRequest,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['locations'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] })
+      queryClient.invalidateQueries({ queryKey: ['locationsPage'] })
+      queryClient.invalidateQueries({ queryKey: ['allLocations'] })
+    },
     onError: (error: unknown) => {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
