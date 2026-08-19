@@ -22,10 +22,14 @@ builder.Host.UseSerilog((context, config) =>
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+var frontendOrigin = builder.Configuration["Frontend:Origin"]
+    ?? "http://localhost:5173";
+
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("Frontend", p =>
-        p.WithOrigins("http://localhost:5173")
+        p.WithOrigins(frontendOrigin)
          .AllowAnyHeader()
          .AllowAnyMethod());
 });
