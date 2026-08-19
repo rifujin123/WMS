@@ -6,27 +6,22 @@ import dayjs from 'dayjs'
 import { useNavigate } from 'react-router-dom'
 import ReceivingFormModal from './ReceivingFormModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
-import { useConfirmReceiving, useDeleteReceiving, useReceivings } from '../../hooks/useReceivings'
+import { useConfirmReceiving, useDeleteReceiving, useReceivingsPage } from '../../hooks/useReceivings'
 
 function Receivings() {
   const { message } = App.useApp()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ReceivingDto | null>(null)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const navigate = useNavigate()
-  const { data: receivings, isPending, isError } = useReceivings()
+  const receivingParams = useMemo(() => ({
+    page,
+    ...(search.trim() ? { search: search.trim() } : {}),
+  }), [page, search])
+  const { data: receivings, isPending, isError } = useReceivingsPage(receivingParams)
   const confirmMutation = useConfirmReceiving()
   const deleteMutation = useDeleteReceiving()
-
-  const filtered = useMemo(() => {
-    const keyword = search.trim().toLowerCase()
-    return (receivings ?? []).filter(
-      (receiving) =>
-        !keyword ||
-        (receiving.poNumber ?? '').toLowerCase().includes(keyword) ||
-        (receiving.receivedByName ?? '').toLowerCase().includes(keyword),
-    )
-  }, [receivings, search])
 
   const handleConfirm = (row: ReceivingDto) => {
     Modal.confirm({
@@ -171,7 +166,10 @@ function Receivings() {
           placeholder="Tìm theo số PO hoặc người nhận"
           style={{ width: 280 }}
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setPage(1)
+          }}
         />
       </div>
 
@@ -184,8 +182,14 @@ function Receivings() {
           <Table<ReceivingDto>
             rowKey="id"
             columns={columns}
-            dataSource={filtered}
-            pagination={{ pageSize: 10, showSizeChanger: false }}
+            dataSource={receivings?.items ?? []}
+            pagination={{
+              current: receivings?.page ?? page,
+              pageSize: receivings?.pageSize ?? 10,
+              total: receivings?.totalCount ?? 0,
+              showSizeChanger: false,
+            }}
+            onChange={(pagination) => setPage(pagination.current ?? 1)}
             scroll={{ x: 720 }}
             locale={{ emptyText: <Empty image={null} description="Chưa có phiếu nhận nào" /> }}
           />

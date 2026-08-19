@@ -26,7 +26,7 @@ import type { PurchaseOrderDto, PurchaseOrderStatus } from '../../types/purchase
 import {
   useApprovePurchaseOrder,
   useDeletePurchaseOrder,
-  usePurchaseOrders,
+  usePurchaseOrdersPage,
 } from '../../hooks/usePurchaseOrders'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 
@@ -35,23 +35,16 @@ function PurchaseOrders() {
   const [editing, setEditing] = useState<PurchaseOrderDto | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
+  const [page, setPage] = useState(1)
   const { message } = App.useApp()
-  const { data: purchaseOrders, isPending } = usePurchaseOrders()
+  const purchaseOrderParams = useMemo(() => ({
+    page,
+    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+  }), [page, search, statusFilter])
+  const { data: purchaseOrders, isPending } = usePurchaseOrdersPage(purchaseOrderParams)
   const approveMutation = useApprovePurchaseOrder()
   const deleteMutation = useDeletePurchaseOrder()
-
-  const filtered = useMemo(() => {
-    if (!purchaseOrders) return []
-    const keyword = search.trim().toLowerCase()
-    return purchaseOrders.filter((po) => {
-      const matchesKeyword =
-        !keyword ||
-        po.poNumber.toLowerCase().includes(keyword) ||
-        (po.vendorName ?? '').toLowerCase().includes(keyword)
-      const matchesStatus = !statusFilter || po.status === statusFilter
-      return matchesKeyword && matchesStatus
-    })
-  }, [purchaseOrders, search, statusFilter])
 
   const handleApprove = (row: PurchaseOrderDto) => {
     Modal.confirm({
@@ -197,7 +190,10 @@ function PurchaseOrders() {
           placeholder="Tìm theo số PO hoặc nhà cung cấp"
           style={{ width: 280 }}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
         />
         <Select
           placeholder="Trạng thái"
@@ -205,7 +201,10 @@ function PurchaseOrders() {
           style={{ width: 180 }}
           options={Object.entries(PURCHASE_ORDER_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
           value={statusFilter}
-          onChange={(value) => setStatusFilter(value)}
+          onChange={(value) => {
+            setStatusFilter(value)
+            setPage(1)
+          }}
         />
       </div>
 
@@ -213,9 +212,15 @@ function PurchaseOrders() {
         <Table<PurchaseOrderDto>
           rowKey="id"
           columns={columns}
-          dataSource={filtered}
+          dataSource={purchaseOrders?.items ?? []}
           loading={isPending}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{
+            current: purchaseOrders?.page ?? page,
+            pageSize: purchaseOrders?.pageSize ?? 10,
+            total: purchaseOrders?.totalCount ?? 0,
+            showSizeChanger: false,
+          }}
+          onChange={(pagination) => setPage(pagination.current ?? 1)}
           scroll={{ x: 720 }}
           locale={{ emptyText: <Empty image={null} description="Chưa có đơn hàng nào" /> }}
         />

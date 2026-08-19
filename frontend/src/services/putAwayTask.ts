@@ -1,7 +1,17 @@
 import api from '../lib/axios'
-import type { PutAwayTaskDto, UpdatePutAwayTaskDto, AssignPutAwayDto } from '../types/putAwayTask'
+import type { PutAwayTaskDto, UpdatePutAwayTaskDto, AssignPutAwayDto, PutAwayTaskStatus } from '../types/putAwayTask'
+import type { PagedResponse } from '../types/pagination'
+
+export interface PutAwayTaskListParams {
+  page: number
+  assignToId?: string
+  status?: PutAwayTaskStatus
+}
 
 export const getPutAwayTasks = (params?: { assignToId?: string }): Promise<PutAwayTaskDto[]> =>
+  api.get('/PutAwayTasks/lookup', { params })
+
+export const getPutAwayTasksPage = (params: PutAwayTaskListParams): Promise<PagedResponse<PutAwayTaskDto>> =>
   api.get('/PutAwayTasks', { params })
 
 export const getPutAwayTask = (id: string): Promise<PutAwayTaskDto> =>

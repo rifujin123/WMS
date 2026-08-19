@@ -1,8 +1,18 @@
 import api from '../lib/axios'
-import type { ReceivingDto, CreateReceivingDto } from '../types/receiving'
+import type { ReceivingDto, CreateReceivingDto, ReceivingStatus } from '../types/receiving'
+import type { PagedResponse } from '../types/pagination'
+
+export interface ReceivingListParams {
+  page: number
+  search?: string
+  status?: ReceivingStatus
+}
 
 export const getReceivings = (): Promise<ReceivingDto[]> =>
-  api.get('/Receivings')
+  api.get('/Receivings/lookup')
+
+export const getReceivingsPage = (params: ReceivingListParams): Promise<PagedResponse<ReceivingDto>> =>
+  api.get('/Receivings', { params })
 
 export const getReceiving = (id: string): Promise<ReceivingDto> =>
   api.get(`/Receivings/${id}`)

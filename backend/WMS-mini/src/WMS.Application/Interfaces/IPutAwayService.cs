@@ -5,6 +5,7 @@ namespace WMS.Application.Interfaces;
 public interface IPutAwayService
 {
     Task<List<PutAwayTaskDto>> GetAllAsync(Guid? assignToId = null);
+    Task<PagedResult<PutAwayTaskDto>> GetPagedAsync(PutAwayTaskListQuery query, int pageSize, CancellationToken cancellationToken = default);
     Task<PutAwayTaskDto?> GetByIdAsync(Guid id);
     Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto);
     Task<PutAwayTaskDto?> UpdateAsync(Guid id, UpdatePutAwayTaskDto dto);

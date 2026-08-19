@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using WMS.API.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 
@@ -11,16 +13,28 @@ namespace WMS.API.Controllers;
 public class PurchaseOrdersController : ControllerBase
 {
     private readonly IPurchaseOrderService _service;
-    public PurchaseOrdersController(IPurchaseOrderService service)
+    private readonly PaginationOptions _paginationOptions;
+
+    public PurchaseOrdersController(IPurchaseOrderService service, IOptions<PaginationOptions> paginationOptions)
     {
         _service = service;
+        _paginationOptions = paginationOptions.Value;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PurchaseOrderListQuery query, CancellationToken cancellationToken)
     {
-        var result = await _service.GetAllAsync();
+        if (query.Page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        var result = await _service.GetPagedAsync(query, _paginationOptions.PageSize, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpGet("lookup")]
+    public async Task<IActionResult> Lookup()
+    {
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]

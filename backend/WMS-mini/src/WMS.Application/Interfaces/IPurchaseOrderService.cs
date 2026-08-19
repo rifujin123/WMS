@@ -6,6 +6,7 @@ namespace WMS.Application.Interfaces;
 public interface IPurchaseOrderService
 {
     Task<List<PurchaseOrderDto>> GetAllAsync();
+    Task<PagedResult<PurchaseOrderDto>> GetPagedAsync(PurchaseOrderListQuery query, int pageSize, CancellationToken cancellationToken = default);
     Task<PurchaseOrderDto?> GetByIdAsync(Guid id);
     Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto);
     Task<PurchaseOrderDto?> UpdateAsync(Guid id, UpdatePurchaseOrderDto dto);
