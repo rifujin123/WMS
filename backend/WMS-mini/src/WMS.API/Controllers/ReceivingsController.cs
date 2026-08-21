@@ -13,11 +13,13 @@ namespace WMS.API.Controllers;
 public class ReceivingsController : ControllerBase
 {
     private readonly IReceivingService _service;
+    private readonly IInvoiceScanService _scanService;
     private readonly PaginationOptions _paginationOptions;
 
-    public ReceivingsController(IReceivingService service, IOptions<PaginationOptions> paginationOptions)
+    public ReceivingsController(IReceivingService service, IInvoiceScanService scanService, IOptions<PaginationOptions> paginationOptions)
     {
         _service = service;
+        _scanService = scanService;
         _paginationOptions = paginationOptions.Value;
     }
 
@@ -35,6 +37,31 @@ public class ReceivingsController : ControllerBase
     public async Task<IActionResult> Lookup()
     {
         return Ok(await _service.GetAllAsync());
+    }
+
+    [HttpPost("scan")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
+    public async Task<IActionResult> Scan([FromForm] Guid purchaseOrderId, [FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Vui lòng chọn ảnh hóa đơn." });
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { message = "Ảnh phải nhỏ hơn 5MB." });
+
+        var allowed = new[] { "image/jpeg", "image/png" };
+        if (!allowed.Contains(file.ContentType))
+            return BadRequest(new { message = "Chỉ nhận ảnh JPG hoặc PNG." });
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _scanService.ScanAsync(purchaseOrderId, stream, file.FileName);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id}")]

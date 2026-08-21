@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using CloudinaryDotNet;
+using System.Net.Http.Headers;
 using WMS.API.Configuration;
 using WMS.API.Middlewares;
+using WMS.Application.Configuration;
 using WMS.Application.Interfaces;
 using WMS.Application.Services;
 using WMS.Infrastructure.Data;
@@ -11,6 +13,7 @@ using WMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using WMS.Domain.Entities;
@@ -28,6 +31,22 @@ builder.Services.AddOptions<PaginationOptions>()
     .Bind(builder.Configuration.GetSection(PaginationOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+builder.Services.AddOptions<AiProviderOptions>()
+    .Bind(builder.Configuration.GetSection(AiProviderOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient("AiProvider", (sp, client) =>
+{
+    var options = sp.GetRequiredService<IOptions<AiProviderOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+        client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", options.ApiKey);
+});
 
 var frontendOrigin = builder.Configuration["Frontend:Origin"]
     ?? "http://localhost:5173";
@@ -134,6 +153,16 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+
+// AI Provider
+var aiProviderName = builder.Configuration.GetValue("AiProvider:Provider", "Mock");
+if (aiProviderName.Equals("Real", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddScoped<IAiProvider, RealAiProvider>();
+else
+    builder.Services.AddScoped<IAiProvider, MockAiProvider>();
+
+builder.Services.AddScoped<IProductMappingService, ProductMappingService>();
+builder.Services.AddScoped<IInvoiceScanService, InvoiceScanService>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();
