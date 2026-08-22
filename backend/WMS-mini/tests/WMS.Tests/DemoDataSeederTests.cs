@@ -478,6 +478,108 @@ public class DemoDataSeederTests : IDisposable
         Assert.Contains(nameof(PurchaseOrderStatus.Closed), statuses);
     }
 
+    [Fact]
+    public async Task SeedAsync_SeedsSaleOrders_AllPacked_WithCompletedPicking()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_SeedsSaleOrders_AllPacked_WithCompletedPicking));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.InRange(summary.SaleOrders, 2, 3);
+
+        var orders = await db.SaleOrders.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(orders);
+        Assert.All(orders, so => Assert.Equal(SaleOrderStatus.Packed, so.Status));
+
+        // Mỗi SaleOrder đều có picking riêng đã hoàn thành, QtyPicked == QtyToPick.
+        foreach (var so in orders)
+        {
+            var picking = await db.Pickings.AsNoTracking()
+                .Where(p => p.PickingDetails.Any(pd => pd.SaleOrderDetail != null && pd.SaleOrderDetail.SaleOrderId == so.Id))
+                .ToListAsync();
+            Assert.NotEmpty(picking);
+            Assert.All(picking, p => Assert.Equal(PickingStatus.Completed, p.Status));
+
+            var details = await db.PickingDetails.AsNoTracking()
+                .Where(pd => picking.Select(p => p.Id).Contains(pd.PickingId))
+                .ToListAsync();
+            Assert.NotEmpty(details);
+            Assert.All(details, d => Assert.Equal(d.QtyToPick, d.QtyPicked));
+            Assert.All(details, d => Assert.Equal(PickingDetailStatus.Picked, d.Status));
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_SeedsApprovedStockAdjustments()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_SeedsApprovedStockAdjustments));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.InRange(summary.StockAdjustments, 1, 2);
+
+        var adjustments = await db.StockAdjustments.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(adjustments);
+        Assert.All(adjustments, a =>
+        {
+            Assert.Equal(StockAdjustmentStatus.Approved, a.Status);
+            Assert.NotNull(a.ApprovedDate);
+        });
+    }
+
+    [Fact]
+    public async Task SeedAsync_OutboundLedger_StaysConsistent_AndNeverNegative()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_OutboundLedger_StaysConsistent_AndNeverNegative));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        // Onhand == ledger sau Out (picking) + Adjustment.
+        var stocks = await db.Stocks.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(stocks);
+        foreach (var stock in stocks)
+        {
+            var movements = await db.StockMovements.AsNoTracking()
+                .Where(m => m.ProductId == stock.ProductId && m.LocationId == stock.LocationId)
+                .ToListAsync();
+            var delta = movements.Sum(m => m.MovementType switch
+            {
+                MovementType.In => m.Qty,
+                MovementType.Out => -m.Qty,
+                MovementType.Adjustment => m.Qty,
+                _ => 0
+            });
+            Assert.Equal(delta, stock.OnhandQty);
+            Assert.True(stock.OnhandQty >= 0);
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_SaleOrderChains_ProduceStatusHistory()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_SaleOrderChains_ProduceStatusHistory));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var so = await db.SaleOrders.AsNoTracking().FirstOrDefaultAsync();
+        Assert.NotNull(so);
+
+        var history = await db.StatusHistories.AsNoTracking()
+            .Where(h => h.EntityType == nameof(SaleOrder) && h.EntityId == so!.Id)
+            .OrderBy(h => h.OccurredAtUtc)
+            .ToListAsync();
+
+        Assert.NotEmpty(history);
+        var statuses = history.Select(h => h.ToStatus).ToList();
+        Assert.Contains(nameof(SaleOrderStatus.Allocated), statuses);
+        Assert.Contains(nameof(SaleOrderStatus.Picking), statuses);
+        Assert.Contains(nameof(SaleOrderStatus.Packed), statuses);
+    }
+
     private static async Task<int> CountUsersInRoleAsync(WmsDbContext db, string roleName)
     {
         var roleId = await db.Roles.Where(r => r.Name == roleName).Select(r => r.Id).FirstOrDefaultAsync();
