@@ -64,8 +64,10 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   const scanMutation = useInvoiceScan()
 
   // --- State cho luồng scan hóa đơn ---
+  // Modal có destroyOnHidden → mỗi lần mở component mount lại, state tự reset.
+  // Ảnh hóa đơn khi sửa lấy giá trị ban đầu từ phiếu hiện có.
   const [invoicePreview, setInvoicePreview] = useState<string | undefined>(undefined) // URL local để xem ngay
-  const [invoiceImageUrl, setInvoiceImageUrl] = useState<string | undefined>(undefined) // URL Cloudinary, lưu vào phiếu
+  const [invoiceImageUrl, setInvoiceImageUrl] = useState<string | undefined>(editingReceiving?.invoiceImageUrl) // URL Cloudinary, lưu vào phiếu
   const [suggestionMap, setSuggestionMap] = useState<Record<number, ProductSuggestion[]>>({}) // dòng chưa khớp → gợi ý AI
 
   // --- Dữ liệu dẫn xuất từ form: PO đang chọn, product options ---
@@ -136,12 +138,11 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     return undefined
   }
 
-  // --- Effect: nạp dữ liệu khi mở modal (edit: điền theo phiếu hiện có) ---
+  // --- Effect: khi mở modal ở chế độ sửa, nạp dữ liệu phiếu vào form ---
+  // (Modal dùng destroyOnHidden nên state epoxy đã reset khi remount;
+  // effect chỉ đồng bộ form — không gọi React setState trực tiếp.)
   useEffect(() => {
     if (!open) return
-    setInvoicePreview(undefined)
-    setSuggestionMap({})
-    setInvoiceImageUrl(editingReceiving?.invoiceImageUrl)
     if (!isEdit) {
       form.resetFields()
       return
@@ -265,6 +266,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       onCancel={onClose}
       width={1080}
       centered
+      destroyOnHidden
       okText={isEdit ? 'Lưu thay đổi' : 'Tạo phiếu nhận'}
       cancelText="Huỷ"
       confirmLoading={createMutation.isPending || updateMutation.isPending}
