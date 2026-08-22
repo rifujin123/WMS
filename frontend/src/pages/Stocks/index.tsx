@@ -46,7 +46,7 @@ function Stocks() {
 
   // locationId → tên kho (join client-side, không cần đổi backend)
   const warehouseNameByLocationId = useMemo(() => {
-    const warehouseNameById = new Map((warehouses ?? []).map((w) => [w.id, w.name]))
+    const warehouseNameById = new Map(warehouses?.map((w) => [w.id, w.name]) ?? [])
     const map = new Map<string, string>()
     for (const loc of locations ?? []) {
       const name = warehouseNameById.get(loc.warehouseId)
@@ -56,17 +56,17 @@ function Stocks() {
   }, [locations, warehouses])
 
   // Vị trí thuộc kho đang chọn (cascade Kho → Vị trí)
-  const locationsOfWarehouse = (locations ?? []).filter(
+  const locationsOfWarehouse = locations?.filter(
     (location) => location.warehouseId === warehouseFilter,
-  )
+  ) ?? []
 
   const productRows = stocks?.items ?? []
 
   const selectedLocationRows = useMemo(
     () =>
-      selectedProduct
+      selectedProduct && selectedStocks
         ? getLocationDetailsForProduct(
-            selectedStocks ?? [],
+            selectedStocks,
             selectedProduct.productId,
             warehouseNameByLocationId,
           )

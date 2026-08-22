@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Card, DatePicker, Empty, Select, Space, Table, Tag } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
@@ -28,10 +28,8 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
 
   const { data, isPending } = useStockMovements({ fromUtc: effectiveFrom, toUtc: effectiveTo })
 
-  const rows = useMemo(() => {
-    const all = data ?? []
-    return typeFilter ? all.filter((m) => m.movementType === typeFilter) : all
-  }, [data, typeFilter])
+  const all = data ?? []
+  const rows = typeFilter ? all.filter((m) => m.movementType === typeFilter) : all
 
   const columns: TableColumnsType<StockMovementDto> = [
     {

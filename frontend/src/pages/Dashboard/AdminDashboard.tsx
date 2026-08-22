@@ -22,7 +22,7 @@ function AdminDashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [period, setPeriod] = useState<PeriodKey>('30d')
-  const range = useMemo(() => getPeriodRange(period), [period])
+  const range = getPeriodRange(period)
 
   const { data: stocks, isPending: stocksPending } = useStocks({ refetchInterval: 30000 })
   const { data: warehouses, isPending: warehousesPending } = useWarehouses({ refetchInterval: 30000 })

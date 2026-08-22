@@ -5,7 +5,7 @@ import ProfileInfoForm from './ProfileInfoForm'
 import { useProfile } from '../../hooks/useUserProfile'
 
 function Profile() {
-  const { data: profile, isLoading } = useProfile()
+  const { data: profile } = useProfile()
 
   return (
     <div className="wms-rise">
@@ -18,7 +18,7 @@ function Profile() {
         </Typography.Text>
       </div>
 
-      {isLoading || !profile ? (
+      {!profile ? (
         <Skeleton active paragraph={{ rows: 8 }} />
       ) : (
         <Row gutter={[16, 16]}>

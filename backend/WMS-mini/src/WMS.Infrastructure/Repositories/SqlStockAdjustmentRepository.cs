@@ -46,6 +46,7 @@ public class SqlStockAdjustmentRepository : IStockAdjustmentRepository
 
     public async Task DeleteAsync(StockAdjustment adjustment)
     {
+        _db.StockAdjustmentDetails.RemoveRange(adjustment.Details);
         _db.StockAdjustments.Remove(adjustment);
     }
 }

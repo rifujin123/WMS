@@ -97,6 +97,14 @@ public class SqlReceivingRepository : IReceivingRepository
         _db.Receivings.Update(receiving);
     }
 
+    public async Task RemoveDetailsAsync(Guid receivingId)
+    {
+        var details = await _db.ReceivingDetails
+            .Where(d => d.ReceivingId == receivingId)
+            .ToListAsync();
+        _db.ReceivingDetails.RemoveRange(details);
+    }
+
     public async Task DeleteAsync(Receiving receiving)
     {
         // Mark details as deleted too because the required FK uses NoAction.

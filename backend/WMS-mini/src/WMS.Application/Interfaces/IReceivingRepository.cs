@@ -12,5 +12,6 @@ public interface IReceivingRepository
     Task<ReceivingDetail?> GetDetailByIdAsync(Guid id);
     Task AddAsync(Receiving receiving);
     Task UpdateAsync(Receiving receiving);
+    Task RemoveDetailsAsync(Guid receivingId);
     Task DeleteAsync(Receiving receiving);
 }

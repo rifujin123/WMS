@@ -46,7 +46,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
     {
         var result = await _service.CreateAsync(dto);
@@ -54,7 +54,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePurchaseOrderDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
@@ -63,7 +63,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

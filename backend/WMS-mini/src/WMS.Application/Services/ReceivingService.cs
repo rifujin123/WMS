@@ -102,9 +102,18 @@ public class ReceivingService : IReceivingService
         ValidatePurchaseOrder(po);
         ValidateDetails(dto, po);
         ValidateInvoiceImageUrl(dto.InvoiceImageUrl);
-        entity.PurchaseOrderId = dto.PurchaseOrderId; entity.Notes = dto.Notes; entity.InvoiceImageUrl = dto.InvoiceImageUrl;
-        entity.ReceivingDetails.Clear();
-        entity.ReceivingDetails = dto.Details.Select(d => new ReceivingDetail { ReceivingId = entity.Id, ProductId = d.ProductId, ExpectedQuantity = d.ExpectedQuantity, ActualQuantity = d.ActualQuantity, Condition = d.Condition }).ToList();
+        entity.PurchaseOrderId = dto.PurchaseOrderId;
+        entity.Notes = dto.Notes;
+        entity.InvoiceImageUrl = dto.InvoiceImageUrl;
+        await _repo.RemoveDetailsAsync(entity.Id);
+        entity.ReceivingDetails = dto.Details.Select(d => new ReceivingDetail
+        {
+            ReceivingId = entity.Id,
+            ProductId = d.ProductId,
+            ExpectedQuantity = d.ExpectedQuantity,
+            ActualQuantity = d.ActualQuantity,
+            Condition = d.Condition,
+        }).ToList();
         await _repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<ReceivingDto>(entity);

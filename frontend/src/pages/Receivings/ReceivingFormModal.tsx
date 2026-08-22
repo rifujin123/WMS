@@ -1,8 +1,7 @@
-import { App, Button, Col, DatePicker, Empty, Form, Image, Input, InputNumber, Modal, Row, Select, Skeleton, Spin, Typography, Upload } from 'antd'
+import { App, Button, Col, Empty, Form, Image, Input, InputNumber, Modal, Row, Select, Skeleton, Spin, Tooltip, Typography, Upload } from 'antd'
 import type { UploadProps } from 'antd'
-import { DeleteOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
-import dayjs, { type Dayjs } from 'dayjs'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { DeleteOutlined, ExclamationCircleFilled, PlusOutlined, UploadOutlined } from '@ant-design/icons'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   CreateReceivingDetailDto,
   CreateReceivingDto,
@@ -10,7 +9,7 @@ import type {
   ReceivingDto,
 } from '../../types/receiving'
 import type { InvoiceScanResult, ProductSuggestion } from '../../types/invoiceScan'
-import { useCreateReceiving, useUpdateReceiving } from '../../hooks/useReceivings'
+import { useCreateReceiving, useReceiving, useUpdateReceiving } from '../../hooks/useReceivings'
 import { useInvoiceScan } from '../../hooks/useInvoiceScan'
 import { usePurchaseOrders } from '../../hooks/usePurchaseOrders'
 import type { PurchaseOrderDto } from '../../types/purchaseOrder'
@@ -19,13 +18,6 @@ interface ReceivingFormModalProps {
   open: boolean
   receiving: ReceivingDto | null
   onClose: () => void
-}
-
-// Form có thêm 3 field chỉ để hiển thị (không gửi lên backend): số hóa đơn, vendor, ngày từ AI
-interface ReceivingFormValues extends CreateReceivingDto {
-  invoiceNumber?: string
-  vendorName?: string
-  invoiceDate?: Dayjs
 }
 
 const conditionOptions: { value: ProductCondition; label: string }[] = [
@@ -38,11 +30,35 @@ function getRemainingQuantity(detail: PurchaseOrderDto['purchaseOrderDetails'][n
   return Math.max(detail.orderedQuantity - detail.receivedQuantity, 0)
 }
 
+function FieldErrorDot({ message }: { message?: string }) {
+  if (!message) return null
+  return (
+    <Tooltip title={message}>
+      <ExclamationCircleFilled
+        aria-label={message}
+        style={{
+          position: 'absolute',
+          top: 2,
+          right: 2,
+          zIndex: 1,
+          color: '#8B3A3A',
+          fontSize: 12,
+          cursor: 'help',
+          pointerEvents: 'auto',
+        }}
+      />
+    </Tooltip>
+  )
+}
+
 function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProps) {
-  const [form] = Form.useForm<ReceivingFormValues>()
+  // --- Hooks & dữ liệu cơ bản ---
+  const [form] = Form.useForm<CreateReceivingDto>()
   const { message } = App.useApp()
   const isEdit = receiving !== null
   const { data: purchaseOrders, isPending: purchaseOrdersPending } = usePurchaseOrders()
+  const { data: receivingDetail } = useReceiving(receiving?.id)
+  const editingReceiving = receivingDetail ?? receiving
   const createMutation = useCreateReceiving()
   const updateMutation = useUpdateReceiving()
   const scanMutation = useInvoiceScan()
@@ -52,13 +68,10 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   const [invoiceImageUrl, setInvoiceImageUrl] = useState<string | undefined>(undefined) // URL Cloudinary, lưu vào phiếu
   const [suggestionMap, setSuggestionMap] = useState<Record<number, ProductSuggestion[]>>({}) // dòng chưa khớp → gợi ý AI
 
-  const approvedPurchaseOrders = useMemo(
-    () =>
-      (purchaseOrders ?? []).filter(
-        (purchaseOrder) =>
-          purchaseOrder.status === 'Approved' || purchaseOrder.id === receiving?.purchaseOrderId,
-      ),
-    [purchaseOrders, receiving?.purchaseOrderId],
+  // --- Dữ liệu dẫn xuất từ form: PO đang chọn, product options ---
+  const approvedPurchaseOrders = (purchaseOrders ?? []).filter(
+    (purchaseOrder) =>
+      purchaseOrder.status === 'Approved' || purchaseOrder.id === receiving?.purchaseOrderId,
   )
   const selectedPurchaseOrderId = Form.useWatch('purchaseOrderId', form)
   const formDetails = Form.useWatch('details', form)
@@ -88,10 +101,11 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     ...suggestionOptions.filter((o) => !poProductOptions.some((p) => p.value === o.value)),
   ]
 
-  const getExpectedQuantity = useCallback((productId?: string) => {
+  // --- Validate: số lượng còn lại của PO, lỗi từng dòng ---
+  const getExpectedQuantity = (productId?: string) => {
     const poDetail = selectedPurchaseOrder?.purchaseOrderDetails.find((item) => item.productId === productId)
     return poDetail ? getRemainingQuantity(poDetail) : undefined
-  }, [selectedPurchaseOrder])
+  }
 
   const getQuantityRule = (index: number) => {
     const detail = formDetails?.[index]
@@ -104,46 +118,57 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       type: 'number' as const,
       min: 1,
       max: remainingQuantity,
-      message: `Tối đa ${remainingQuantity} theo số lượng còn lại của PO.`,
+      message: `Tối đa ${remainingQuantity}.`,
     }
   }
 
+  const getProductError = (index: number) => {
+    const detail = formDetails?.[index]
+    if (detail?.productId) return undefined
+    return suggestionMap[index]?.length ? 'Chưa khớp sản phẩm tự động.' : 'Chọn sản phẩm.'
+  }
+
+  const getActualQuantityError = (index: number) => {
+    const detail = formDetails?.[index]
+    const remaining = getExpectedQuantity(detail?.productId)
+    if (detail?.actualQuantity == null || Number(detail.actualQuantity) < 1) return 'Nhập SL.'
+    if (remaining !== undefined && Number(detail.actualQuantity) > remaining) return `Tối đa ${remaining}.`
+    return undefined
+  }
+
+  // --- Effect: nạp dữ liệu khi mở modal (edit: điền theo phiếu hiện có) ---
   useEffect(() => {
     if (!open) return
-    // Reset state scan mỗi khi mở modal
     setInvoicePreview(undefined)
     setSuggestionMap({})
-    setInvoiceImageUrl(receiving?.invoiceImageUrl) // chế độ sửa: hiện ảnh đã lưu
-    if (receiving) {
-      form.setFieldsValue({
-        purchaseOrderId: receiving.purchaseOrderId,
-        notes: receiving.notes,
-        details: receiving.details.map((detail) => ({
+    setInvoiceImageUrl(editingReceiving?.invoiceImageUrl)
+    if (!isEdit) {
+      form.resetFields()
+      return
+    }
+    if (!receivingDetail) return
+    const purchaseOrder = (purchaseOrders ?? []).find((item) => item.id === receivingDetail.purchaseOrderId)
+    form.setFieldsValue({
+      purchaseOrderId: receivingDetail.purchaseOrderId,
+      notes: receivingDetail.notes,
+      details: (receivingDetail.details ?? []).map((detail) => {
+        const poDetail = purchaseOrder?.purchaseOrderDetails.find((item) => item.productId === detail.productId)
+        return {
           productId: detail.productId,
-          expectedQuantity: getExpectedQuantity(detail.productId) ?? detail.expectedQuantity,
+          expectedQuantity: poDetail ? getRemainingQuantity(poDetail) : detail.expectedQuantity,
           actualQuantity: detail.actualQuantity,
           condition: detail.condition,
-        })),
-      })
-    } else {
-      form.resetFields()
-    }
-  }, [open, receiving, form, getExpectedQuantity])
-
-  const handlePOChange = (purchaseOrderId: string) => {
-    const purchaseOrder = approvedPurchaseOrders.find((item) => item.id === purchaseOrderId)
-    form.setFieldsValue({
-      details: purchaseOrder
-        ? purchaseOrder.purchaseOrderDetails
-            .map((detail) => ({
-              productId: detail.productId,
-              expectedQuantity: getRemainingQuantity(detail),
-              actualQuantity: getRemainingQuantity(detail),
-              condition: 'Ok' as ProductCondition,
-            }))
-            .filter((detail) => detail.actualQuantity > 0)
-        : [],
+        }
+      }),
     })
+  }, [open, isEdit, receivingDetail, form, purchaseOrders])
+
+  // --- Xử lý: đổi PO, scan hóa đơn, submit ---
+  const handlePOChange = () => {
+    setSuggestionMap({})
+    setInvoicePreview(undefined)
+    setInvoiceImageUrl(undefined)
+    form.setFieldsValue({ details: [] })
   }
 
   // Áp kết quả scan vào form
@@ -156,9 +181,6 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     })
     setSuggestionMap(suggestions)
     form.setFieldsValue({
-      invoiceNumber: result.invoiceNumber || undefined,
-      vendorName: result.vendorName || undefined,
-      invoiceDate: result.invoiceDate ? dayjs(result.invoiceDate) : undefined,
       details: result.products.map((match) => ({
         productId: match.productId ?? '',
         expectedQuantity: match.quantity,
@@ -201,15 +223,26 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   const handleOk = async () => {
     try {
       const values = await form.validateFields()
+      const poProductIds = new Set(selectedPurchaseOrder?.purchaseOrderDetails.map((detail) => detail.productId) ?? [])
+      const unmatched = (values.details ?? []).some((detail) => !detail.productId || !poProductIds.has(detail.productId))
+      if (unmatched) {
+        message.error('Không khớp với đơn đặt hàng.')
+        return
+      }
       const dto: CreateReceivingDto = {
         purchaseOrderId: values.purchaseOrderId,
         details: values.details.map((detail) => ({
-          ...detail,
-          expectedQuantity: getExpectedQuantity(detail.productId) ?? 0,
+          productId: detail.productId,
+          expectedQuantity: getExpectedQuantity(detail.productId) ?? Number(detail.expectedQuantity),
           actualQuantity: Number(detail.actualQuantity),
+          condition: detail.condition,
         })),
         notes: values.notes?.trim() || undefined,
-        invoiceImageUrl, // ảnh hóa đơn được lưu vào phiếu nhận
+        invoiceImageUrl: invoiceImageUrl || undefined,
+      }
+      if (dto.details.some((detail) => !detail.expectedQuantity || detail.expectedQuantity < 1)) {
+        message.error('Số lượng ước tính không hợp lệ.')
+        return
       }
       if (isEdit) {
         await updateMutation.mutateAsync({ id: receiving.id, dto })
@@ -218,8 +251,9 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       }
       message.success(isEdit ? 'Đã cập nhật phiếu nhận nháp.' : 'Đã tạo phiếu nhận nháp.')
       onClose()
-    } catch {
-      message.error(isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.')
+    } catch (error) {
+      const apiMessage = error instanceof Error ? error.message : undefined
+      message.error(apiMessage || (isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.'))
     }
   }
 
@@ -231,15 +265,14 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       onCancel={onClose}
       width={1080}
       centered
-      destroyOnHidden
       okText={isEdit ? 'Lưu thay đổi' : 'Tạo phiếu nhận'}
       cancelText="Huỷ"
       confirmLoading={createMutation.isPending || updateMutation.isPending}
     >
       <Row gutter={24}>
-        {/* Cột trái: form */}
+        {/* Cột trái: form nhập */}
         <Col span={16}>
-          <Form<ReceivingFormValues>
+          <Form<CreateReceivingDto>
             form={form}
             layout="vertical"
             size="large"
@@ -261,7 +294,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                   value: purchaseOrder.id,
                   label: `${purchaseOrder.poNumber} — ${purchaseOrder.vendorName ?? 'Chưa có nhà cung cấp'}`,
                 }))}
-                onChange={handlePOChange}
+                onChange={isEdit ? undefined : handlePOChange}
                 notFoundContent={
                   purchaseOrdersPending ? <Skeleton active paragraph={{ rows: 1 }} /> : <Empty image={null} description="Không có PO đã duyệt" />
                 }
@@ -271,25 +304,6 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
             <Form.Item name="notes" label="Ghi chú">
               <Input.TextArea rows={2} placeholder="Ghi chú thêm (không bắt buộc)" maxLength={500} />
             </Form.Item>
-
-            {/* Thông tin hóa đơn — điền từ AI, user sửa được */}
-            <Row gutter={8}>
-              <Col span={10}>
-                <Form.Item name="invoiceNumber" label="Số hóa đơn">
-                  <Input placeholder="Từ AI (có thể sửa)" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="vendorName" label="Nhà cung cấp">
-                  <Input placeholder="Từ AI (có thể sửa)" />
-                </Form.Item>
-              </Col>
-              <Col span={6}>
-                <Form.Item name="invoiceDate" label="Ngày hóa đơn">
-                  <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày" />
-                </Form.Item>
-              </Col>
-            </Row>
 
             <Form.Item label="Ảnh hóa đơn (Scan AI)">
               <Upload
@@ -307,7 +321,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
               </Typography.Text>
             </Form.Item>
 
-            <Form.Item label="Danh sách hàng nhận" required>
+            <Form.Item label="Danh sách hàng nhận" required help={null}>
               <Form.List
                 name="details"
                 rules={[{
@@ -315,10 +329,19 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                     if (!details || details.length === 0) {
                       throw new Error('Vui lòng thêm ít nhất một dòng hàng.')
                     }
+                    if (details.some((detail, index) => !detail?.productId && suggestionMap[index]?.length > 0)) {
+                      throw new Error('Chưa khớp sản phẩm tự động.')
+                    }
+                    if (details.some((detail) => {
+                      const remaining = getExpectedQuantity(detail?.productId)
+                      return remaining !== undefined && Number(detail?.actualQuantity) > remaining
+                    })) {
+                      throw new Error('Vượt quá số lượng còn lại của PO.')
+                    }
                   },
                 }]}
               >
-                {(fields, { add, remove }, { errors }) => (
+                {(fields, { add, remove }) => (
                   <>
                     <Row gutter={8} style={{ marginBottom: 8 }}>
                       <Col span={8}><Typography.Text type="secondary">Sản phẩm</Typography.Text></Col>
@@ -329,10 +352,11 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                     </Row>
                     {fields.map((field) => (
                       <Row key={field.key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
-                        <Col span={8}>
+                        <Col span={8} style={{ position: 'relative' }}>
                           <Form.Item
                             name={[field.name, 'productId']}
                             rules={[{ required: true, message: 'Chọn sản phẩm.' }]}
+                            help={null}
                             style={{ marginBottom: 0 }}
                           >
                             <Select
@@ -345,20 +369,23 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                               notFoundContent={<Empty image={null} description="PO chưa có sản phẩm" />}
                             />
                           </Form.Item>
+                          <FieldErrorDot message={getProductError(field.name)} />
                         </Col>
                         <Col span={4}>
                           <Form.Item
                             name={[field.name, 'expectedQuantity']}
                             rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
+                            help={null}
                             style={{ marginBottom: 0 }}
                           >
                             <InputNumber style={{ width: '100%' }} min={1} disabled placeholder="Dự kiến" />
                           </Form.Item>
                         </Col>
-                        <Col span={4}>
+                        <Col span={4} style={{ position: 'relative' }}>
                           <Form.Item
                             name={[field.name, 'actualQuantity']}
                             rules={[getQuantityRule(field.name)]}
+                            help={null}
                             style={{ marginBottom: 0 }}
                           >
                             <InputNumber
@@ -368,11 +395,13 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                               placeholder="Thực nhận"
                             />
                           </Form.Item>
+                          <FieldErrorDot message={getActualQuantityError(field.name)} />
                         </Col>
                         <Col span={4}>
                           <Form.Item
                             name={[field.name, 'condition']}
                             initialValue="Ok"
+                            help={null}
                             style={{ marginBottom: 0 }}
                           >
                             <Select options={conditionOptions} />
@@ -387,28 +416,6 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                             aria-label="Xoá dòng"
                           />
                         </Col>
-                        {/* Cảnh báo: chưa khớp + vượt PO */}
-                        {(() => {
-                          const detail = formDetails?.[field.name]
-                          const remaining = getExpectedQuantity(detail?.productId)
-                          const overLimit = remaining !== undefined && Number(detail?.actualQuantity) > remaining
-                          const unmatched = !detail?.productId && suggestionMap[field.name]?.length > 0
-                          if (!overLimit && !unmatched) return null
-                          return (
-                            <Col span={24} style={{ marginTop: -4 }}>
-                              {unmatched && (
-                                <Typography.Text type="danger" style={{ fontSize: 12, display: 'block' }}>
-                                  Chưa khớp sản phẩm tự động. Vui lòng chọn từ danh sách (gợi ý AI có sẵn).
-                                </Typography.Text>
-                              )}
-                              {overLimit && (
-                                <Typography.Text type="danger" style={{ fontSize: 12, display: 'block' }}>
-                                  Vượt quá số lượng còn lại của PO ({remaining} còn lại).
-                                </Typography.Text>
-                              )}
-                            </Col>
-                          )
-                        })()}
                       </Row>
                     ))}
                     <Button
@@ -420,7 +427,6 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                     >
                       Thêm dòng hàng
                     </Button>
-                    <Form.ErrorList errors={errors} />
                   </>
                 )}
               </Form.List>

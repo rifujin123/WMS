@@ -39,6 +39,7 @@ import { useAuthContext } from '../../contexts/useAuthContext'
 import { PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
 
 function PutAwayTasks() {
+  // --- Dữ liệu & hooks (danh sách, thao tác) ---
   const { message } = App.useApp()
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
@@ -59,6 +60,7 @@ function PutAwayTasks() {
   const completeMutation = useCompletePutAwayTask()
   const deleteMutation = useDeletePutAwayTask()
 
+  // --- State: bộ lọc & modal ---
   const [locTask, setLocTask] = useState<PutAwayTaskDto | null>(null)
   const [assignTask, setAssignTask] = useState<PutAwayTaskDto | null>(null)
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(undefined)
@@ -66,6 +68,7 @@ function PutAwayTasks() {
   const [assignForm] = Form.useForm<{ userId: string }>()
   const { data: locations } = useLocationsByWarehouse(selectedWarehouseId)
 
+  // --- Xử lý: đặt vị trí đích ---
   const openLocModal = (task: PutAwayTaskDto) => {
     setLocTask(task)
     setSelectedWarehouseId(undefined)
@@ -98,6 +101,7 @@ function PutAwayTasks() {
     )
   }
 
+  // --- Xử lý: phân công nhân viên ---
   const openAssignModal = (task: PutAwayTaskDto) => {
     setAssignTask(task)
     assignForm.resetFields()
@@ -122,6 +126,7 @@ function PutAwayTasks() {
     }
   }
 
+  // --- Xử lý: bắt đầu / hoàn thành / xoá task ---
   const handleStart = (task: PutAwayTaskDto) => {
     Modal.confirm({
       title: 'Bắt đầu cất hàng',
@@ -165,6 +170,7 @@ function PutAwayTasks() {
     })
   }
 
+  // --- Định nghĩa cột bảng ---
   const columns: TableColumnsType<PutAwayTaskDto> = [
     {
       title: 'SKU',
@@ -295,6 +301,7 @@ function PutAwayTasks() {
 
   return (
     <div>
+      {/* Header trang */}
       <div
         style={{
           display: 'flex',
@@ -315,6 +322,7 @@ function PutAwayTasks() {
         </div>
       </div>
 
+      {/* Bộ lọc trạng thái */}
       <div style={{ marginBottom: 16 }}>
         <Select
           placeholder="Lọc theo trạng thái"
@@ -329,6 +337,7 @@ function PutAwayTasks() {
         />
       </div>
 
+      {/* Bảng danh sách task */}
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <Table<PutAwayTaskDto>
           rowKey="id"
