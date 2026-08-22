@@ -6,6 +6,7 @@ using WMS.Application.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Domain.Enums;
 using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
@@ -17,6 +18,13 @@ namespace WMS.Infrastructure.Services;
 public class DemoDataSeeder : IDemoDataSeeder
 {
     private static readonly string[] DemoRoles = { "Admin", "WarehouseManager", "WarehouseStaff" };
+
+    // (code, name, address, aisles, racks, levels) — HCM 4×3×2=24, HN 5×4×2=40
+    private static readonly (string Code, string Name, string Address, int Aisles, int Racks, int Levels)[] DemoWarehouses =
+    {
+        ("WH-HCM", "Kho TPHCM", "12 Nguyễn Văn Linh, Phường Tân Phú, Quận 7, TP.HCM", 4, 3, 2),
+        ("WH-HN",  "Kho Hà Nội", "Số 8 Lê Quang Đạo, Phường Mỹ Đình, Nam Từ Liêm, Hà Nội", 5, 4, 2)
+    };
 
     private readonly WmsDbContext _db;
     private readonly IOptions<DemoSeedOptions> _options;
@@ -49,14 +57,17 @@ public class DemoDataSeeder : IDemoDataSeeder
             return SeedSummary.AlreadySeededSummary();
         }
 
+        var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
         var summary = new SeedSummary
         {
-            Users = await SeedUsersAsync(cancellationToken)
+            Users = await SeedUsersAsync(cancellationToken),
+            Warehouses = warehouses,
+            Locations = locations
         };
 
         _logger.LogInformation(
-            "Demo data seeding completed (users={Users}).",
-            summary.Users);
+            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}).",
+            summary.Users, summary.Warehouses, summary.Locations);
 
         return summary;
     }
@@ -131,4 +142,69 @@ public class DemoDataSeeder : IDemoDataSeeder
 
         return created;
     }
+
+    private async Task<(int Warehouses, int Locations)> SeedWarehousesAsync(CancellationToken cancellationToken)
+    {
+        var (warehouses, locations) = (0, 0);
+
+        foreach (var (code, name, address, aisles, racks, levels) in DemoWarehouses)
+        {
+            if (await _db.Warehouses.AsNoTracking().AnyAsync(w => w.Code == code, cancellationToken))
+                continue;
+
+            var warehouse = new Warehouse
+            {
+                Id = Guid.NewGuid(),
+                Code = code,
+                Name = name,
+                Address = address
+            };
+            _db.Warehouses.Add(warehouse);
+            warehouses++;
+
+            var generated = 0;
+            for (var a = 0; a < aisles; a++)
+            {
+                var aisleLetter = ((char)('A' + a)).ToString();
+                for (var r = 0; r < racks; r++)
+                {
+                    for (var l = 0; l < levels; l++)
+                    {
+                        var rack = (r + 1).ToString("00");
+                        var level = (l + 1).ToString("00");
+                        var (locationType, maxQty) = LocationSpec(generated);
+                        _db.Locations.Add(new Location
+                        {
+                            Id = Guid.NewGuid(),
+                            WarehouseId = warehouse.Id,
+                            Code = $"{aisleLetter}-{rack}-{level}",
+                            Aisle = aisleLetter,
+                            Rack = rack,
+                            Level = level,
+                            LocationType = locationType,
+                            MaxQuantity = maxQty,
+                            CurrentQuantity = 0
+                        });
+                        generated++;
+                        locations++;
+                    }
+                }
+            }
+        }
+
+        if (warehouses > 0 || locations > 0)
+            await _db.SaveChangesAsync(cancellationToken);
+
+        return (warehouses, locations);
+    }
+
+    // Kiểu + dung lượng tối đa theo vị trí (deterministic theo thứ tự sinh).
+    // Ưu tiên Storage; vài vị trí đầu làm Receiving / Shipping / Picking cho hợp nghiệp vụ.
+    private static (LocationType LocationType, int MaxQuantity) LocationSpec(int index) => index switch
+    {
+        0 => (LocationType.Receiving, 50),
+        1 => (LocationType.Shipping, 50),
+        2 => (LocationType.Picking, 30),
+        _ => (LocationType.Storage, 200)
+    };
 }

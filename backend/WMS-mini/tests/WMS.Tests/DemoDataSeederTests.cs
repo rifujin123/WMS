@@ -6,6 +6,7 @@ using WMS.Application.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Domain.Enums;
 using WMS.Infrastructure.Data;
 using WMS.Infrastructure.Services;
 using Xunit;
@@ -89,6 +90,63 @@ public class DemoDataSeederTests
         // Lần chạy sau: user đã tồn tại → bỏ qua (không tạo kép)
         Assert.Equal(0, second.Users);
         Assert.Equal(6, await db.Users.CountAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsync_CreatesTwoWarehouses_WithExpectedLocationCounts()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_CreatesTwoWarehouses_WithExpectedLocationCounts));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.Equal(2, summary.Warehouses);
+        Assert.Equal(64, summary.Locations);
+
+        var hcm = await db.Warehouses.FirstAsync(w => w.Code == "WH-HCM");
+        var hn = await db.Warehouses.FirstAsync(w => w.Code == "WH-HN");
+        Assert.Equal(24, await db.Locations.CountAsync(l => l.WarehouseId == hcm.Id));
+        Assert.Equal(40, await db.Locations.CountAsync(l => l.WarehouseId == hn.Id));
+        Assert.Equal(64, await db.Locations.CountAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsync_WarehouseLocations_HaveUniqueCodesPerWarehouse_AndPositiveCapacity()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_WarehouseLocations_HaveUniqueCodesPerWarehouse_AndPositiveCapacity));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var hcm = await db.Warehouses.FirstAsync(w => w.Code == "WH-HCM");
+        var hn = await db.Warehouses.FirstAsync(w => w.Code == "WH-HN");
+
+        foreach (var warehouseId in new[] { hcm.Id, hn.Id })
+        {
+            var codes = await db.Locations.Where(l => l.WarehouseId == warehouseId).Select(l => l.Code).ToListAsync();
+            Assert.Equal(codes.Count, codes.Distinct().Count()); // unique trong kho
+        }
+
+        var allLocations = await db.Locations.ToListAsync();
+        Assert.All(allLocations, l => Assert.True(l.MaxQuantity > 0));
+        Assert.All(allLocations, l => Assert.Equal(0, l.CurrentQuantity));
+    }
+
+    [Fact]
+    public async Task SeedAsync_WarehouseLocations_HaveOnlyKnownTypes_AndCodeFormat()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_WarehouseLocations_HaveOnlyKnownTypes_AndCodeFormat));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var allLocations = await db.Locations.ToListAsync();
+        var knownTypes = Enum.GetValues<LocationType>();
+        Assert.All(allLocations, l => Assert.Contains(l.LocationType, knownTypes));
+
+        var format = new System.Text.RegularExpressions.Regex(@"^[A-Z]-\d{2}-\d{2}$");
+        Assert.All(allLocations, l => Assert.Matches(format, l.Code));
+        Assert.All(allLocations, l => Assert.True(string.IsNullOrEmpty(l.Aisle) == false));
     }
 
     [Fact]
