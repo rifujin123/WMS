@@ -33,13 +33,9 @@ public class SqlStockMovementRepository : IStockMovementRepository
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
-    public async Task<PagedResult<StockMovement>> GetAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<StockMovementDto>> GetPagedAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
     {
-        IQueryable<StockMovement> movements = _db.StockMovements
-            .AsNoTracking()
-            .Include(s => s.Product)
-            .Include(s => s.Location)
-            .Include(s => s.CreatedBy);
+        IQueryable<StockMovement> movements = _db.StockMovements.AsNoTracking();
 
         if (query.ProductId.HasValue)
             movements = movements.Where(s => s.ProductId == query.ProductId.Value);
@@ -53,13 +49,31 @@ public class SqlStockMovementRepository : IStockMovementRepository
             movements = movements.Where(s => s.CreatedDate <= query.ToUtc.Value);
 
         var totalCount = await movements.CountAsync(cancellationToken);
+        var page = query.Page;
         var items = await movements
             .OrderByDescending(s => s.CreatedDate)
-            .Skip((query.Page - 1) * pageSize)
+            .ThenByDescending(s => s.Id)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(s => new StockMovementDto
+            {
+                Id = s.Id,
+                ProductId = s.ProductId,
+                ProductSku = s.Product.Sku,
+                ProductName = s.Product.Name,
+                LocationId = s.LocationId,
+                LocationCode = s.Location.Code,
+                MovementType = s.MovementType,
+                Qty = s.Qty,
+                Notes = s.Notes,
+                OccurredAtUtc = s.CreatedDate,
+                ActorUserId = s.CreatedById,
+                ActorDisplayName = s.CreatedBy != null ? s.CreatedBy.FullName : null,
+                ActorAvatarUrl = s.CreatedBy != null ? s.CreatedBy.AvatarUrl : null,
+            })
             .ToListAsync(cancellationToken);
 
-        return PagedResult<StockMovement>.Create(items, query.Page, pageSize, totalCount);
+        return PagedResult<StockMovementDto>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task AddAsync(StockMovement stockMovement)

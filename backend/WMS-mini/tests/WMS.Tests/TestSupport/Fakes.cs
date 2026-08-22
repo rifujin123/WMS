@@ -130,7 +130,7 @@ public class FakeStockMovementRepository : IStockMovementRepository
     public List<StockMovement> Items { get; } = new();
     public Task<List<StockMovement>> GetAllAsync() => Task.FromResult(Items);
     public Task<StockMovement?> GetByIdAsync(Guid id) => Task.FromResult(Items.FirstOrDefault(m => m.Id == id));
-    public Task<PagedResult<StockMovement>> GetAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
+    public Task<PagedResult<StockMovementDto>> GetPagedAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
     {
         var filtered = Items
             .Where(m =>
@@ -139,8 +139,27 @@ public class FakeStockMovementRepository : IStockMovementRepository
                 (!query.MovementType.HasValue || m.MovementType == query.MovementType.Value))
             .OrderByDescending(m => m.CreatedDate)
             .ToList();
-        var pageItems = filtered.Skip((Math.Max(query.Page, 1) - 1) * pageSize).Take(pageSize).ToList();
-        return Task.FromResult(PagedResult<StockMovement>.Create(pageItems, Math.Max(query.Page, 1), pageSize, filtered.Count));
+        var pageItems = filtered
+            .Skip((Math.Max(query.Page, 1) - 1) * pageSize)
+            .Take(pageSize)
+            .Select(m => new StockMovementDto
+            {
+                Id = m.Id,
+                ProductId = m.ProductId,
+                ProductSku = m.Product?.Sku ?? string.Empty,
+                ProductName = m.Product?.Name ?? string.Empty,
+                LocationId = m.LocationId,
+                LocationCode = m.Location?.Code ?? string.Empty,
+                MovementType = m.MovementType,
+                Qty = m.Qty,
+                Notes = m.Notes,
+                OccurredAtUtc = m.CreatedDate,
+                ActorUserId = m.CreatedById,
+                ActorDisplayName = m.CreatedBy?.FullName,
+                ActorAvatarUrl = m.CreatedBy?.AvatarUrl,
+            })
+            .ToList();
+        return Task.FromResult(PagedResult<StockMovementDto>.Create(pageItems, Math.Max(query.Page, 1), pageSize, filtered.Count));
     }
     public Task AddAsync(StockMovement movement) { Items.Add(movement); return Task.CompletedTask; }
     public Task UpdateAsync(StockMovement movement) => Task.CompletedTask;

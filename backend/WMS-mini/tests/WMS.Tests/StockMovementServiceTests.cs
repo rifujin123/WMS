@@ -14,7 +14,7 @@ public class StockMovementServiceTests
     private StockMovementService BuildService(out FakeStockMovementRepository repo)
     {
         repo = new FakeStockMovementRepository();
-        return new StockMovementService(repo, MapperFactory.Create());
+        return new StockMovementService(repo);
     }
 
     private static StockMovement CreateMovement(Guid productId, Guid locationId, int offsetMinutes)
@@ -39,7 +39,7 @@ public class StockMovementServiceTests
             repo.Items.Add(CreateMovement(_productId, _locationId, i));
         }
 
-        var result = await service.GetAsync(new StockMovementQueryDto { Page = 1 }, pageSize: 10);
+        var result = await service.GetPagedAsync(new StockMovementQueryDto { Page = 1 }, pageSize: 10);
 
         Assert.Equal(10, result.Items.Count);
         Assert.Equal(25, result.TotalCount);
@@ -58,7 +58,7 @@ public class StockMovementServiceTests
             repo.Items.Add(CreateMovement(_productId, _locationId, i));
         }
 
-        var result = await service.GetAsync(new StockMovementQueryDto { Page = 3 }, pageSize: 10);
+        var result = await service.GetPagedAsync(new StockMovementQueryDto { Page = 3 }, pageSize: 10);
 
         Assert.Equal(5, result.Items.Count);
         Assert.Equal(25, result.TotalCount);
