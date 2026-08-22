@@ -32,6 +32,8 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderDetail> PurchaseOrderDetails => Set<PurchaseOrderDetail>();
@@ -84,6 +86,14 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.Entity<Product>()
             .HasIndex(p => p.Sku)
+            .IsUnique();
+
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => c.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Vendor>()
+            .HasIndex(v => v.Name)
             .IsUnique();
 
         modelBuilder.Entity<PurchaseOrder>()

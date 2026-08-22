@@ -12,6 +12,14 @@ public class MappingProfile : Profile
         CreateMap<CreateCategoryDto, Category>();
         CreateMap<UpdateCategoryDto, Category>();
 
+        CreateMap<Customer, CustomerDto>();
+        CreateMap<CreateCustomerDto, Customer>();
+        CreateMap<UpdateCustomerDto, Customer>();
+
+        CreateMap<Vendor, VendorDto>();
+        CreateMap<CreateVendorDto, Vendor>();
+        CreateMap<UpdateVendorDto, Vendor>();
+
         CreateMap<User, UserProfileDto>()
             .ForMember(d => d.Roles, o => o.Ignore());
 

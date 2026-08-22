@@ -139,6 +139,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
@@ -168,6 +170,8 @@ builder.Services.AddScoped<IInvoiceScanService, InvoiceScanService>();
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, SqlCategoryRepository>();
+builder.Services.AddScoped<ICustomerRepository, SqlCustomerRepository>();
+builder.Services.AddScoped<IVendorRepository, SqlVendorRepository>();
 builder.Services.AddScoped<IWarehouseRepository, SqlWarehouseRepository>();
 builder.Services.AddScoped<ILocationRepository, SqlLocationRepository>();
 builder.Services.AddScoped<IPurchaseOrderRepository, SqlPurchaseOrderRepository>();

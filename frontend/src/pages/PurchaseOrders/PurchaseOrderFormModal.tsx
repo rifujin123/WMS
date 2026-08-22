@@ -7,6 +7,7 @@ import type {
   PurchaseOrderDto,
 } from '../../types/purchaseOrder'
 import { useProductLookup } from '../../hooks/useProducts'
+import { useVendorLookup } from '../../hooks/useVendors'
 import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../../hooks/usePurchaseOrders'
 
 interface PurchaseOrderFormModalProps {
@@ -19,6 +20,7 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
   const [form] = Form.useForm<CreatePurchaseOrderDto>()
   const { message } = App.useApp()
   const { data: products, isPending: productsPending } = useProductLookup()
+  const { data: vendors } = useVendorLookup()
   const createMutation = useCreatePurchaseOrder()
   const updateMutation = useUpdatePurchaseOrder()
   const isEdit = po !== null
@@ -96,7 +98,13 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
           </Col>
           <Col span={12}>
             <Form.Item name="vendorName" label="Nhà cung cấp">
-              <Input placeholder="vd: Công ty ABC" />
+              <Select
+                showSearch
+                allowClear
+                optionFilterProp="label"
+                placeholder="Chọn nhà cung cấp (hoặc để trống)"
+                options={(vendors ?? []).map((v) => ({ value: v.name, label: v.name }))}
+              />
             </Form.Item>
           </Col>
         </Row>

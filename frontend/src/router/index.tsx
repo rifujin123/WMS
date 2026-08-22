@@ -15,6 +15,8 @@ const Profile = lazy(() => import('../pages/Profile'))
 const Users = lazy(() => import('../pages/Users'))
 const Warehouses = lazy(() => import('../pages/Warehouses'))
 const WarehouseLocations = lazy(() => import('../pages/Warehouses/WarehouseDetail/locations'))
+const Customers = lazy(() => import('../pages/Customers'))
+const Vendors = lazy(() => import('../pages/Vendors'))
 const PurchaseOrders = lazy(() => import('../pages/PurchaseOrders'))
 const Receivings = lazy(() => import('../pages/Receivings'))
 const ReceivingDetail = lazy(() => import('../pages/Receivings/detail'))
@@ -69,6 +71,8 @@ export const router = createBrowserRouter([
                 path: 'warehouses/:id/locations',
                 element: <Suspense fallback={<PageFallback />}><WarehouseLocations /></Suspense>,
               },
+              { path: 'customers', element: <Suspense fallback={<PageFallback />}><Customers /></Suspense> },
+              { path: 'vendors', element: <Suspense fallback={<PageFallback />}><Vendors /></Suspense> },
             ],
           },
           {
