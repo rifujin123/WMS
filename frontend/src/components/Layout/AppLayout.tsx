@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import {
   AppstoreOutlined,
+  AuditOutlined,
   CarryOutOutlined,
   DashboardOutlined,
   DatabaseOutlined,
@@ -82,6 +83,12 @@ const appMenuItems: AppMenuItem[] = [
     key: '/stock',
     icon: <DatabaseOutlined />,
     label: 'Tồn kho',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/stock-adjustments',
+    icon: <AuditOutlined />,
+    label: 'Điều chỉnh tồn',
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
 ]

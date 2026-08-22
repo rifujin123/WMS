@@ -20,6 +20,7 @@ const Receivings = lazy(() => import('../pages/Receivings'))
 const ReceivingDetail = lazy(() => import('../pages/Receivings/detail'))
 const PutAwayTasks = lazy(() => import('../pages/PutAwayTasks'))
 const Stocks = lazy(() => import('../pages/Stocks'))
+const StockAdjustments = lazy(() => import('../pages/StockAdjustments'))
 const SaleOrders = lazy(() => import('../pages/SaleOrders'))
 const Pickings = lazy(() => import('../pages/Pickings'))
 const Forbidden = lazy(() => import('../pages/Forbidden'))
@@ -89,6 +90,10 @@ export const router = createBrowserRouter([
               { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
               { path: 'pickings', element: <Suspense fallback={<PageFallback />}><Pickings /></Suspense> },
               { path: 'stock', element: <Suspense fallback={<PageFallback />}><Stocks /></Suspense> },
+              {
+                path: 'stock-adjustments',
+                element: <Suspense fallback={<PageFallback />}><StockAdjustments /></Suspense>,
+              },
             ],
           },
           { path: '*', element: <Navigate to="/dashboard" replace /> },
