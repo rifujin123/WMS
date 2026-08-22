@@ -30,6 +30,22 @@ body {
   animation: wms-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Chuyển trang bảng: dữ liệu mới trượt nhẹ + phai dần, gọn & nhanh */
+@keyframes wms-table-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wms-table-in {
+  animation: wms-table-in 0.22s ease-out both;
+}
+
 /* Nút primary nhấn xuống một chút để có cảm giác vật lý */
 .ant-btn-primary:active {
   transform: scale(0.985);
@@ -37,7 +53,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wms-rise {
+  .wms-rise,
+  .wms-table-in {
     animation: none;
   }
 

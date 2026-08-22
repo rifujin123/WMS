@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import type { Dayjs } from 'dayjs'
 import ActorAvatar from './ActorAvatar'
 import { useStockMovements } from '../../../hooks/useStockMovements'
+import { useTableTransition } from './useTableTransition'
 import type { MovementType, StockMovementDto } from '../../../types/stockMovement'
 
 const movementMeta: Record<MovementType, { label: string; color: string }> = {
@@ -27,10 +28,21 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
   const effectiveFrom = dateRange ? dateRange[0].startOf('day').toISOString() : fromUtc
   const effectiveTo = dateRange ? dateRange[1].endOf('day').toISOString() : toUtc
 
-  const { data, isPending } = useStockMovements({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { data, isFetching } = useStockMovements({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { loading, transitionKey } = useTableTransition(page, isFetching)
 
   const all = data?.items ?? []
   const rows = typeFilter ? all.filter((m) => m.movementType === typeFilter) : all
+
+  const handleTypeChange = (next: MovementType | undefined) => {
+    setTypeFilter(next)
+    setPage(1)
+  }
+
+  const handleDateChange = (dates: [Dayjs, Dayjs] | null) => {
+    setDateRange(dates)
+    setPage(1)
+  }
 
   const columns: TableColumnsType<StockMovementDto> = [
     {
@@ -102,14 +114,14 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
             allowClear
             format="DD/MM/YYYY"
             value={dateRange}
-            onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+            onChange={(dates) => handleDateChange(dates as [Dayjs, Dayjs] | null)}
           />
           <Select
             placeholder="Loại"
             allowClear
             style={{ width: 140 }}
             value={typeFilter}
-            onChange={setTypeFilter}
+            onChange={handleTypeChange}
             options={Object.entries(movementMeta).map(([value, meta]) => ({
               value,
               label: meta.label,
@@ -119,23 +131,25 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
       }
       styles={{ body: { padding: 0 } }}
     >
-      <Table<StockMovementDto>
-        rowKey="id"
-        columns={columns}
-        dataSource={rows}
-        loading={isPending}
-        size="small"
-        scroll={{ x: 640 }}
-        pagination={{
-          current: data?.page ?? page,
-          pageSize: data?.pageSize ?? 10,
-          total: data?.totalCount ?? 0,
-          showSizeChanger: false,
-          showTotal: (total) => `Tổng ${total}`,
-        }}
-        onChange={(pagination) => setPage(pagination.current ?? 1)}
-        locale={{ emptyText: <Empty image={null} description="Chưa có biến động tồn kho" /> }}
-      />
+      <div key={transitionKey} className="wms-table-in">
+        <Table<StockMovementDto>
+          rowKey="id"
+          columns={columns}
+          dataSource={rows}
+          loading={loading}
+          size="small"
+          scroll={{ x: 640 }}
+          pagination={{
+            current: data?.page ?? page,
+            pageSize: data?.pageSize ?? 10,
+            total: data?.totalCount ?? 0,
+            showSizeChanger: false,
+            showTotal: (total) => `Tổng ${total}`,
+          }}
+          onChange={(pagination) => setPage(pagination.current ?? 1)}
+          locale={{ emptyText: <Empty image={null} description="Chưa có biến động tồn kho" /> }}
+        />
+      </div>
     </Card>
   )
 }

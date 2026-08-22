@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import type { Dayjs } from 'dayjs'
 import ActorAvatar from './ActorAvatar'
 import { useStatusHistories } from '../../../hooks/useStatusHistories'
+import { useTableTransition } from './useTableTransition'
 import type { StatusHistoryDto } from '../../../types/statusHistory'
 
 // Màu Tag theo trạng thái nghiệp vụ — theo ANTD-RULES
@@ -44,7 +45,8 @@ function StatusHistoryTable({ fromUtc, toUtc }: StatusHistoryTableProps) {
   const effectiveFrom = dateRange ? dateRange[0].startOf('day').toISOString() : fromUtc
   const effectiveTo = dateRange ? dateRange[1].endOf('day').toISOString() : toUtc
 
-  const { data, isPending } = useStatusHistories({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { data, isFetching } = useStatusHistories({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { loading, transitionKey } = useTableTransition(page, isFetching)
 
   const entityOptions = useMemo(() => {
     const types = new Set((data?.items ?? []).map((h) => h.entityType))
@@ -55,6 +57,16 @@ function StatusHistoryTable({ fromUtc, toUtc }: StatusHistoryTableProps) {
     const all = data?.items ?? []
     return entityFilter ? all.filter((h) => h.entityType === entityFilter) : all
   }, [data, entityFilter])
+
+  const handleFilterChange = (next: string | undefined) => {
+    setEntityFilter(next)
+    setPage(1)
+  }
+
+  const handleDateChange = (dates: [Dayjs, Dayjs] | null) => {
+    setDateRange(dates)
+    setPage(1)
+  }
 
   const columns: TableColumnsType<StatusHistoryDto> = [
     {
@@ -102,37 +114,39 @@ function StatusHistoryTable({ fromUtc, toUtc }: StatusHistoryTableProps) {
             allowClear
             format="DD/MM/YYYY"
             value={dateRange}
-            onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
+            onChange={(dates) => handleDateChange(dates as [Dayjs, Dayjs] | null)}
           />
           <Select
             placeholder="Thực thể"
             allowClear
             style={{ width: 160 }}
             value={entityFilter}
-            onChange={setEntityFilter}
+            onChange={handleFilterChange}
             options={entityOptions}
           />
         </Space>
       }
       styles={{ body: { padding: 0 } }}
     >
-      <Table<StatusHistoryDto>
-        rowKey="id"
-        columns={columns}
-        dataSource={rows}
-        loading={isPending}
-        size="small"
-        scroll={{ x: 520 }}
-        pagination={{
-          current: data?.page ?? page,
-          pageSize: data?.pageSize ?? 10,
-          total: data?.totalCount ?? 0,
-          showSizeChanger: false,
-          showTotal: (total) => `Tổng ${total}`,
-        }}
-        onChange={(pagination) => setPage(pagination.current ?? 1)}
-        locale={{ emptyText: <Empty image={null} description="Chưa có lịch sử trạng thái" /> }}
-      />
+      <div key={transitionKey} className="wms-table-in">
+        <Table<StatusHistoryDto>
+          rowKey="id"
+          columns={columns}
+          dataSource={rows}
+          loading={loading}
+          size="small"
+          scroll={{ x: 520 }}
+          pagination={{
+            current: data?.page ?? page,
+            pageSize: data?.pageSize ?? 10,
+            total: data?.totalCount ?? 0,
+            showSizeChanger: false,
+            showTotal: (total) => `Tổng ${total}`,
+          }}
+          onChange={(pagination) => setPage(pagination.current ?? 1)}
+          locale={{ emptyText: <Empty image={null} description="Chưa có lịch sử trạng thái" /> }}
+        />
+      </div>
     </Card>
   )
 }
