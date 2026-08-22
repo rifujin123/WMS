@@ -4,10 +4,6 @@
 
 WMS là ứng dụng quản lý kho hàng. Hệ thống theo dõi luồng hàng từ đơn đặt hàng, nhận hàng, cất vào vị trí kho, quản lý tồn kho, đến lấy hàng cho đơn bán.
 
-Website đã deploy: [https://wms-boie.onrender.com/](https://wms-boie.onrender.com/)
-
-Lần truy cập đầu có thể chậm vì dịch vụ Render khởi động lại sau thời gian không có request.
-
 ## Tính năng
 
 - Đăng nhập và phân quyền `Admin`, `WarehouseManager`, `WarehouseStaff`.
