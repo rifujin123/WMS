@@ -217,6 +217,51 @@ public class DemoDataSeederTests
         Assert.Equal(expected, iphone.ImageUrl);
     }
 
+    [Fact]
+    public async Task SeedAsync_CreatesVendorsAndCustomers_WithExpectedCounts()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_CreatesVendorsAndCustomers_WithExpectedCounts));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.InRange(summary.Vendors, 8, 12);
+        Assert.InRange(summary.Customers, 15, 20);
+        Assert.Equal(summary.Vendors, await db.Vendors.CountAsync());
+        Assert.Equal(summary.Customers, await db.Customers.CountAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsync_VendorsAndCustomers_HaveUniqueNames_AndContactInfo()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_VendorsAndCustomers_HaveUniqueNames_AndContactInfo));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var vendors = await db.Vendors.ToListAsync();
+        var customers = await db.Customers.ToListAsync();
+
+        Assert.Equal(vendors.Count, vendors.Select(v => v.Name).Distinct().Count());
+        Assert.Equal(customers.Count, customers.Select(c => c.Name).Distinct().Count());
+
+        Assert.All(vendors, v =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(v.Name));
+            Assert.False(string.IsNullOrWhiteSpace(v.ContactName));
+            Assert.False(string.IsNullOrWhiteSpace(v.Phone));
+            Assert.False(string.IsNullOrWhiteSpace(v.Email));
+            Assert.False(string.IsNullOrWhiteSpace(v.Address));
+        });
+
+        Assert.All(customers, c =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(c.Name));
+            Assert.False(string.IsNullOrWhiteSpace(c.ContactName));
+            Assert.False(string.IsNullOrWhiteSpace(c.Phone));
+        });
+    }
+
     private static async Task<int> CountUsersInRoleAsync(WmsDbContext db, string roleName)
     {
         var roleId = await db.Roles.Where(r => r.Name == roleName).Select(r => r.Id).FirstOrDefaultAsync();

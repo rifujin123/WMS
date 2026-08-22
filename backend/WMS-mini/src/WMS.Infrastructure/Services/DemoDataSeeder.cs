@@ -100,6 +100,44 @@ public class DemoDataSeeder : IDemoDataSeeder
         ("Máy tính bảng", "ACER-TAB10-D",   "Acer Iconia Tab 10 64GB Đen",        3_990_000, "Chiếc", "24.7x15.6x0.8 cm"),
     };
 
+    // (name, contactName, phone, email, address) — nhà phân phối ủy quyền + đại lý VN.
+    private static readonly (string Name, string ContactName, string Phone, string Email, string Address)[] DemoVendors =
+    {
+        ("Công ty TNHH Thế Giới Di Động",   "Nguyễn Văn Nam",   "028 3838 5000", "contact@thegioididong.vn", "60-62 Lê Lợi, Q.1, TPHCM"),
+        ("Công ty Cổ phần FPT Trading",     "Trần Thanh Hải",   "024 3726 5555", "sale@fpttrading.com.vn",    "Số 10A Lý Thường Kiệt, Q.Hoàn Kiếm, Hà Nội"),
+        ("Công ty TNHH Samsung Electronics VN", "Lê Thị Hương",  "028 3622 8080", "hcm@samsung.com.vn",      "Số 2 Đường 3/2, Quận 10, TPHCM"),
+        ("Công ty TNHH Apple Authorized Reseller VN", "Phạm Minh Châu", "024 3733 8080", "sale@apple-reseller.vn", "25 Đường Láng, Q.Đống Đa, Hà Nội"),
+        ("Công ty TNHH Thương mại & Dịch vụ Kỹ thuật Long", "Nguyễn Quốc Long", "028 3999 1234", "info@longtech.com.vn", "88 Nguyễn Trãi, Q.Thanh Xuân, Hà Nội"),
+        ("Công ty Cổ phần Sản xuất & TM Phát Đạt", "Hoàng Văn Phát", "024 3356 7890", "phatdat@phatdat.vn", "45 Trần Hưng Đạo, Q.Hoàn Kiếm, Hà Nội"),
+        ("Công ty TNHH Anpha Computer",     "Võ An Khoa",       "028 3766 4321", "sales@anphacom.vn",       "120 Nguyễn Chí Thanh, Q.5, TPHCM"),
+        ("Công ty TNHH MTV Điện tử Gia Bảo", "Đoàn Thị Mai",     "024 3868 2468", "giabao@giabao.vn",        "68 Quang Trung, Q.Hai Bà Trưng, Hà Nội"),
+        ("Công ty TNHH Netco Việt Nam",     "Trịnh Bảo Khang",  "028 3822 1999", "netco@netco.vn",          "33 Nguyễn Văn Cừ, Q.1, TPHCM"),
+        ("Công ty Cổ phần E-phone (ENS)",   "Kiều Hạnh Nhi",    "024 3560 8899", "ens@e-phone.vn",          "22 Lê Thanh Nghị, Q.Hai Bà Trưng, Hà Nội"),
+    };
+
+    // (name, contactName, phone, email, address) — doanh nghiệp + khách lẻ, sồ/thiếu email/address ở khách lẻ.
+    private static readonly (string Name, string ContactName, string Phone, string Email, string Address)[] DemoCustomers =
+    {
+        ("Công ty CP Đầu tư Minh Anh",      "Bùi Thị Hồng Nhung", "0912 345 678", "minhanh@minhanh.com.vn",   "12 Nguyễn Đình Chiểu, Q.1, TPHCM"),
+        ("Công ty TNHH Thương mại Hoàng Gia","Phan Thế Hoàng",    "0903 123 456", "hoanggia@hoanggia.vn",     "56 Lê Văn Sỹ, Q.Tân Bình, TPHCM"),
+        ("Công ty Cổ phần Dệt may Việt Thắng", "Lê Minh Đức",    "0988 765 432", "vietthang@vietthang.vn",   "78 Nguyễn Trãi, Q.Thanh Xuân, Hà Nội"),
+        ("Công ty TNHH Xây dựng Nam Long",  "Nguyễn Thành Long", "0909 111 222", "namlong@namlong.vn",       "90 Lạc Long Quân, Q.Tây Hồ, Hà Nội"),
+        ("Công ty Cổ phần Giáo dục Vina",   "Trần Thu Trang",    "0913 555 666", "vinaedu@vinaedu.vn",       "33 Trần Quốc Vượng, Q.Cầu Giấy, Hà Nội"),
+        ("Công ty TNHH Dịch vụ Sắc Màu",    "Hồ Ngọc Ánh",       "0933 777 888", "sacmau@sacmau.vn",         "18 Phạm Văn Đồng, Q.Gò Vấp, TPHCM"),
+        ("Công ty CP Công nghệ Bách Khoa",  "Vũ Huy Cường",      "0916 234 567", "bachkhoa@bk-tech.vn",      "101 Trần Hưng Đạo, Q.5, TPHCM"),
+        ("Công ty TNHH Kinh doanh ASA",     "Đỗ Thuý Hà",        "0977 888 999", "asa@asa.vn",               "67 Hàng Bài, Q.Hoàn Kiếm, Hà Nội"),
+        ("Công ty Cổ phần Thép Miền Nam",   "Lương Văn Tài",     "0989 123 321", "thp@thepmienam.vn",        "24 Tôn Đức Thắng, Q.1, TPHCM"),
+        ("Công ty TNHH Truyền thông SkyMedia", "Ngô Thanh Thuỷ", "0917 456 789", "skymedia@skymedia.vn",     "44 Phạm Ngọc Thạch, Q.Đống Đa, Hà Nội"),
+        ("Công ty Cổ phần Sữa Bình Minh",   "Đinh Thị Hạnh",     "0902 333 444", "binhminh@bms.vn",          "9 Giảng Võ, Q.Ba Đình, Hà Nội"),
+        ("Công ty TNHH Dược phẩm Phú Gia",  "Trương Văn Phúc",   "0935 222 111", "phugia@phugia.vn",         "55 Hoàng Hoa Thám, Q.Ba Đình, Hà Nội"),
+        ("Công ty Cổ phần Logistics NorthStar", "Mai Hoàng Dũng", "0944 567 890", "northstar@nslog.vn",       "77 Nguyễn Hữu Thọ, Q.7, TPHCM"),
+        ("Khách lẻ - Anh Tuấn",             "Nguyễn Anh Tuấn",   "0908 333 555", "",                        ""),
+        ("Khách lẻ - Chị Lan",              "Trần Thị Lan",      "0914 666 777", "",                        ""),
+        ("Khách lẻ - Anh Minh",             "Lê Quang Minh",     "0932 444 555", "",                        ""),
+        ("Khách lẻ - Chị Hoa",              "Phạm Thu Hoa",      "0905 222 888", "",                        ""),
+        ("Khách lẻ - Anh Khoa",             "Đinh Văn Khoa",     "0981 777 123", "",                        ""),
+    };
+
     private readonly WmsDbContext _db;
     private readonly IOptions<DemoSeedOptions> _options;
     private readonly ILogger<DemoDataSeeder> _logger;
@@ -133,18 +171,21 @@ public class DemoDataSeeder : IDemoDataSeeder
 
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
+        var (vendors, customers) = await SeedVendorsAndCustomersAsync(cancellationToken);
         var summary = new SeedSummary
         {
             Users = await SeedUsersAsync(cancellationToken),
             Warehouses = warehouses,
             Locations = locations,
             Categories = categories,
-            Products = products
+            Products = products,
+            Vendors = vendors,
+            Customers = customers
         };
 
         _logger.LogInformation(
-            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}, categories={Categories}, products={Products}).",
-            summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products);
+            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}, categories={Categories}, products={Products}, vendors={Vendors}, customers={Customers}).",
+            summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products, summary.Vendors, summary.Customers);
 
         return summary;
     }
@@ -336,4 +377,46 @@ public class DemoDataSeeder : IDemoDataSeeder
     // Chấp nhận phụ thuộc internet khi demo; không dùng Cloudinary trong scope này.
     private static string PlaceholderImageUrl(string sku)
         => $"https://picsum.photos/seed/{sku}/240/240";
+
+    private async Task<(int Vendors, int Customers)> SeedVendorsAndCustomersAsync(CancellationToken cancellationToken)
+    {
+        var vendorsCreated = 0;
+        foreach (var (name, contactName, phone, email, address) in DemoVendors)
+        {
+            if (await _db.Vendors.AsNoTracking().AnyAsync(v => v.Name == name, cancellationToken))
+                continue;
+            _db.Vendors.Add(new Vendor
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                ContactName = contactName,
+                Phone = phone,
+                Email = email,
+                Address = address
+            });
+            vendorsCreated++;
+        }
+
+        var customersCreated = 0;
+        foreach (var (name, contactName, phone, email, address) in DemoCustomers)
+        {
+            if (await _db.Customers.AsNoTracking().AnyAsync(c => c.Name == name, cancellationToken))
+                continue;
+            _db.Customers.Add(new Customer
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                ContactName = contactName,
+                Phone = phone,
+                Email = email,
+                Address = address
+            });
+            customersCreated++;
+        }
+
+        if (vendorsCreated > 0 || customersCreated > 0)
+            await _db.SaveChangesAsync(cancellationToken);
+
+        return (vendorsCreated, customersCreated);
+    }
 }
