@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -13,17 +14,26 @@ using Xunit;
 
 namespace WMS.Tests;
 
-/// Tests cho demo-data seeder tại seam contract: chạy qua WmsDbContext in-memory.
+/// Tests cho demo-data seeder tại seam contract: chạy qua WmsDbContext SQLite in-memory.
+/// Dùng SQLite thay InMemory vì ticket 06 backdate lịch sử qua raw SQL (ExecuteSqlRaw).
 /// Ticket 01 — gating (Seed:Enabled) + base idempotency (warehouse đã tồn tại → skip).
 /// Ticket 02 — seed users & roles (2 manager + 4 staff), idempotent theo username.
-public class DemoDataSeederTests
+public class DemoDataSeederTests : IDisposable
 {
-    private static WmsDbContext CreateDb(string dbName)
+    private readonly SqliteConnection _connection = new("DataSource=:memory:");
+
+    public void Dispose() => _connection.Dispose();
+
+    private WmsDbContext CreateDb(string dbName)
     {
+        _ = dbName; // tên DB giữ chữ ký tương thích; mỗi test cô lập bằng connection riêng
+        _connection.Open();
         var options = new DbContextOptionsBuilder<WmsDbContext>()
-            .UseInMemoryDatabase(dbName)
+            .UseSqlite(_connection)
             .Options;
-        return new WmsDbContext(options);
+        var db = new WmsDbContext(options);
+        db.Database.EnsureCreated();
+        return db;
     }
 
     private static DemoDataSeeder CreateSeeder(WmsDbContext db, bool enabled = true)
@@ -129,7 +139,9 @@ public class DemoDataSeederTests
 
         var allLocations = await db.Locations.ToListAsync();
         Assert.All(allLocations, l => Assert.True(l.MaxQuantity > 0));
-        Assert.All(allLocations, l => Assert.Equal(0, l.CurrentQuantity));
+        // CurrentQuantity do ticket 06 populate; phạm vi & capacity được test riêng ở
+        // SeedAsync_LocationCurrentQuantity_RespectsCapacity.
+        Assert.All(allLocations, l => Assert.True(l.CurrentQuantity >= 0));
     }
 
     [Fact]
@@ -259,6 +271,112 @@ public class DemoDataSeederTests
             Assert.False(string.IsNullOrWhiteSpace(c.Name));
             Assert.False(string.IsNullOrWhiteSpace(c.ContactName));
             Assert.False(string.IsNullOrWhiteSpace(c.Phone));
+        });
+    }
+
+    [Fact]
+    public async Task SeedAsync_SeedsStockLedger_Within300To400Movements()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_SeedsStockLedger_Within300To400Movements));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.InRange(summary.StockMovements, 300, 400);
+        Assert.Equal(summary.StockMovements, await db.StockMovements.CountAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsync_StockOnhand_EqualsLedgerSum_AndNeverNegative()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_StockOnhand_EqualsLedgerSum_AndNeverNegative));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var stocks = await db.Stocks.ToListAsync();
+        Assert.NotEmpty(stocks);
+
+        foreach (var stock in stocks)
+        {
+            var ledger = await db.StockMovements
+                .Where(m => m.ProductId == stock.ProductId && m.LocationId == stock.LocationId)
+                .ToListAsync();
+
+            int delta = 0;
+            foreach (var m in ledger)
+            {
+                delta += m.MovementType switch
+                {
+                    MovementType.In => m.Qty,
+                    MovementType.Out => -m.Qty,
+                    MovementType.Adjustment => m.Qty, // stock counts absolute; handled as delta
+                    _ => 0
+                };
+            }
+
+            Assert.Equal(delta, stock.OnhandQty);
+            Assert.True(stock.OnhandQty >= 0, $"Negative stock for product {stock.ProductId}");
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_StockMovement_CreatedDates_AreBackdatedWithinWindow()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_StockMovement_CreatedDates_AreBackdatedWithinWindow));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        // AsNoTracking: ExecuteUpdateAsync ghi thẳng DB, không cập nhật entity đang track
+        // → phải đọc lại từ DB (tránh identity resolution trả giá trị cũ).
+        var movements = await db.StockMovements.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(movements);
+
+        Assert.All(movements, m =>
+        {
+            var span = now - m.CreatedDate;
+            Assert.True(span >= TimeSpan.FromDays(3), $"Movement too recent: {m.CreatedDate}");
+            Assert.True(span <= TimeSpan.FromDays(45), $"Movement too old: {m.CreatedDate}");
+        });
+    }
+
+    [Fact]
+    public async Task SeedAsync_LocationCurrentQuantity_RespectsCapacity()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_LocationCurrentQuantity_RespectsCapacity));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var locations = await db.Locations.ToListAsync();
+        var stocks = await db.Stocks.ToListAsync();
+
+        foreach (var location in locations)
+        {
+            var locationQty = stocks.Where(s => s.LocationId == location.Id).Sum(s => s.OnhandQty);
+            Assert.Equal(location.CurrentQuantity, locationQty);
+            Assert.True(location.CurrentQuantity <= location.MaxQuantity,
+                $"Location {location.Code} over capacity: {location.CurrentQuantity} > {location.MaxQuantity}");
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_SeedRun_BackdatesAuditLog_WithHistoricalTimestamps()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_SeedRun_BackdatesAuditLog_WithHistoricalTimestamps));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var auditLogs = await db.AuditLogs.AsNoTracking().Where(a => a.EntityType == "StockMovement").ToListAsync();
+        Assert.NotEmpty(auditLogs);
+        Assert.All(auditLogs, a =>
+        {
+            var span = DateTime.UtcNow - a.OccurredAtUtc;
+            Assert.True(span >= TimeSpan.FromDays(3));
+            Assert.True(span <= TimeSpan.FromDays(45));
         });
     }
 

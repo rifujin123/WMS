@@ -172,6 +172,7 @@ public class DemoDataSeeder : IDemoDataSeeder
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
         var (vendors, customers) = await SeedVendorsAndCustomersAsync(cancellationToken);
+        var stockMovements = await SeedStockAsync(cancellationToken);
         var summary = new SeedSummary
         {
             Users = await SeedUsersAsync(cancellationToken),
@@ -180,12 +181,13 @@ public class DemoDataSeeder : IDemoDataSeeder
             Categories = categories,
             Products = products,
             Vendors = vendors,
-            Customers = customers
+            Customers = customers,
+            StockMovements = stockMovements
         };
 
         _logger.LogInformation(
-            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}, categories={Categories}, products={Products}, vendors={Vendors}, customers={Customers}).",
-            summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products, summary.Vendors, summary.Customers);
+            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}, categories={Categories}, products={Products}, vendors={Vendors}, customers={Customers}, stockMovements={StockMovements}).",
+            summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products, summary.Vendors, summary.Customers, summary.StockMovements);
 
         return summary;
     }
@@ -418,5 +420,135 @@ public class DemoDataSeeder : IDemoDataSeeder
             await _db.SaveChangesAsync(cancellationToken);
 
         return (vendorsCreated, customersCreated);
+    }
+
+    private async Task<int> SeedStockAsync(CancellationToken cancellationToken)
+    {
+        var products = await _db.Products.AsNoTracking().ToListAsync(cancellationToken);
+        var storageLocations = await _db.Locations.AsNoTracking()
+            .Where(l => l.LocationType == LocationType.Storage)
+            .OrderBy(l => l.WarehouseId).ThenBy(l => l.Code)
+            .ToListAsync(cancellationToken);
+        var actors = await _db.Users.AsNoTracking()
+            .Where(u => u.NormalizedUserName == "NVHUNG"
+                || u.NormalizedUserName == "NVLAN"
+                || u.NormalizedUserName == "PVNAM"
+                || u.NormalizedUserName == "NTHAO")
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+        var actorId = actors.Count > 0 ? actors[0] : Guid.Empty;
+
+        if (products.Count == 0 || storageLocations.Count == 0)
+            return 0;
+
+        var stocks = new List<Stock>();
+        var movements = new List<StockMovement>();
+        var movementTimestamps = new Dictionary<Guid, DateTime>();
+        var locationQuantities = new Dictionary<Guid, int>();
+        var now = DateTime.UtcNow;
+
+        for (var i = 0; i < products.Count; i++)
+        {
+            var product = products[i];
+            var location = storageLocations[i % storageLocations.Count];
+
+            // Deterministic ledger: In trước rồi Out/Adjustment — không bao giờ tồn âm
+            // vì running balance chỉ giảm sau khi đã có đủ In.
+            // Ranges được giữ nhỏ để 2 sản phẩm dùng chung 1 storage slot vẫn ≤ MaxQuantity (200).
+            var finalOnhand = 10 + ((i * 13) % 40);          // 10..49
+            var soldTotal = 15 + ((i * 7) % 30);             // 15..44
+            var adjustTotal = 1 + ((i * 5) % 8);             // 1..8
+            var totalIn = soldTotal + adjustTotal + finalOnhand;
+
+            var suffix = $"{product.Sku} @ {location.Code}";
+            var seq = new (int DayOffset, MovementType Type, int Qty, string Note)[]
+            {
+                (-42, MovementType.In, totalIn / 2, $"Nhận hàng nhập kho {suffix}"),
+                (-35, MovementType.In, totalIn - totalIn / 2, $"Nhận hàng nhập kho {suffix}"),
+                (-28, MovementType.Out, soldTotal / 3, $"Bán hàng - xuất kho {suffix}"),
+                (-20, MovementType.Adjustment, adjustTotal, $"Kiểm kê - điều chỉnh tồn {suffix}"),
+                (-10, MovementType.Out, soldTotal / 3, $"Bán hàng - xuất kho {suffix}"),
+                (-3,  MovementType.Out, soldTotal - 2 * (soldTotal / 3), $"Bán hàng - xuất kho {suffix}"),
+            };
+
+            var running = 0;
+            foreach (var (dayOffset, type, qty, note) in seq)
+            {
+                running += type switch
+                {
+                    MovementType.In => qty,
+                    MovementType.Out => -qty,
+                    MovementType.Adjustment => qty,
+                    _ => 0
+                };
+                if (running < 0) running = 0;
+
+                var occurred = now.AddDays(dayOffset);
+                var movement = new StockMovement
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    LocationId = location.Id,
+                    MovementType = type,
+                    Qty = qty,
+                    Notes = note
+                };
+                movements.Add(movement);
+                movementTimestamps[movement.Id] = occurred;
+            }
+
+            // Onhand = running balance thật qua toàn bộ chuỗi ledger
+            // (= Σ In − Σ Out + Σ Adjustment), consistency by construction.
+            stocks.Add(new Stock
+            {
+                Id = Guid.NewGuid(),
+                ProductId = product.Id,
+                LocationId = location.Id,
+                OnhandQty = running,
+                ReservedQty = 0
+            });
+            locationQuantities[location.Id] =
+                (locationQuantities.TryGetValue(location.Id, out var existing) ? existing : 0) + running;
+        }
+
+        _db.Stocks.AddRange(stocks);
+        _db.StockMovements.AddRange(movements);
+
+        var locationsToUpdate = await _db.Locations
+            .Where(l => locationQuantities.Keys.Contains(l.Id))
+            .ToListAsync(cancellationToken);
+        foreach (var loc in locationsToUpdate)
+        {
+            if (locationQuantities.TryGetValue(loc.Id, out var qty))
+                loc.CurrentQuantity = qty;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        // Backdate CreatedDate + CreatedById (interceptor ép = now khi Add).
+        // ExecuteUpdate không qua ChangeTracker → không sinh thêm audit kép.
+        foreach (var movement in movements)
+        {
+            var occurred = movementTimestamps[movement.Id];
+            await _db.StockMovements
+                .Where(x => x.Id == movement.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.CreatedDate, occurred)
+                    .SetProperty(x => x.CreatedById, actorId == Guid.Empty ? null : (Guid?)actorId),
+                    cancellationToken);
+
+            // Backdate luôn AuditLog tự sinh cho movement (interceptor ép OccurredAtUtc = now).
+            await _db.AuditLogs
+                .Where(a => a.EntityType == nameof(StockMovement) && a.EntityId == movement.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.OccurredAtUtc, occurred)
+                    .SetProperty(a => a.ActorUserId, actorId == Guid.Empty ? null : (Guid?)actorId),
+                    cancellationToken);
+        }
+
+        _logger.LogInformation("Demo stock seeded: {Products} products, {Movements} movements across {Locations} storage locations.",
+            products.Count, movements.Count, storageLocations.Count);
+
+        return movements.Count;
     }
 }
