@@ -169,25 +169,30 @@ public class DemoDataSeeder : IDemoDataSeeder
             return SeedSummary.AlreadySeededSummary();
         }
 
+        var usersSeeded = await SeedUsersAsync(cancellationToken);
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
         var (vendors, customers) = await SeedVendorsAndCustomersAsync(cancellationToken);
-        var stockMovements = await SeedStockAsync(cancellationToken);
+        await SeedStockAsync(cancellationToken);
+        var purchaseOrders = await SeedPoAndPutAwayChainsAsync(cancellationToken);
+        // StockMovements = tổng cả ticket 06 (ledger) + ticket 07 (putaway In movements) từ DB.
+        var totalStockMovements = await _db.StockMovements.AsNoTracking().CountAsync(cancellationToken);
         var summary = new SeedSummary
         {
-            Users = await SeedUsersAsync(cancellationToken),
+            Users = usersSeeded,
             Warehouses = warehouses,
             Locations = locations,
             Categories = categories,
             Products = products,
             Vendors = vendors,
             Customers = customers,
-            StockMovements = stockMovements
+            StockMovements = totalStockMovements,
+            PurchaseOrders = purchaseOrders
         };
 
         _logger.LogInformation(
-            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}, categories={Categories}, products={Products}, vendors={Vendors}, customers={Customers}, stockMovements={StockMovements}).",
-            summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products, summary.Vendors, summary.Customers, summary.StockMovements);
+            "Demo data seeding completed (users={Users}, warehouses={Warehouses}, locations={Locations}, categories={Categories}, products={Products}, vendors={Vendors}, customers={Customers}, stockMovements={StockMovements}, purchaseOrders={PurchaseOrders}).",
+            summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products, summary.Vendors, summary.Customers, summary.StockMovements, summary.PurchaseOrders);
 
         return summary;
     }
@@ -550,5 +555,209 @@ public class DemoDataSeeder : IDemoDataSeeder
             products.Count, movements.Count, storageLocations.Count);
 
         return movements.Count;
+    }
+
+    private async Task<int> SeedPoAndPutAwayChainsAsync(CancellationToken cancellationToken)
+    {
+        var vendors = await _db.Vendors.AsNoTracking().ToListAsync(cancellationToken);
+        var products = await _db.Products.AsNoTracking().ToListAsync(cancellationToken);
+        var users = await _db.Users.AsNoTracking().ToListAsync(cancellationToken);
+        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
+        var staffId = users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
+
+        if (vendors.Count < 3 || products.Count < 6)
+            return 0;
+
+        // Load trạng thái tồn + vị trí hiện tại (sau ticket 06) để cập nhật nhất quán.
+        var existingStocks = await _db.Stocks.AsNoTracking().ToListAsync(cancellationToken);
+        var onhand = existingStocks.ToDictionary(s => (s.ProductId, s.LocationId), s => s.OnhandQty);
+        var locationQty = (await _db.Locations.AsNoTracking().ToListAsync(cancellationToken))
+            .ToDictionary(l => l.Id, l => l.CurrentQuantity);
+
+        var now = DateTime.UtcNow;
+        var chains = new[]
+        {
+            (VendorIndex: 0, ProductIndexes: new[] { 0, 1 }, QtyPer: 12, Day: 38),
+            (VendorIndex: 1, ProductIndexes: new[] { 2, 3 }, QtyPer: 10, Day: 30),
+            (VendorIndex: 2, ProductIndexes: new[] { 4, 5 }, QtyPer: 8,  Day: 24),
+        };
+
+        var purchaseOrders = 0;
+        var putAwayMovements = new List<(StockMovement Movement, DateTime Occurred)>();
+        foreach (var (vendorIndex, productIndexes, qtyPer, day) in chains)
+        {
+            var vendor = vendors[vendorIndex];
+            var usedProducts = productIndexes.Select(i => products[i]).ToList();
+
+            // PO: Pending → Approved → Received → Closed (final = Closed).
+            // Lưu ý: không tạo PurchaseOrderDetail trong seed — entity đó có RowVersion (IsRowVersion,
+            // store-generated) không thể insert qua EF trên SQLite (test seam); flow sản phẩm vẫn
+            // được thể hiện qua ReceivingDetail + PutAwayTask. Trên SQL Server production, các thao tác
+            // nghiệp vụ sau này sẽ tạo detail như bình thường.
+            var po = new PurchaseOrder
+            {
+                Id = Guid.NewGuid(),
+                PoNumber = $"PO-{now.AddDays(-day):yyyyMMdd}-{purchaseOrders + 1:000}",
+                VendorName = vendor.Name,
+                Status = PurchaseOrderStatus.Closed,
+                ApprovedById = managerId,
+                ApprovedDate = now.AddDays(-day),
+                ClosedById = managerId,
+                ClosedDate = now.AddDays(-3)
+            };
+
+            // Receiving: Draft → Confirmed (final = Confirmed), 1 per PO.
+            var receiving = new Receiving
+            {
+                Id = Guid.NewGuid(),
+                ReceivingNo = $"RC-{now.AddDays(-day):yyyyMMdd}-{purchaseOrders + 1:000}",
+                PurchaseOrderId = po.Id,
+                PurchaseOrder = po,
+                Status = ReceivingStatus.Confirmed,
+                ReceivedById = staffId,
+                ReceivedDate = now.AddDays(-20),
+                ConfirmedById = managerId,
+                ConfirmedDate = now.AddDays(-19),
+                Notes = $"Nhận hàng theo {po.PoNumber}",
+                ReceivingDetails = usedProducts.Select(p => new ReceivingDetail
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = p.Id,
+                    ExpectedQuantity = qtyPer,
+                    ActualQuantity = qtyPer,
+                    Condition = ProductCondition.Ok
+                }).ToList()
+            };
+
+            // Link FK
+            foreach (var d in receiving.ReceivingDetails) d.Receiving = receiving;
+
+            // PutAway: cho mỗi dòng Ok → Completed; cộng tồn tại chính location ấy.
+            foreach (var detail in receiving.ReceivingDetails)
+            {
+                var targetLocation = FindPutAwayLocation(detail.ProductId, detail.ActualQuantity, locationQty);
+                if (targetLocation is null) continue;
+
+                var before = onhand.GetValueOrDefault((detail.ProductId, targetLocation.Id));
+                onhand[(detail.ProductId, targetLocation.Id)] = before + detail.ActualQuantity;
+                locationQty[targetLocation.Id] = locationQty.GetValueOrDefault(targetLocation.Id) + detail.ActualQuantity;
+
+                var putAway = new PutAwayTask
+                {
+                    Id = Guid.NewGuid(),
+                    ReceivingDetailId = detail.Id,
+                    ReceivingDetail = detail,
+                    ProductId = detail.ProductId,
+                    Quantity = detail.ActualQuantity,
+                    FromLocationId = null,
+                    ToLocationId = targetLocation.Id,
+                    Status = PutAwayTaskStatus.Completed,
+                    AssignToId = staffId,
+                    AssignedById = managerId,
+                    AssignedDate = now.AddDays(-18),
+                    StartedById = staffId,
+                    StartedDate = now.AddDays(-17),
+                    CompletedById = staffId,
+                    CompletedDate = now.AddDays(-16),
+                };
+                _db.PutAwayTasks.Add(putAway);
+
+                var putAwayOccurred = now.AddDays(-16);
+                var putAwayMovement = new StockMovement
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = detail.ProductId,
+                    LocationId = targetLocation.Id,
+                    MovementType = MovementType.In,
+                    Qty = detail.ActualQuantity,
+                    Notes = $"Phiếu cất {po.PoNumber} - nhập kho {targetLocation.Code}"
+                };
+                _db.StockMovements.Add(putAwayMovement);
+                putAwayMovements.Add((putAwayMovement, putAwayOccurred));
+            }
+
+            // StatusHistory cho PO: Pending→Approved, Approved→Received, Received→Closed.
+            _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po.Id,
+                nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged",
+                managerId, now.AddDays(-day)));
+            _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po.Id,
+                nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged",
+                staffId, now.AddDays(-19)));
+            _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po.Id,
+                nameof(PurchaseOrderStatus.Received), nameof(PurchaseOrderStatus.Closed), "StatusChanged",
+                managerId, now.AddDays(-3)));
+            _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(Receiving), receiving.Id,
+                nameof(ReceivingStatus.Draft), nameof(ReceivingStatus.Confirmed), "StatusChanged",
+                managerId, now.AddDays(-19)));
+
+            _db.PurchaseOrders.Add(po);
+            _db.Receivings.Add(receiving);
+            purchaseOrders++;
+        }
+
+        // Ghi lại onhand/location vào DB (Stock + Location đã track; cập nhật luôn).
+        foreach (var ((productId, locationId), qty) in onhand)
+        {
+            var stock = await _db.Stocks.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.ProductId == productId && s.LocationId == locationId, cancellationToken);
+            if (stock != null)
+            {
+                var tracked = _db.Stocks.Find(stock.Id);
+                if (tracked != null)
+                    tracked.OnhandQty = qty;
+            }
+        }
+        foreach (var (locationId, qty) in locationQty)
+        {
+            var loc = await _db.Locations.FindAsync(new object[] { locationId }, cancellationToken);
+            if (loc != null) loc.CurrentQuantity = qty;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        // Backdate putaway movements + audit logs tự sinh (giống ticket 06), để cửa sổ lịch sử thống nhất.
+        foreach (var (movement, occurred) in putAwayMovements)
+        {
+            await _db.StockMovements
+                .Where(x => x.Id == movement.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.CreatedDate, occurred)
+                    .SetProperty(x => x.CreatedById, staffId == Guid.Empty ? null : (Guid?)staffId),
+                    cancellationToken);
+            await _db.AuditLogs
+                .Where(a => a.EntityType == nameof(StockMovement) && a.EntityId == movement.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.OccurredAtUtc, occurred)
+                    .SetProperty(a => a.ActorUserId, staffId == Guid.Empty ? null : (Guid?)staffId),
+                    cancellationToken);
+        }
+
+        _logger.LogInformation("Demo PO chains seeded: {Count} purchase orders (all Closed, 1 Confirmed receiving each, PutAway completed).", purchaseOrders);
+        return purchaseOrders;
+    }
+
+    // Chọn location nhận hàng cất: ưu tiên location sẵn có stock của sản phẩm (đã nạp từ ticket 06),
+    // ngược lại dùng location rỗng nhất, giữ capacity ≤ MaxQuantity.
+    private Location? FindPutAwayLocation(Guid productId, int qty, IReadOnlyDictionary<Guid, int> locationQty)
+    {
+        var stockLocations = _db.Locations.AsNoTracking()
+            .Where(l => l.LocationType == LocationType.Storage)
+            .OrderBy(l => l.WarehouseId).ThenBy(l => l.Code)
+            .ToList();
+
+        // Ưu tiên storage location của sản phẩm đã tồn (xác định lại từ Stocks).
+        var productStockLoc = _db.Stocks.AsNoTracking()
+            .Where(s => s.ProductId == productId)
+            .Select(s => s.LocationId)
+            .ToList();
+        var preferred = stockLocations.FirstOrDefault(l => productStockLoc.Contains(l.Id));
+        if (preferred != null && locationQty.GetValueOrDefault(preferred.Id) + qty <= preferred.MaxQuantity)
+            return preferred;
+
+        // Fallback: location rỗng nhất có đủ chỗ.
+        return stockLocations
+            .Where(l => locationQty.GetValueOrDefault(l.Id) + qty <= l.MaxQuantity)
+            .OrderBy(l => locationQty.GetValueOrDefault(l.Id))
+            .FirstOrDefault();
     }
 }

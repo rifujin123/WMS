@@ -380,6 +380,104 @@ public class DemoDataSeederTests : IDisposable
         });
     }
 
+    [Fact]
+    public async Task SeedAsync_SeedsPoChains_AllClosed_WithOneConfirmedReceivingEach()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_SeedsPoChains_AllClosed_WithOneConfirmedReceivingEach));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.InRange(summary.PurchaseOrders, 3, 4);
+
+        var pos = await db.PurchaseOrders.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(pos);
+        Assert.All(pos, po => Assert.Equal(PurchaseOrderStatus.Closed, po.Status));
+
+        // Mỗi PO đều có đúng 1 receiving Confirmed
+        foreach (var po in pos)
+        {
+            var confirmedCount = await db.Receivings.AsNoTracking()
+                .CountAsync(r => r.PurchaseOrderId == po.Id && r.Status == ReceivingStatus.Confirmed);
+            Assert.Equal(1, confirmedCount);
+        }
+
+        // PutAway hoàn thành đủ cho các làn Ok của mỗi PO
+        var receivings = await db.Receivings.AsNoTracking().ToListAsync();
+        foreach (var r in receivings)
+        {
+            var okDetails = await db.ReceivingDetails.AsNoTracking()
+                .Where(d => d.ReceivingId == r.Id && d.Condition == ProductCondition.Ok)
+                .CountAsync();
+            var putAwayCompleted = await db.PutAwayTasks.AsNoTracking()
+                .Where(t => t.ReceivingDetail.ReceivingId == r.Id && t.Status == PutAwayTaskStatus.Completed)
+                .Select(t => t.ReceivingDetailId)
+                .Distinct()
+                .CountAsync();
+            Assert.Equal(okDetails, putAwayCompleted);
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_PoChains_DoNotBreakStockLedgerConsistency()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_PoChains_DoNotBreakStockLedgerConsistency));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        // Sau toàn bộ seed (ticket 06 + 07), mỗi Stock.Onhand vẫn phải khớp ledger movements.
+        var stocks = await db.Stocks.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(stocks);
+        foreach (var stock in stocks)
+        {
+            var movements = await db.StockMovements.AsNoTracking()
+                .Where(m => m.ProductId == stock.ProductId && m.LocationId == stock.LocationId)
+                .ToListAsync();
+            var delta = movements.Sum(m => m.MovementType switch
+            {
+                MovementType.In => m.Qty,
+                MovementType.Out => -m.Qty,
+                MovementType.Adjustment => m.Qty,
+                _ => 0
+            });
+            Assert.Equal(delta, stock.OnhandQty);
+        }
+
+        // Capacity vẫn phải giữ.
+        var locations = await db.Locations.AsNoTracking().ToListAsync();
+        foreach (var l in locations)
+        {
+            var qty = await db.Stocks.AsNoTracking().Where(s => s.LocationId == l.Id).SumAsync(s => (int?)s.OnhandQty) ?? 0;
+            Assert.True(qty <= l.MaxQuantity, $"Location {l.Code} over capacity: {qty} > {l.MaxQuantity}");
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_PoChains_ProduceStatusHistory_AcrossOrders()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_PoChains_ProduceStatusHistory_AcrossOrders));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var po = await db.PurchaseOrders.AsNoTracking().FirstOrDefaultAsync();
+        Assert.NotNull(po);
+
+        var history = await db.StatusHistories.AsNoTracking()
+            .Where(h => h.EntityType == nameof(PurchaseOrder) && h.EntityId == po!.Id)
+            .OrderBy(h => h.OccurredAtUtc)
+            .ToListAsync();
+
+        Assert.NotEmpty(history);
+
+        var statuses = history.Select(h => h.ToStatus).ToList();
+        // Phải chứa đủ các bước: Pending→...→Closed (ít nhất Approved & Received & Closed).
+        Assert.Contains(nameof(PurchaseOrderStatus.Approved), statuses);
+        Assert.Contains(nameof(PurchaseOrderStatus.Received), statuses);
+        Assert.Contains(nameof(PurchaseOrderStatus.Closed), statuses);
+    }
+
     private static async Task<int> CountUsersInRoleAsync(WmsDbContext db, string roleName)
     {
         var roleId = await db.Roles.Where(r => r.Name == roleName).Select(r => r.Id).FirstOrDefaultAsync();
