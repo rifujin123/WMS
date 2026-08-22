@@ -205,7 +205,10 @@ using (var scope = app.Services.CreateScope())
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     const string adminUsername = "admin";
-    const string adminPassword = "Admin@123";
+    // Đọc mật khẩu seed từ cấu hình (env SEED__ADMIN_PASSWORD); môi trường dev dùng default an toàn.
+    // Không hardcode password trong source; production nên set SEED__ADMIN_PASSWORD.
+    var adminPassword = builder.Configuration["Seed:AdminPassword"]
+        ?? "Admin@123";
     if (await userManager.FindByNameAsync(adminUsername) == null)
     {
         var adminUser = new User
