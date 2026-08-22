@@ -33,7 +33,7 @@ public class SqlStockMovementRepository : IStockMovementRepository
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
-    public async Task<List<StockMovement>> GetAsync(StockMovementQueryDto query)
+    public async Task<PagedResult<StockMovement>> GetAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
     {
         IQueryable<StockMovement> movements = _db.StockMovements
             .AsNoTracking()
@@ -52,9 +52,14 @@ public class SqlStockMovementRepository : IStockMovementRepository
         if (query.ToUtc.HasValue)
             movements = movements.Where(s => s.CreatedDate <= query.ToUtc.Value);
 
-        return await movements
+        var totalCount = await movements.CountAsync(cancellationToken);
+        var items = await movements
             .OrderByDescending(s => s.CreatedDate)
-            .ToListAsync();
+            .Skip((query.Page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return PagedResult<StockMovement>.Create(items, query.Page, pageSize, totalCount);
     }
 
     public async Task AddAsync(StockMovement stockMovement)

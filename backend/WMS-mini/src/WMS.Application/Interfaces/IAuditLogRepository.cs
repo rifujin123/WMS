@@ -5,7 +5,7 @@ namespace WMS.Application.Interfaces;
 
 public interface IAuditLogRepository
 {
-    Task<List<AuditLog>> GetAsync(AuditLogQueryDto query);
+    Task<PagedResult<AuditLog>> GetAsync(AuditLogQueryDto query, int pageSize, CancellationToken cancellationToken = default);
     Task<List<StatusHistory>> GetStatusHistoryAsync(string entityType, Guid entityId);
-    Task<List<StatusHistory>> GetStatusHistoriesAsync(StatusHistoryQueryDto query);
+    Task<PagedResult<StatusHistory>> GetStatusHistoriesAsync(StatusHistoryQueryDto query, int pageSize, CancellationToken cancellationToken = default);
 }

@@ -15,6 +15,7 @@ export interface AuditLogDto {
 }
 
 export interface AuditLogQuery {
+  page?: number
   entityType?: string
   entityId?: string
   actorId?: string

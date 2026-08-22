@@ -38,20 +38,21 @@ interface StatusHistoryTableProps {
 function StatusHistoryTable({ fromUtc, toUtc }: StatusHistoryTableProps) {
   const [entityFilter, setEntityFilter] = useState<string | undefined>(undefined)
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null)
+  const [page, setPage] = useState(1)
 
   // Range ngày riêng của bảng override period chung của dashboard
   const effectiveFrom = dateRange ? dateRange[0].startOf('day').toISOString() : fromUtc
   const effectiveTo = dateRange ? dateRange[1].endOf('day').toISOString() : toUtc
 
-  const { data, isPending } = useStatusHistories({ fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { data, isPending } = useStatusHistories({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
 
   const entityOptions = useMemo(() => {
-    const types = new Set((data ?? []).map((h) => h.entityType))
+    const types = new Set((data?.items ?? []).map((h) => h.entityType))
     return [...types].sort().map((t) => ({ value: t, label: t }))
   }, [data])
 
   const rows = useMemo(() => {
-    const all = data ?? []
+    const all = data?.items ?? []
     return entityFilter ? all.filter((h) => h.entityType === entityFilter) : all
   }, [data, entityFilter])
 
@@ -120,9 +121,16 @@ function StatusHistoryTable({ fromUtc, toUtc }: StatusHistoryTableProps) {
         columns={columns}
         dataSource={rows}
         loading={isPending}
-        pagination={false}
         size="small"
         scroll={{ x: 520 }}
+        pagination={{
+          current: data?.page ?? page,
+          pageSize: data?.pageSize ?? 10,
+          total: data?.totalCount ?? 0,
+          showSizeChanger: false,
+          showTotal: (total) => `Tổng ${total}`,
+        }}
+        onChange={(pagination) => setPage(pagination.current ?? 1)}
         locale={{ emptyText: <Empty image={null} description="Chưa có lịch sử trạng thái" /> }}
       />
     </Card>

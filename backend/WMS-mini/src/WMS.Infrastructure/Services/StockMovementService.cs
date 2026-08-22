@@ -15,9 +15,13 @@ public class StockMovementService : IStockMovementService
         _mapper = mapper;
     }
 
-    public async Task<List<StockMovementDto>> GetAsync(StockMovementQueryDto query)
+    public async Task<PagedResult<StockMovementDto>> GetAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
     {
-        var movements = await _repo.GetAsync(query);
-        return _mapper.Map<List<StockMovementDto>>(movements);
+        var result = await _repo.GetAsync(query, pageSize, cancellationToken);
+        return PagedResult<StockMovementDto>.Create(
+            result.Items.Select(_mapper.Map<StockMovementDto>),
+            result.Page,
+            result.PageSize,
+            result.TotalCount);
     }
 }

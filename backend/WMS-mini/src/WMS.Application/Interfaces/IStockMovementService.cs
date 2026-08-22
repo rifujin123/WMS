@@ -4,5 +4,5 @@ namespace WMS.Application.Interfaces;
 
 public interface IStockMovementService
 {
-    Task<List<StockMovementDto>> GetAsync(StockMovementQueryDto query);
+    Task<PagedResult<StockMovementDto>> GetAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default);
 }

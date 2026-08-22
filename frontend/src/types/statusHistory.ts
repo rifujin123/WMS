@@ -14,6 +14,7 @@ export interface StatusHistoryDto {
 }
 
 export interface StatusHistoryQuery {
+  page?: number
   entityType?: string
   fromUtc?: string
   toUtc?: string

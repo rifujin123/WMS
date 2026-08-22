@@ -17,6 +17,7 @@ export interface StockMovementDto {
 }
 
 export interface StockMovementQuery {
+  page?: number
   productId?: string
   locationId?: string
   movementType?: MovementType

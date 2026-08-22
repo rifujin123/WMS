@@ -15,10 +15,14 @@ public class AuditLogService : IAuditLogService
         _mapper = mapper;
     }
 
-    public async Task<List<AuditLogDto>> GetAsync(AuditLogQueryDto query)
+    public async Task<PagedResult<AuditLogDto>> GetAsync(AuditLogQueryDto query, int pageSize, CancellationToken cancellationToken = default)
     {
-        var items = await _repository.GetAsync(query);
-        return _mapper.Map<List<AuditLogDto>>(items);
+        var result = await _repository.GetAsync(query, pageSize, cancellationToken);
+        return PagedResult<AuditLogDto>.Create(
+            result.Items.Select(_mapper.Map<AuditLogDto>),
+            result.Page,
+            result.PageSize,
+            result.TotalCount);
     }
 
     public async Task<List<StatusHistoryDto>> GetStatusHistoryAsync(string entityType, Guid entityId)
@@ -27,9 +31,13 @@ public class AuditLogService : IAuditLogService
         return _mapper.Map<List<StatusHistoryDto>>(items);
     }
 
-    public async Task<List<StatusHistoryDto>> GetStatusHistoriesAsync(StatusHistoryQueryDto query)
+    public async Task<PagedResult<StatusHistoryDto>> GetStatusHistoriesAsync(StatusHistoryQueryDto query, int pageSize, CancellationToken cancellationToken = default)
     {
-        var items = await _repository.GetStatusHistoriesAsync(query);
-        return _mapper.Map<List<StatusHistoryDto>>(items);
+        var result = await _repository.GetStatusHistoriesAsync(query, pageSize, cancellationToken);
+        return PagedResult<StatusHistoryDto>.Create(
+            result.Items.Select(_mapper.Map<StatusHistoryDto>),
+            result.Page,
+            result.PageSize,
+            result.TotalCount);
     }
 }

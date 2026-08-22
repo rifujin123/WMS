@@ -130,7 +130,18 @@ public class FakeStockMovementRepository : IStockMovementRepository
     public List<StockMovement> Items { get; } = new();
     public Task<List<StockMovement>> GetAllAsync() => Task.FromResult(Items);
     public Task<StockMovement?> GetByIdAsync(Guid id) => Task.FromResult(Items.FirstOrDefault(m => m.Id == id));
-    public Task<List<StockMovement>> GetAsync(StockMovementQueryDto query) => Task.FromResult(Items);
+    public Task<PagedResult<StockMovement>> GetAsync(StockMovementQueryDto query, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var filtered = Items
+            .Where(m =>
+                (!query.ProductId.HasValue || m.ProductId == query.ProductId.Value) &&
+                (!query.LocationId.HasValue || m.LocationId == query.LocationId.Value) &&
+                (!query.MovementType.HasValue || m.MovementType == query.MovementType.Value))
+            .OrderByDescending(m => m.CreatedDate)
+            .ToList();
+        var pageItems = filtered.Skip((Math.Max(query.Page, 1) - 1) * pageSize).Take(pageSize).ToList();
+        return Task.FromResult(PagedResult<StockMovement>.Create(pageItems, Math.Max(query.Page, 1), pageSize, filtered.Count));
+    }
     public Task AddAsync(StockMovement movement) { Items.Add(movement); return Task.CompletedTask; }
     public Task UpdateAsync(StockMovement movement) => Task.CompletedTask;
     public Task DeleteAsync(StockMovement movement) { Items.Remove(movement); return Task.CompletedTask; }

@@ -21,14 +21,15 @@ interface StockMovementTableProps {
 function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
   const [typeFilter, setTypeFilter] = useState<MovementType | undefined>(undefined)
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null)
+  const [page, setPage] = useState(1)
 
   // Range ngày riêng của bảng override period chung của dashboard
   const effectiveFrom = dateRange ? dateRange[0].startOf('day').toISOString() : fromUtc
   const effectiveTo = dateRange ? dateRange[1].endOf('day').toISOString() : toUtc
 
-  const { data, isPending } = useStockMovements({ fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { data, isPending } = useStockMovements({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
 
-  const all = data ?? []
+  const all = data?.items ?? []
   const rows = typeFilter ? all.filter((m) => m.movementType === typeFilter) : all
 
   const columns: TableColumnsType<StockMovementDto> = [
@@ -123,9 +124,16 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
         columns={columns}
         dataSource={rows}
         loading={isPending}
-        pagination={false}
         size="small"
         scroll={{ x: 640 }}
+        pagination={{
+          current: data?.page ?? page,
+          pageSize: data?.pageSize ?? 10,
+          total: data?.totalCount ?? 0,
+          showSizeChanger: false,
+          showTotal: (total) => `Tổng ${total}`,
+        }}
+        onChange={(pagination) => setPage(pagination.current ?? 1)}
         locale={{ emptyText: <Empty image={null} description="Chưa có biến động tồn kho" /> }}
       />
     </Card>
