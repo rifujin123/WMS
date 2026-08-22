@@ -37,6 +37,11 @@ builder.Services.AddOptions<AiProviderOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+builder.Services.AddOptions<DemoSeedOptions>()
+    .Bind(builder.Configuration.GetSection(DemoSeedOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddHttpClient("AiProvider", (sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<AiProviderOptions>>().Value;
@@ -156,6 +161,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
 // AI Provider
 var aiProviderName = builder.Configuration.GetValue("AiProvider:Provider", "Mock");
@@ -222,6 +228,14 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
             await userManager.AddToRoleAsync(adminUser, "Admin");
     }
+}
+
+// Seed dữ liệu demo (chỉ chạy trong Development; bản thân seeder kiểm tra Seed:Enabled)
+if (app.Environment.IsDevelopment())
+{
+    using var demoSeedScope = app.Services.CreateScope();
+    var demoSeeder = demoSeedScope.ServiceProvider.GetRequiredService<IDemoDataSeeder>();
+    await demoSeeder.SeedAsync();
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
