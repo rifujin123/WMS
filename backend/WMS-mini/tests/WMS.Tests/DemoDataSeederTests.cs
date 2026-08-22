@@ -166,6 +166,57 @@ public class DemoDataSeederTests
         Assert.Equal(PasswordVerificationResult.Success, result);
     }
 
+    [Fact]
+    public async Task SeedAsync_CreatesFourCategories_AndSixtyProducts()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_CreatesFourCategories_AndSixtyProducts));
+        var seeder = CreateSeeder(db);
+
+        var summary = await seeder.SeedAsync(CancellationToken.None);
+
+        Assert.Equal(4, await db.Categories.CountAsync());
+        Assert.Equal(60, summary.Products);
+        Assert.Equal(60, await db.Products.CountAsync());
+
+        // Mọi sản phẩm phải có Category hợp lệ
+        var categoryIds = await db.Categories.Select(c => c.Id).ToListAsync();
+        var productCategoryIds = await db.Products.Select(p => p.CategoryId).Distinct().ToListAsync();
+        Assert.All(productCategoryIds, id => Assert.Contains(id, categoryIds));
+    }
+
+    [Fact]
+    public async Task SeedAsync_Products_HaveUniqueSku_PositivePrice_AndImageUrl()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_Products_HaveUniqueSku_PositivePrice_AndImageUrl));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var products = await db.Products.ToListAsync();
+        Assert.Equal(products.Count, products.Select(p => p.Sku).Distinct().Count());
+        Assert.All(products, p => Assert.True(p.Price > 0));
+        Assert.All(products, p => Assert.False(string.IsNullOrWhiteSpace(p.Sku)));
+        Assert.All(products, p => Assert.False(string.IsNullOrWhiteSpace(p.Name)));
+        Assert.All(products, p => Assert.False(string.IsNullOrWhiteSpace(p.ImageUrl)));
+    }
+
+    [Fact]
+    public async Task SeedAsync_Products_ImageUrl_IsDeterministicBySku()
+    {
+        await using var db = CreateDb(nameof(SeedAsync_Products_ImageUrl_IsDeterministicBySku));
+        var seeder = CreateSeeder(db);
+
+        await seeder.SeedAsync(CancellationToken.None);
+
+        var iphone = await db.Products.FirstAsync(p => p.Sku == "IP15PM-256-TT");
+        Assert.Contains("IP15PM-256-TT", iphone.ImageUrl);
+        Assert.StartsWith("https://picsum.photos/seed/", iphone.ImageUrl);
+
+        // Deterministic: dựng lại URL cho cùng SKU bằng đúng công thức → cùng giá trị
+        var expected = $"https://picsum.photos/seed/{iphone.Sku}/240/240";
+        Assert.Equal(expected, iphone.ImageUrl);
+    }
+
     private static async Task<int> CountUsersInRoleAsync(WmsDbContext db, string roleName)
     {
         var roleId = await db.Roles.Where(r => r.Name == roleName).Select(r => r.Id).FirstOrDefaultAsync();
