@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { Button, Card, Descriptions, Empty, Result, Skeleton, Table, Tag, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
@@ -42,14 +41,8 @@ function ReceivingDetail() {
   const putAwayQuery = usePutAwayTasks()
 
   const receiving = receivingQuery.data
-  const receivingDetailIds = useMemo(
-    () => new Set(receiving?.details.map((detail) => detail.id)),
-    [receiving?.details],
-  )
-  const relatedTasks = useMemo(
-    () => (putAwayQuery.data ?? []).filter((task) => receivingDetailIds.has(task.receivingDetailId)),
-    [putAwayQuery.data, receivingDetailIds],
-  )
+  const receivingDetailIds = new Set(receiving?.details.map((detail) => detail.id))
+  const relatedTasks = (putAwayQuery.data ?? []).filter((task) => receivingDetailIds.has(task.receivingDetailId))
 
   const detailColumns: TableColumnsType<ReceivingDetailDto> = [
     {

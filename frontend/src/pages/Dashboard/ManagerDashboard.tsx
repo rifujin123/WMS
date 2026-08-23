@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CarryOutOutlined,
   FileTextOutlined,
@@ -43,33 +43,18 @@ function ManagerDashboard() {
   const { data: pickings, isPending: pickingsPending } = usePickings(undefined, { refetchInterval: 30000 })
   const { data: saleOrders, isPending: saleOrdersPending } = useSaleOrders({ refetchInterval: 30000 })
 
-  const totalOnhand = useMemo(
-    () => (stocks ?? []).reduce((sum, s) => sum + s.onhandQty, 0),
-    [stocks],
-  )
+  const totalOnhand = (stocks ?? []).reduce((sum, s) => sum + s.onhandQty, 0)
 
-  const receivingsInPeriod = useMemo(
-    () => (receivings ?? []).filter((r) => isInRange(r.createdDate, range)).length,
-    [receivings, range],
-  )
-  const putAwayInPeriod = useMemo(
-    () => (putAwayTasks ?? []).filter((t) => isInRange(t.createdDate, range)).length,
-    [putAwayTasks, range],
-  )
-  const pickingsInPeriod = useMemo(
-    () => (pickings ?? []).filter((p) => isInRange(p.createdDate, range)).length,
-    [pickings, range],
-  )
+  const receivingsInPeriod = (receivings ?? []).filter((r) => isInRange(r.createdDate, range)).length
+  const putAwayInPeriod = (putAwayTasks ?? []).filter((t) => isInRange(t.createdDate, range)).length
+  const pickingsInPeriod = (pickings ?? []).filter((p) => isInRange(p.createdDate, range)).length
 
-  const saleOrdersInPeriod = useMemo(
-    () => (saleOrders ?? []).filter((o) => isInRange(o.orderDate, range)),
-    [saleOrders, range],
-  )
-  const soByStatus = useMemo(() => {
+  const saleOrdersInPeriod = (saleOrders ?? []).filter((o) => isInRange(o.orderDate, range))
+  const soByStatus = (() => {
     const counts = {} as Record<SaleOrderStatus, number>
     for (const o of saleOrdersInPeriod) counts[o.status] = (counts[o.status] ?? 0) + 1
     return counts
-  }, [saleOrdersInPeriod])
+  })()
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['stocks'] })

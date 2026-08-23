@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -61,11 +61,11 @@ function StockAdjustments() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm] = Form.useForm<CreateStockAdjustmentDto>()
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     const list = adjustments ?? []
     // Hiển thị mới nhất trước
     return [...list].sort((a, b) => dayjs(b.createdDate).valueOf() - dayjs(a.createdDate).valueOf())
-  }, [adjustments])
+  })()
 
   const productOptions = (products ?? []).map((p) => ({
     value: p.id,

@@ -1,7 +1,7 @@
 import { App, Button, Col, Empty, Form, Image, Input, InputNumber, Modal, Row, Select, Skeleton, Spin, Tooltip, Typography, Upload } from 'antd'
 import type { UploadProps } from 'antd'
 import { DeleteOutlined, ExclamationCircleFilled, PlusOutlined, UploadOutlined } from '@ant-design/icons'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type {
   CreateReceivingDetailDto,
   CreateReceivingDto,
@@ -88,14 +88,14 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   })) ?? []
 
   // Gom toàn bộ gợi ý AI (dedupe theo productId)
-  const suggestionOptions = useMemo(() => {
+  const suggestionOptions = (() => {
     const map = new Map<string, ProductSuggestion>()
     Object.values(suggestionMap).forEach((list) => list.forEach((s) => map.set(s.productId, s)))
     return [...map.values()].map((s) => ({
       value: s.productId,
       label: `${s.sku} — ${s.name}${s.inPo ? '' : ' (ngoài PO)'}`,
     }))
-  }, [suggestionMap])
+  })()
 
   // Options cuối cùng: sản phẩm trong PO + gợi ý AI (không trùng)
   const productOptions = [

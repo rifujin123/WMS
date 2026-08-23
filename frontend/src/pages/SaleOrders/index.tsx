@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -43,13 +43,13 @@ function SaleOrders() {
   const { user } = useAuthContext()
   const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
 
-  const shipmentBySaleOrderId = useMemo(() => {
+  const shipmentBySaleOrderId = (() => {
     const map = new Map<string, ShipmentDto>()
     for (const shipment of shipments ?? []) map.set(shipment.saleOrderId, shipment)
     return map
-  }, [shipments])
+  })()
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     if (!saleOrders) return []
     const keyword = search.trim().toLowerCase()
     return saleOrders.filter((so) => {
@@ -60,7 +60,7 @@ function SaleOrders() {
       const matchesStatus = !statusFilter || so.status === statusFilter
       return matchesKeyword && matchesStatus
     })
-  }, [saleOrders, search, statusFilter])
+  })()
 
   const handleDelete = (row: SaleOrderDto) => {
     Modal.confirm({

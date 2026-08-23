@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -79,7 +79,7 @@ function Pickings() {
     (so) => so.status === 'New' || so.status === 'Allocated',
   )
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     if (!pickings) return []
     const keyword = search.trim().toLowerCase()
     return pickings.filter((p) => {
@@ -91,7 +91,7 @@ function Pickings() {
       const matchesStatus = !statusFilter || p.status === statusFilter
       return matchesKeyword && matchesStatus
     })
-  }, [pickings, search, statusFilter])
+  })()
 
   // --- Xử lý: tạo phiếu ---
   const handleCreate = async () => {

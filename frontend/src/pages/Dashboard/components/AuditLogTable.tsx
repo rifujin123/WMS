@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Card, DatePicker, Empty, Select, Space, Table, Tag } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
@@ -25,15 +25,15 @@ function AuditLogTable({ fromUtc, toUtc }: AuditLogTableProps) {
   const { data, isFetching } = useAuditLogs({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
   const { loading, transitionKey } = useTableTransition(page, isFetching)
 
-  const entityOptions = useMemo(() => {
+  const entityOptions = (() => {
     const types = new Set((data?.items ?? []).map((l) => l.entityType))
     return [...types].sort().map((t) => ({ value: t, label: t }))
-  }, [data])
+  })()
 
-  const rows = useMemo(() => {
+  const rows = (() => {
     const all = data?.items ?? []
     return entityFilter ? all.filter((l) => l.entityType === entityFilter) : all
-  }, [data, entityFilter])
+  })()
 
   const handleFilterChange = (next: string | undefined) => {
     setEntityFilter(next)
