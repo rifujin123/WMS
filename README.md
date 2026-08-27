@@ -4,10 +4,6 @@
 
 WMS là ứng dụng quản lý kho hàng. Hệ thống theo dõi luồng hàng từ đơn đặt hàng, nhận hàng, cất vào vị trí kho, quản lý tồn kho, đến lấy hàng cho đơn bán.
 
-Website đã deploy: [https://wms-boie.onrender.com/](https://wms-boie.onrender.com/)
-
-Lần truy cập đầu có thể chậm vì dịch vụ Render khởi động lại sau thời gian không có request.
-
 ## Tính năng
 
 - Đăng nhập và phân quyền `Admin`, `WarehouseManager`, `WarehouseStaff`.
@@ -18,12 +14,8 @@ Lần truy cập đầu có thể chậm vì dịch vụ Render khởi động l
 - Cất hàng: chọn vị trí đích, phân công nhân viên, bắt đầu/hoàn thành task; cập nhật tồn kho và sức chứa vị trí khi hoàn thành.
 - Quản lý tồn kho theo sản phẩm, vị trí và kho.
 - Quản lý đơn bán và Picking: tạo phiếu lấy hàng, phân công, xử lý lấy hàng và trừ tồn khi hoàn thành.
-- Đơn bán sau khi đóng gói có thể **đánh dấu đã giao** (demo ship); nền tảng tích hợp vận chuyển 3rd-party để phát triển sau.
-- Điều chỉnh tồn kho: tạo phiếu kiểm đếm, duyệt và áp dụng chênh lệch tồn.
-- Quản lý master data **Khách hàng** và **Nhà cung cấp**; Đơn bán/Đơn đặt chọn từ danh mục.
 - Audit log, lịch sử đổi trạng thái và lịch sử biến động tồn kho.
 - Phân trang cho các trang danh sách chính.
-- Test tự động (xUnit, backend) và CI (GitHub Actions: build + test + lint).
 
 ## Công nghệ sử dụng
 
@@ -179,14 +171,11 @@ Một số nhóm API chính:
 | Người dùng | `/api/Users` |
 | Sản phẩm | `/api/Products` |
 | Danh mục | `/api/Categories` |
-| Khách hàng / Nhà cung cấp | `/api/Customers`, `/api/Vendors` |
 | Kho và vị trí | `/api/Warehouses`, `/api/Locations` |
 | Đơn đặt hàng | `/api/PurchaseOrders` |
 | Nhận hàng | `/api/Receivings` |
 | Cất hàng | `/api/PutAwayTasks` |
 | Tồn kho | `/api/Stocks` |
-| Điều chỉnh tồn | `/api/StockAdjustments` |
 | Đơn bán và lấy hàng | `/api/SaleOrders`, `/api/Pickings` |
-| Vận chuyển (demo) | `/api/Shipments` |
 
-RMA và Association Rules mới có entity/DTO ở backend, chưa có API hoặc UI hoàn chỉnh (P2). Shipment hiện chỉ ở mức demo — tích hợp carrier 3rd-party để phát triển sau.
+RMA và Association Rules mới có entity/DTO ở backend, chưa có API hoặc UI hoàn chỉnh.
