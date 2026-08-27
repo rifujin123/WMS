@@ -20,6 +20,18 @@ using WMS.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Tắt reload-on-change cho các JSON configuration source.
+// Lý do: trong container Linux, mỗi file JSON tạo một FileSystemWatcher. Khi image
+// chứa toàn bộ source code, tổng số watcher vượt quá giới hạn inotify (mặc định 128/user),
+// gây lỗi "inotify instances limit reached" lúc khởi động.
+// Production dùng biến môi trường để cấu hình, không cần reload file runtime.
+foreach (var src in builder.Configuration.Sources
+    .OfType<Microsoft.Extensions.Configuration.Json.JsonConfigurationSource>()
+    .ToList())
+{
+    src.ReloadOnChange = false;
+}
+
 builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration));
 
