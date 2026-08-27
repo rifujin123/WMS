@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -46,6 +46,7 @@ import { useAuthContext } from '../../contexts/useAuthContext'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL } from '../../lib/statusMaps'
 
 function Pickings() {
+  // --- Dữ liệu & hooks (danh sách, thao tác) ---
   const { message } = App.useApp()
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
@@ -64,6 +65,7 @@ function Pickings() {
   const completeMutation = useCompletePicking()
   const deleteMutation = useDeletePicking()
 
+  // --- State: bộ lọc & modal ---
   const [statusFilter, setStatusFilter] = useState<PickingStatus | undefined>(undefined)
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -71,16 +73,13 @@ function Pickings() {
   const [createForm] = Form.useForm<CreatePickingDto>()
   const [assignForm] = Form.useForm<{ userId: string }>()
 
+  // --- Dữ liệu dẫn xuất để hiển thị ---
   // Đơn bán còn tạo phiếu lấy được: trạng thái Mới hoặc Đã phân bổ
-  const creatableOrders = useMemo(
-    () =>
-      (saleOrders ?? []).filter(
-        (so) => so.status === 'New' || so.status === 'Allocated',
-      ),
-    [saleOrders],
+  const creatableOrders = (saleOrders ?? []).filter(
+    (so) => so.status === 'New' || so.status === 'Allocated',
   )
 
-  const filtered = useMemo(() => {
+  const filtered = (() => {
     if (!pickings) return []
     const keyword = search.trim().toLowerCase()
     return pickings.filter((p) => {
@@ -92,8 +91,9 @@ function Pickings() {
       const matchesStatus = !statusFilter || p.status === statusFilter
       return matchesKeyword && matchesStatus
     })
-  }, [pickings, search, statusFilter])
+  })()
 
+  // --- Xử lý: tạo phiếu ---
   const handleCreate = async () => {
     try {
       const values = await createForm.validateFields()
@@ -111,6 +111,7 @@ function Pickings() {
     }
   }
 
+  // --- Xử lý: phân công nhân viên ---
   const openAssignModal = (row: PickingDto) => {
     setAssignPicking(row)
     assignForm.resetFields()
@@ -135,6 +136,7 @@ function Pickings() {
     }
   }
 
+  // --- Xử lý: bắt đầu / hoàn thành / xoá phiếu ---
   const handleStart = (row: PickingDto) => {
     Modal.confirm({
       title: 'Bắt đầu lấy hàng',
@@ -186,6 +188,7 @@ function Pickings() {
     })
   }
 
+  // --- Định nghĩa cột bảng (chi tiết sản phẩm + bảng chính) ---
   const detailColumns: TableColumnsType<PickingDetailDto> = [
     {
       title: 'SKU',
@@ -329,6 +332,7 @@ function Pickings() {
 
   return (
     <div>
+      {/* Header trang + nút tạo phiếu */}
       <div
         style={{
           display: 'flex',
@@ -363,6 +367,7 @@ function Pickings() {
         )}
       </div>
 
+      {/* Bộ lọc: tìm kiếm + trạng thái */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <Input
           allowClear
@@ -382,6 +387,7 @@ function Pickings() {
         />
       </div>
 
+      {/* Bảng danh sách phiếu, mở rộng xem chi tiết sản phẩm theo từng dòng */}
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <Table<PickingDto>
           rowKey="id"

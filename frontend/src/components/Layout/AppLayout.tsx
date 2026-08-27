@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import {
   AppstoreOutlined,
+  AuditOutlined,
   CarryOutOutlined,
+  ContactsOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DownOutlined,
@@ -16,6 +18,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PhoneOutlined,
+  ShopOutlined,
   ShoppingOutlined,
   TeamOutlined,
   TikTokOutlined,
@@ -48,6 +51,8 @@ const appMenuItems: AppMenuItem[] = [
   { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm', allowedRoles: ['Admin'] },
   { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục', allowedRoles: ['Admin'] },
   { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng', allowedRoles: ['Admin'] },
+  { key: '/customers', icon: <ContactsOutlined />, label: 'Khách hàng', allowedRoles: ['Admin'] },
+  { key: '/vendors', icon: <ShopOutlined />, label: 'Nhà cung cấp', allowedRoles: ['Admin'] },
   {
     key: '/purchase-orders',
     icon: <FileTextOutlined />,
@@ -82,6 +87,12 @@ const appMenuItems: AppMenuItem[] = [
     key: '/stock',
     icon: <DatabaseOutlined />,
     label: 'Tồn kho',
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+  },
+  {
+    key: '/stock-adjustments',
+    icon: <AuditOutlined />,
+    label: 'Điều chỉnh tồn',
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
 ]

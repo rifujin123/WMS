@@ -8,6 +8,7 @@ import type {
   SaleOrderDto,
 } from '../../types/saleOrder'
 import { useProductLookup } from '../../hooks/useProducts'
+import { useCustomerLookup } from '../../hooks/useCustomers'
 import { useCreateSaleOrder, useUpdateSaleOrder } from '../../hooks/useSaleOrders'
 
 interface SaleOrderFormModalProps {
@@ -25,6 +26,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
   const [form] = Form.useForm<SaleOrderFormValues>()
   const { message } = App.useApp()
   const { data: products, isPending: productsPending } = useProductLookup()
+  const { data: customers } = useCustomerLookup()
   const createMutation = useCreateSaleOrder()
   const updateMutation = useUpdateSaleOrder()
   const isEdit = saleOrder !== null
@@ -106,7 +108,13 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
           </Col>
           <Col span={12}>
             <Form.Item name="customerName" label="Khách hàng">
-              <Input placeholder="vd: Công ty XYZ" />
+              <Select
+                showSearch
+                allowClear
+                optionFilterProp="label"
+                placeholder="Chọn khách hàng (hoặc để trống = Khách lẻ)"
+                options={(customers ?? []).map((c) => ({ value: c.name, label: c.name }))}
+              />
             </Form.Item>
           </Col>
         </Row>

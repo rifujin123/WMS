@@ -73,6 +73,9 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
             .FirstOrDefaultAsync(po => po.Id == id);
     }
 
+    public Task<bool> ExistsByPoNumberAsync(string poNumber) =>
+        _db.PurchaseOrders.AnyAsync(po => po.PoNumber == poNumber);
+
     public async Task AddAsync(PurchaseOrder purchaseOrder)
     {
         await _db.PurchaseOrders.AddAsync(purchaseOrder);

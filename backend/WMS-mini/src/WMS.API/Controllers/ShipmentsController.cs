@@ -47,4 +47,14 @@ public class ShipmentsController : ControllerBase
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
+
+    [HttpPost("{id}/mark-shipped")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> MarkShipped([FromRoute] Guid id)
+    {
+        var result = await _service.MarkShippedAsync(id);
+        if (result == null)
+            return NotFound(new { message = "Shipment not found" });
+        return Ok(result);
+    }
 }

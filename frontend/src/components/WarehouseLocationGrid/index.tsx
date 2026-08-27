@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react'
+import { Fragment } from 'react'
 import { Card, Empty, Typography } from 'antd'
 import type { LocationDto } from '../../types/location'
 import LocationCell from './LocationCell'
@@ -21,18 +21,15 @@ function WarehouseLocationGrid({
   onLocationClick,
   selectedLocationId,
 }: WarehouseLocationGridProps) {
-  const aisles = useMemo(() => sortLabels(locations.map((l) => l.aisle)), [locations])
-  const racks = useMemo(() => sortLabels(locations.map((l) => l.rack)), [locations])
-  const levels = useMemo(() => sortLabels(locations.map((l) => l.level)), [locations])
+  const aisles = sortLabels(locations.map((l) => l.aisle))
+  const racks = sortLabels(locations.map((l) => l.rack))
+  const levels = sortLabels(locations.map((l) => l.level))
 
   // Mỗi ô là một tổ hợp Hàng-Kệ-Tầng duy nhất
-  const cellMap = useMemo(() => {
-    const map = new Map<string, LocationDto>()
-    for (const loc of locations) {
-      map.set(`${loc.aisle}|${loc.rack}|${loc.level}`, loc)
-    }
-    return map
-  }, [locations])
+  const cellMap = new Map<string, LocationDto>()
+  for (const loc of locations) {
+    cellMap.set(`${loc.aisle}|${loc.rack}|${loc.level}`, loc)
+  }
 
   if (locations.length === 0) {
     return (

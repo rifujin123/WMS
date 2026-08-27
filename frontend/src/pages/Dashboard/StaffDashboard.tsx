@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons'
 import { App, Button, Card, Empty, Modal, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
@@ -56,21 +55,8 @@ function StaffDashboard() {
 
   const myId = profile?.id
 
-  const myPutAway = useMemo(
-    () =>
-      (putAwayTasks ?? []).filter(
-        (t) => t.assignToId === myId && OPEN_STATUSES.includes(t.status),
-      ),
-    [putAwayTasks, myId],
-  )
-
-  const myPickings = useMemo(
-    () =>
-      (pickings ?? []).filter(
-        (p) => p.assignedToId === myId && OPEN_STATUSES.includes(p.status),
-      ),
-    [pickings, myId],
-  )
+  const myPutAway = (putAwayTasks ?? []).filter((t) => t.assignToId === myId && OPEN_STATUSES.includes(t.status))
+  const myPickings = (pickings ?? []).filter((p) => p.assignedToId === myId && OPEN_STATUSES.includes(p.status))
 
   const handleStart = (task: PutAwayTaskDto) => {
     Modal.confirm({

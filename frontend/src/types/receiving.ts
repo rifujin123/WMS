@@ -24,6 +24,7 @@ export interface ReceivingDto {
   notes?: string
   details: ReceivingDetailDto[]
   createdDate: string
+  invoiceImageUrl?: string
 }
 
 export interface CreateReceivingDetailDto {
@@ -37,4 +38,5 @@ export interface CreateReceivingDto {
   purchaseOrderId: string
   details: CreateReceivingDetailDto[]
   notes?: string
+  invoiceImageUrl?: string
 }

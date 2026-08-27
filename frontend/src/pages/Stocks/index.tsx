@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons'
 import {
   Card,
@@ -45,34 +45,31 @@ function Stocks() {
   const { data: locations } = useAllLocations()
 
   // locationId → tên kho (join client-side, không cần đổi backend)
-  const warehouseNameByLocationId = useMemo(() => {
-    const warehouseNameById = new Map((warehouses ?? []).map((w) => [w.id, w.name]))
+  const warehouseNameByLocationId = (() => {
+    const warehouseNameById = new Map(warehouses?.map((w) => [w.id, w.name]) ?? [])
     const map = new Map<string, string>()
     for (const loc of locations ?? []) {
       const name = warehouseNameById.get(loc.warehouseId)
       if (name) map.set(loc.id, name)
     }
     return map
-  }, [locations, warehouses])
+  })()
 
   // Vị trí thuộc kho đang chọn (cascade Kho → Vị trí)
-  const locationsOfWarehouse = (locations ?? []).filter(
+  const locationsOfWarehouse = locations?.filter(
     (location) => location.warehouseId === warehouseFilter,
-  )
+  ) ?? []
 
   const productRows = stocks?.items ?? []
 
-  const selectedLocationRows = useMemo(
-    () =>
-      selectedProduct
-        ? getLocationDetailsForProduct(
-            selectedStocks ?? [],
-            selectedProduct.productId,
-            warehouseNameByLocationId,
-          )
-        : [],
-    [selectedStocks, selectedProduct, warehouseNameByLocationId],
-  )
+  const selectedLocationRows =
+    selectedProduct && selectedStocks
+      ? getLocationDetailsForProduct(
+          selectedStocks,
+          selectedProduct.productId,
+          warehouseNameByLocationId,
+        )
+      : []
 
   const columns: TableColumnsType<StockProductRow> = [
     {

@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using CloudinaryDotNet;
+using System.Net.Http.Headers;
 using WMS.API.Configuration;
 using WMS.API.Middlewares;
+using WMS.Application.Configuration;
 using WMS.Application.Interfaces;
 using WMS.Application.Services;
 using WMS.Infrastructure.Data;
@@ -11,6 +13,7 @@ using WMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using WMS.Domain.Entities;
@@ -28,6 +31,27 @@ builder.Services.AddOptions<PaginationOptions>()
     .Bind(builder.Configuration.GetSection(PaginationOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+builder.Services.AddOptions<AiProviderOptions>()
+    .Bind(builder.Configuration.GetSection(AiProviderOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<DemoSeedOptions>()
+    .Bind(builder.Configuration.GetSection(DemoSeedOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient("AiProvider", (sp, client) =>
+{
+    var options = sp.GetRequiredService<IOptions<AiProviderOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+        client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", options.ApiKey);
+});
 
 var frontendOrigin = builder.Configuration["Frontend:Origin"]
     ?? "http://localhost:5173";
@@ -120,6 +144,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
@@ -130,14 +156,28 @@ builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
 builder.Services.AddScoped<ISaleOrderService, SaleOrderService>();
 builder.Services.AddScoped<IPickingService, PickingService>();
 builder.Services.AddScoped<IShipmentService, ShipmentService>();
+builder.Services.AddScoped<IShipmentGateway, DemoShipmentGateway>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
+
+// AI Provider
+var aiProviderName = builder.Configuration.GetValue("AiProvider:Provider", "Mock");
+if (aiProviderName.Equals("Real", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddScoped<IAiProvider, RealAiProvider>();
+else
+    builder.Services.AddScoped<IAiProvider, MockAiProvider>();
+
+builder.Services.AddScoped<IProductMappingService, ProductMappingService>();
+builder.Services.AddScoped<IInvoiceScanService, InvoiceScanService>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, SqlProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, SqlCategoryRepository>();
+builder.Services.AddScoped<ICustomerRepository, SqlCustomerRepository>();
+builder.Services.AddScoped<IVendorRepository, SqlVendorRepository>();
 builder.Services.AddScoped<IWarehouseRepository, SqlWarehouseRepository>();
 builder.Services.AddScoped<ILocationRepository, SqlLocationRepository>();
 builder.Services.AddScoped<IPurchaseOrderRepository, SqlPurchaseOrderRepository>();
@@ -171,7 +211,10 @@ using (var scope = app.Services.CreateScope())
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     const string adminUsername = "admin";
-    const string adminPassword = "Admin@123";
+    // Đọc mật khẩu seed từ cấu hình (env SEED__ADMIN_PASSWORD); môi trường dev dùng default an toàn.
+    // Không hardcode password trong source; production nên set SEED__ADMIN_PASSWORD.
+    var adminPassword = builder.Configuration["Seed:AdminPassword"]
+        ?? "Admin@123";
     if (await userManager.FindByNameAsync(adminUsername) == null)
     {
         var adminUser = new User
@@ -185,6 +228,14 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
             await userManager.AddToRoleAsync(adminUser, "Admin");
     }
+}
+
+// Seed dữ liệu demo (chỉ chạy trong Development; bản thân seeder kiểm tra Seed:Enabled)
+if (app.Environment.IsDevelopment())
+{
+    using var demoSeedScope = app.Services.CreateScope();
+    var demoSeeder = demoSeedScope.ServiceProvider.GetRequiredService<IDemoDataSeeder>();
+    await demoSeeder.SeedAsync();
 }
 
 app.UseMiddleware<ExceptionMiddleware>();

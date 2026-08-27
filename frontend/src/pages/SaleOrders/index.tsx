@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  SendOutlined,
 } from '@ant-design/icons'
 import {
   App,
@@ -22,8 +23,10 @@ import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import SaleOrderFormModal from './SaleOrderFormModal'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
+import type { ShipmentDto } from '../../types/shipment'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
+import { useCreateShipment, useMarkShipped, useShipments } from '../../hooks/useShipments'
 import { useAuthContext } from '../../contexts/useAuthContext'
 
 function SaleOrders() {
@@ -33,11 +36,20 @@ function SaleOrders() {
   const [statusFilter, setStatusFilter] = useState<SaleOrderStatus | undefined>(undefined)
   const { message } = App.useApp()
   const { data: saleOrders, isPending } = useSaleOrders()
+  const { data: shipments } = useShipments()
   const deleteMutation = useDeleteSaleOrder()
+  const createShipmentMutation = useCreateShipment()
+  const markShippedMutation = useMarkShipped()
   const { user } = useAuthContext()
   const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
 
-  const filtered = useMemo(() => {
+  const shipmentBySaleOrderId = (() => {
+    const map = new Map<string, ShipmentDto>()
+    for (const shipment of shipments ?? []) map.set(shipment.saleOrderId, shipment)
+    return map
+  })()
+
+  const filtered = (() => {
     if (!saleOrders) return []
     const keyword = search.trim().toLowerCase()
     return saleOrders.filter((so) => {
@@ -48,7 +60,7 @@ function SaleOrders() {
       const matchesStatus = !statusFilter || so.status === statusFilter
       return matchesKeyword && matchesStatus
     })
-  }, [saleOrders, search, statusFilter])
+  })()
 
   const handleDelete = (row: SaleOrderDto) => {
     Modal.confirm({
@@ -62,6 +74,29 @@ function SaleOrders() {
           onSuccess: () => message.success('Đã xoá đơn bán.'),
           onError: () => message.error('Xoá đơn bán thất bại.'),
         }),
+    })
+  }
+
+  // Demo ship: bảo đảm có shipment cho đơn Packed rồi đánh dấu đã giao.
+  const handleMarkShipped = (row: SaleOrderDto) => {
+    Modal.confirm({
+      title: 'Đánh dấu đã giao',
+      content: `Xác nhận đơn "${row.orderNo}" đã được giao cho khách?`,
+      okText: 'Đã giao',
+      cancelText: 'Huỷ',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          let shipment = shipmentBySaleOrderId.get(row.id)
+          if (!shipment) {
+            shipment = await createShipmentMutation.mutateAsync({ saleOrderId: row.id })
+          }
+          await markShippedMutation.mutateAsync(shipment.id)
+          message.success(`Đơn "${row.orderNo}" đã được đánh dấu là đã giao.`)
+        } catch (error) {
+          message.error(`Đánh dấu đã giao thất bại: ${error instanceof Error ? error.message : 'Vui lòng thử lại.'}`)
+        }
+      },
     })
   }
 
@@ -108,7 +143,7 @@ function SaleOrders() {
 
   const actionsColumn: TableColumnsType<SaleOrderDto>[number] = {
     key: 'actions',
-    width: 110,
+    width: 180,
     render: (_, row) => (
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
         {row.status === 'New' && (
@@ -125,6 +160,16 @@ function SaleOrders() {
               />
             </Tooltip>
           </>
+        )}
+        {row.status === 'Packed' && (
+          <Button
+            type="primary"
+            icon={<SendOutlined />}
+            loading={markShippedMutation.isPending || createShipmentMutation.isPending}
+            onClick={() => handleMarkShipped(row)}
+          >
+            Đánh dấu đã giao
+          </Button>
         )}
       </div>
     ),

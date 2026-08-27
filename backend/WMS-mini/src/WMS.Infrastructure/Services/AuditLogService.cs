@@ -1,4 +1,3 @@
-using AutoMapper;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 
@@ -7,29 +6,18 @@ namespace WMS.Infrastructure.Services;
 public class AuditLogService : IAuditLogService
 {
     private readonly IAuditLogRepository _repository;
-    private readonly IMapper _mapper;
 
-    public AuditLogService(IAuditLogRepository repository, IMapper mapper)
+    public AuditLogService(IAuditLogRepository repository)
     {
         _repository = repository;
-        _mapper = mapper;
     }
 
-    public async Task<List<AuditLogDto>> GetAsync(AuditLogQueryDto query)
-    {
-        var items = await _repository.GetAsync(query);
-        return _mapper.Map<List<AuditLogDto>>(items);
-    }
+    public Task<PagedResult<AuditLogDto>> GetPagedAsync(AuditLogQueryDto query, int pageSize, CancellationToken cancellationToken = default)
+        => _repository.GetPagedAsync(query, pageSize, cancellationToken);
 
-    public async Task<List<StatusHistoryDto>> GetStatusHistoryAsync(string entityType, Guid entityId)
-    {
-        var items = await _repository.GetStatusHistoryAsync(entityType, entityId);
-        return _mapper.Map<List<StatusHistoryDto>>(items);
-    }
+    public Task<List<StatusHistoryDto>> GetStatusHistoryAsync(string entityType, Guid entityId)
+        => _repository.GetStatusHistoryAsync(entityType, entityId);
 
-    public async Task<List<StatusHistoryDto>> GetStatusHistoriesAsync(StatusHistoryQueryDto query)
-    {
-        var items = await _repository.GetStatusHistoriesAsync(query);
-        return _mapper.Map<List<StatusHistoryDto>>(items);
-    }
+    public Task<PagedResult<StatusHistoryDto>> GetStatusHistoriesPagedAsync(StatusHistoryQueryDto query, int pageSize, CancellationToken cancellationToken = default)
+        => _repository.GetStatusHistoriesPagedAsync(query, pageSize, cancellationToken);
 }

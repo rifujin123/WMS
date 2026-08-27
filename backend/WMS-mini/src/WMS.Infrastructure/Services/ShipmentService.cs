@@ -10,17 +10,20 @@ public class ShipmentService : IShipmentService
 {
     private readonly IShipmentRepository _repo;
     private readonly ISaleOrderRepository _saleOrderRepo;
+    private readonly IShipmentGateway _gateway;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     public ShipmentService(
         IShipmentRepository repo,
         ISaleOrderRepository saleOrderRepo,
+        IShipmentGateway gateway,
         IUnitOfWork unitOfWork,
         IMapper mapper)
     {
         _repo = repo;
         _saleOrderRepo = saleOrderRepo;
+        _gateway = gateway;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
@@ -66,5 +69,40 @@ public class ShipmentService : IShipmentService
         await _repo.AddAsync(shipment);
         await _unitOfWork.SaveChangesAsync();
         return (await GetByIdAsync(shipment.Id))!;
+    }
+
+    public async Task<ShipmentDto?> MarkShippedAsync(Guid id)
+    {
+        var shipment = await _repo.GetByIdAsync(id);
+        if (shipment == null)
+            return null;
+
+        if (shipment.ShippedDate != null)
+            throw new InvalidOperationException("Shipment has already been marked as shipped.");
+
+        var saleOrder = shipment.SaleOrder;
+        if (saleOrder.Status != SaleOrderStatus.Packed)
+            throw new InvalidOperationException(
+                $"Cannot mark shipment as shipped for SaleOrder in '{saleOrder.Status}' status. Must be 'Packed'.");
+
+        var shippedDate = DateTime.UtcNow;
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            shipment.ShippedDate = shippedDate;
+            saleOrder.Status = SaleOrderStatus.Shipped;
+            await _repo.UpdateAsync(shipment);
+            await _saleOrderRepo.UpdateAsync(saleOrder);
+            await _unitOfWork.SaveChangesAsync();
+        });
+
+        await _gateway.NotifyShippedAsync(new ShipmentShippedNotification
+        {
+            ShipmentId = shipment.Id,
+            SaleOrderId = shipment.SaleOrderId,
+            SaleOrderNo = saleOrder.OrderNo,
+            ShippedDateUtc = shippedDate,
+        });
+
+        return _mapper.Map<ShipmentDto>(shipment);
     }
 }

@@ -39,6 +39,8 @@ public class PurchaseOrderService : IPurchaseOrderService
 
     public async Task<PurchaseOrderDto> CreateAsync(CreatePurchaseOrderDto dto)
     {
+        if (await _repo.ExistsByPoNumberAsync(dto.PoNumber))
+            throw new InvalidOperationException($"Số PO '{dto.PoNumber}' đã tồn tại.");
         var entity = _mapper.Map<PurchaseOrder>(dto);
         entity.Status = PurchaseOrderStatus.Pending;
         await _repo.AddAsync(entity);
@@ -63,6 +65,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     {
         var entity = await _repo.GetByIdAsync(id);
         if (entity == null || entity.Status != PurchaseOrderStatus.Pending) return false;
+        await _repo.RemoveDetailsAsync(id);
         await _repo.DeleteAsync(entity);
         await _unitOfWork.SaveChangesAsync();
         return true;
@@ -92,3 +95,5 @@ public class PurchaseOrderService : IPurchaseOrderService
         return _mapper.Map<PurchaseOrderDto>(entity);
     }
 }
+
+

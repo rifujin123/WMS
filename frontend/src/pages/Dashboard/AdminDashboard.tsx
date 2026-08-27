@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   AppstoreOutlined,
   EnvironmentOutlined,
@@ -22,20 +22,14 @@ function AdminDashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [period, setPeriod] = useState<PeriodKey>('30d')
-  const range = useMemo(() => getPeriodRange(period), [period])
+  const range = getPeriodRange(period)
 
   const { data: stocks, isPending: stocksPending } = useStocks({ refetchInterval: 30000 })
   const { data: warehouses, isPending: warehousesPending } = useWarehouses({ refetchInterval: 30000 })
   const { data: locations, isPending: locationsPending } = useAllLocations({ refetchInterval: 30000 })
 
-  const totalOnhand = useMemo(
-    () => (stocks ?? []).reduce((sum, s) => sum + s.onhandQty, 0),
-    [stocks],
-  )
-  const productCount = useMemo(
-    () => new Set((stocks ?? []).map((s) => s.productId)).size,
-    [stocks],
-  )
+  const totalOnhand = (stocks ?? []).reduce((sum, s) => sum + s.onhandQty, 0)
+  const productCount = new Set((stocks ?? []).map((s) => s.productId)).size
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['stocks'] })
