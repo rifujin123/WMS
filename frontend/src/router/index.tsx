@@ -76,6 +76,16 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager']} />,
+            children: [
+              { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
+              {
+                path: 'stock-adjustments',
+                element: <Suspense fallback={<PageFallback />}><StockAdjustments /></Suspense>,
+              },
+            ],
+          },
+          {
             element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'WarehouseStaff']} />,
             children: [
               {
@@ -91,13 +101,8 @@ export const router = createBrowserRouter([
                 path: 'putaway-tasks',
                 element: <Suspense fallback={<PageFallback />}><PutAwayTasks /></Suspense>,
               },
-              { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
               { path: 'pickings', element: <Suspense fallback={<PageFallback />}><Pickings /></Suspense> },
               { path: 'stock', element: <Suspense fallback={<PageFallback />}><Stocks /></Suspense> },
-              {
-                path: 'stock-adjustments',
-                element: <Suspense fallback={<PageFallback />}><StockAdjustments /></Suspense>,
-              },
             ],
           },
           { path: '*', element: <Navigate to="/dashboard" replace /> },

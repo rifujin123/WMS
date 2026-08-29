@@ -57,43 +57,50 @@ const appMenuItems: AppMenuItem[] = [
     key: '/purchase-orders',
     icon: <FileTextOutlined />,
     label: 'Đơn đặt hàng',
+    // Staff được xem và xử lý PO nhưng không được duyệt.
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
   {
     key: '/receivings',
     icon: <InboxOutlined />,
     label: 'Nhận hàng',
+    // Staff được nhận và kiểm đếm hàng; Manager/Admin giám sát toàn bộ.
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
   {
     key: '/putaway-tasks',
     icon: <CarryOutOutlined />,
     label: 'Cất hàng',
+    // Staff xử lý task được phân công; Manager/Admin tạo và phân công task.
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
   {
     key: '/sale-orders',
     icon: <ShoppingOutlined />,
     label: 'Đơn bán',
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    // Staff không tạo/sửa/xóa đơn bán; chỉ Manager/Admin điều phối.
+    allowedRoles: ['Admin', 'WarehouseManager'],
   },
   {
     key: '/pickings',
     icon: <ExportOutlined />,
     label: 'Lấy hàng',
+    // Staff xử lý picking được giao; Manager/Admin tạo và phân công.
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
   {
     key: '/stock',
     icon: <DatabaseOutlined />,
     label: 'Tồn kho',
+    // Mọi role kho cần tra cứu tồn để thực hiện nghiệp vụ.
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
   {
     key: '/stock-adjustments',
     icon: <AuditOutlined />,
     label: 'Điều chỉnh tồn',
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    // Điều chỉnh là nghiệp vụ kiểm soát; Staff không được thao tác trực tiếp.
+    allowedRoles: ['Admin', 'WarehouseManager'],
   },
 ]
 

@@ -28,6 +28,7 @@ import {
   useDeletePurchaseOrder,
   usePurchaseOrdersPage,
 } from '../../hooks/usePurchaseOrders'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 
 function PurchaseOrders() {
@@ -37,6 +38,8 @@ function PurchaseOrders() {
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
+  const { user } = useAuthContext()
+  const canApprove = user?.role === 'Admin' || user?.role === 'WarehouseManager'
   const purchaseOrderParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -133,16 +136,18 @@ function PurchaseOrders() {
                   onClick={() => handleDelete(row)}
                 />
               </Tooltip>
-              <Tooltip title="Duyệt">
-                <Button
-                  type="link"
-                  icon={<CheckOutlined />}
-                  style={{ paddingInline: 8 }}
-                  onClick={() => handleApprove(row)}
-                >
-                  Duyệt
-                </Button>
-              </Tooltip>
+              {canApprove && (
+                <Tooltip title="Duyệt">
+                  <Button
+                    type="link"
+                    icon={<CheckOutlined />}
+                    style={{ paddingInline: 8 }}
+                    onClick={() => handleApprove(row)}
+                  >
+                    Duyệt
+                  </Button>
+                </Tooltip>
+              )}
             </>
           )}
         </div>
