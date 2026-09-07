@@ -2,6 +2,7 @@ import { App, Col, Form, Input, InputNumber, Modal, Row } from 'antd'
 import { useEffect } from 'react'
 import type { CreateLocationDto, LocationDto, LocationType, UpdateLocationDto } from '../../../types/location'
 import { useCreateLocation, useUpdateLocation } from '../../../hooks/useLocations'
+import { getErrorMessage } from '../../../lib/errorHandler'
 
 interface LocationFormModalProps {
   open: boolean
@@ -59,8 +60,8 @@ function LocationFormModal({ open, warehouseId, location, locations, onClose }: 
         message.success(isEdit ? 'Đã cập nhật vị trí.' : 'Đã tạo vị trí.')
         onClose()
       }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật vị trí thất bại.' : 'Tạo vị trí thất bại.')
+      const onError = (err: unknown) =>
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật vị trí thất bại.' : 'Tạo vị trí thất bại.'))
 
       if (isEdit && location) {
         const dto: UpdateLocationDto = {

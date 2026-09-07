@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -24,17 +24,25 @@ import ProductFormModal from './ProductFormModal'
 import type { ProductDto } from '../../types/product'
 import { useCategoryLookup } from '../../hooks/useCategories'
 import { useDeleteProduct, useProducts } from '../../hooks/useProducts'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 function Products() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ProductDto | null>(null)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined)
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const productParams = {
     page,
-    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
     ...(categoryFilter ? { categoryId: categoryFilter } : {}),
   }
   const { data: products, isPending } = useProducts(productParams)
@@ -56,7 +64,7 @@ function Products() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá sản phẩm.'),
-          onError: () => message.error('Xoá sản phẩm thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá sản phẩm thất bại.')),
         }),
     })
   }

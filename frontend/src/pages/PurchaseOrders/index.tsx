@@ -31,6 +31,8 @@ import {
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 
+import { getErrorMessage } from '../../lib/errorHandler'
+
 function PurchaseOrders() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PurchaseOrderDto | null>(null)
@@ -58,7 +60,7 @@ function PurchaseOrders() {
       onOk: () =>
         approveMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã duyệt đơn hàng.'),
-          onError: () => message.error('Duyệt đơn hàng thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Duyệt đơn hàng thất bại.')),
         }),
     })
   }
@@ -73,7 +75,7 @@ function PurchaseOrders() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá đơn hàng.'),
-          onError: () => message.error('Xoá đơn hàng thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá đơn hàng thất bại.')),
         }),
     })
   }

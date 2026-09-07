@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getErrorMessage } from './errorHandler'
 
 const TOKEN_KEY = 'accessToken'
 
@@ -21,20 +22,17 @@ api.interceptors.response.use(
         return response.data?.data ?? response.data
     },
     (error) => {
-        const isLoginRequest = error.config?.url?.includes('/Auth/login')
+        const isLoginRequest = error.config?.url?.includes('/Auth/login') || error.config?.url?.includes('/auth/login')
         if(error.response?.status === 401 && !isLoginRequest){
             localStorage.removeItem(TOKEN_KEY)
             localStorage.removeItem('user')
             window.location.href = '/login'
         }
         
-        // Enhance error with API message for better UX
-        const apiError = error.response?.data
-        if(apiError?.message){
-            error.message = apiError.message
-        }
+        // Gán message đã được dịch/chuẩn hóa từ getErrorMessage vào error.message
+        error.message = getErrorMessage(error)
         return Promise.reject(error)
     },
 )
 
-export default api
+export default api

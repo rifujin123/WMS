@@ -29,6 +29,8 @@ import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
 import { useCreateShipment, useMarkShipped, useShipments } from '../../hooks/useShipments'
 import { useAuthContext } from '../../contexts/useAuthContext'
 
+import { getErrorMessage } from '../../lib/errorHandler'
+
 function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<SaleOrderDto | null>(null)
@@ -72,7 +74,7 @@ function SaleOrders() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá đơn bán.'),
-          onError: () => message.error('Xoá đơn bán thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá đơn bán thất bại.')),
         }),
     })
   }
@@ -94,7 +96,7 @@ function SaleOrders() {
           await markShippedMutation.mutateAsync(shipment.id)
           message.success(`Đơn "${row.orderNo}" đã được đánh dấu là đã giao.`)
         } catch (error) {
-          message.error(`Đánh dấu đã giao thất bại: ${error instanceof Error ? error.message : 'Vui lòng thử lại.'}`)
+          message.error(getErrorMessage(error, 'Đánh dấu đã giao thất bại.'))
         }
       },
     })

@@ -45,6 +45,8 @@ import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL } from '../../lib/statusMaps'
 
+import { getErrorMessage } from '../../lib/errorHandler'
+
 function Pickings() {
   // --- Dữ liệu & hooks (danh sách, thao tác) ---
   const { message } = App.useApp()
@@ -104,7 +106,7 @@ function Pickings() {
           createForm.resetFields()
         },
         onError: (err: Error) =>
-          message.error(`Tạo phiếu lấy thất bại: ${err.message}`),
+          message.error(getErrorMessage(err, 'Tạo phiếu lấy thất bại.')),
       })
     } catch {
       return
@@ -128,7 +130,7 @@ function Pickings() {
             message.success('Đã phân công cho nhân viên.')
             setAssignPicking(null)
           },
-          onError: () => message.error('Phân công thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Phân công thất bại.')),
         },
       )
     } catch {
@@ -146,7 +148,7 @@ function Pickings() {
       onOk: () =>
         startMutation.mutate(row.id, {
           onSuccess: () => message.success('Phiếu đang được xử lý.'),
-          onError: () => message.error('Bắt đầu phiếu thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Bắt đầu phiếu thất bại.')),
         }),
     })
   }
@@ -167,7 +169,7 @@ function Pickings() {
           },
           {
             onSuccess: () => message.success('Đã hoàn thành phiếu lấy hàng.'),
-            onError: (err: Error) => message.error(`Hoàn thành thất bại: ${err.message}`),
+            onError: (err: Error) => message.error(getErrorMessage(err, 'Hoàn thành thất bại.')),
           },
         ),
     })
@@ -183,7 +185,7 @@ function Pickings() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá phiếu lấy hàng.'),
-          onError: () => message.error('Xoá phiếu thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá phiếu thất bại.')),
         }),
     })
   }

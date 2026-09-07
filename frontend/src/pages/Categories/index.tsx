@@ -16,6 +16,8 @@ import CategoryFormModal from './CategoryFormModal'
 import type { CategoryDto } from '../../types/category'
 import { useCategories, useDeleteCategory } from '../../hooks/useCategories'
 
+import { getErrorMessage } from '../../lib/errorHandler'
+
 function Categories() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CategoryDto | null>(null)
@@ -39,7 +41,7 @@ function Categories() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá danh mục.'),
-          onError: () => message.error('Xoá danh mục thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá danh mục thất bại.')),
         }),
     })
   }

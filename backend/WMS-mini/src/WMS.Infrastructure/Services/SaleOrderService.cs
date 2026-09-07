@@ -46,7 +46,7 @@ public class SaleOrderService : ISaleOrderService
 
         var orderNo = dto.OrderNo.Trim();
         if (await _repo.GetByOrderNoAsync(orderNo) != null)
-            throw new InvalidOperationException($"SaleOrder number '{orderNo}' already exists.");
+            throw new InvalidOperationException($"Số đơn bán hàng '{orderNo}' đã tồn tại trong hệ thống.");
 
         var createdDate = DateTime.UtcNow;
         var saleOrder = _mapper.Map<SaleOrder>(dto);
@@ -74,7 +74,7 @@ public class SaleOrderService : ISaleOrderService
 
         if (saleOrder.Status != SaleOrderStatus.New)
             throw new InvalidOperationException(
-                $"Cannot update SaleOrder in '{saleOrder.Status}' status. Must be 'New'.");
+                $"Không thể cập nhật đơn bán ở trạng thái '{saleOrder.Status}'. Đơn bán phải ở trạng thái 'Mới' (New).");
 
         ValidateBusinessRules(dto);
         await ValidateProductsExistAsync(dto);
@@ -82,7 +82,7 @@ public class SaleOrderService : ISaleOrderService
         var orderNo = dto.OrderNo.Trim();
         var duplicate = await _repo.GetByOrderNoAsync(orderNo);
         if (duplicate != null && duplicate.Id != id)
-            throw new InvalidOperationException($"SaleOrder number '{orderNo}' already exists.");
+            throw new InvalidOperationException($"Số đơn bán hàng '{orderNo}' đã tồn tại trong hệ thống.");
 
         saleOrder.OrderNo = orderNo;
         saleOrder.CustomerName = dto.CustomerName;
@@ -111,7 +111,7 @@ public class SaleOrderService : ISaleOrderService
 
         if (saleOrder.Status != SaleOrderStatus.New)
             throw new InvalidOperationException(
-                $"Cannot delete SaleOrder in '{saleOrder.Status}' status. Must be 'New'.");
+                $"Không thể xóa đơn bán ở trạng thái '{saleOrder.Status}'. Đơn bán phải ở trạng thái 'Mới' (New).");
 
         await _repo.DeleteAsync(saleOrder);
         await _unitOfWork.SaveChangesAsync();
@@ -126,7 +126,7 @@ public class SaleOrderService : ISaleOrderService
 
         if (productIds.Distinct().Count() != productIds.Count)
             throw new InvalidOperationException(
-                "SaleOrder details must not contain duplicate products.");
+                "Chi tiết đơn bán không được chứa các sản phẩm trùng lặp.");
     }
 
     private async Task ValidateProductsExistAsync(CreateSaleOrderDto dto)
@@ -143,6 +143,6 @@ public class SaleOrderService : ISaleOrderService
 
         if (missingProductId != Guid.Empty)
             throw new InvalidOperationException(
-                $"Product '{missingProductId}' not found.");
+                $"Không tìm thấy sản phẩm '{missingProductId}'.");
     }
 }

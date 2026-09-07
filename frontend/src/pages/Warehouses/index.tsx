@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import WarehouseFormModal from './WarehouseFormModal'
 import type { WarehouseDto } from '../../types/warehouse'
 import { useDeleteWarehouse, useWarehousesPage } from '../../hooks/useWarehouses'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 function Warehouses() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -41,7 +42,7 @@ function Warehouses() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá kho.'),
-          onError: () => message.error('Xoá kho thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá kho thất bại.')),
         }),
     })
   }

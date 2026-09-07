@@ -108,11 +108,6 @@ public class MappingProfile : Profile
             .ForMember(d => d.SaleOrderNo, o => o.MapFrom(s => s.SaleOrder.OrderNo));
         CreateMap<CreateShipmentDto, Shipment>();
 
-        CreateMap<Rma, RmaDto>().ReverseMap();
-        CreateMap<CreateRmaDto, Rma>();
-        CreateMap<RmaDetail, RmaDetailDto>().ReverseMap();
-
-        CreateMap<AssociationRule, AssociationRuleDto>().ReverseMap();
 
         CreateMap<AuditLog, AuditLogDto>()
             .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName))

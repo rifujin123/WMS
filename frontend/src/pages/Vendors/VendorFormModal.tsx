@@ -2,6 +2,7 @@ import { App, Col, Form, Input, Modal, Row } from 'antd'
 import { useEffect } from 'react'
 import type { VendorDto } from '../../types/vendor'
 import { useCreateVendor, useUpdateVendor } from '../../hooks/useVendors'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface VendorFormModalProps {
   open: boolean
@@ -47,7 +48,7 @@ function VendorFormModal({ open, vendor, onClose }: VendorFormModalProps) {
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(isEdit ? `Cập nhật thất bại: ${err.message}` : `Thêm nhà cung cấp thất bại: ${err.message}`)
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật nhà cung cấp thất bại.' : 'Thêm nhà cung cấp thất bại.'))
       if (isEdit && vendor) {
         updateMutation.mutate({ id: vendor.id, dto }, { onSuccess, onError })
       } else {

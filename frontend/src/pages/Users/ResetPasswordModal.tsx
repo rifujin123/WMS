@@ -1,6 +1,7 @@
 import { App, Form, Input, Modal } from 'antd'
 import { useResetUserPassword } from '../../hooks/useUsers'
 import type { UserListItem } from '../../types/user'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface ResetPasswordModalProps {
   user: UserListItem | null
@@ -25,8 +26,7 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
             onClose()
           },
           onError: (err) => {
-            const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
-            message.error(msg ?? 'Đặt lại mật khẩu thất bại.')
+            message.error(getErrorMessage(err, 'Đặt lại mật khẩu thất bại.'))
           },
         },
       )

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRegister } from '../../hooks/useAuth'
 import { useUpdateUser } from '../../hooks/useUsers'
 import type { UserListItem, UserRole } from '../../types/user'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 const roleOptions = [
   { value: 'WarehouseStaff', label: 'Nhân viên kho' },
@@ -54,8 +55,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
               onClose()
             },
             onError: (err) => {
-              const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
-              message.error(msg ?? 'Cập nhật người dùng thất bại.')
+              message.error(getErrorMessage(err, 'Cập nhật người dùng thất bại.'))
             },
           },
         )
@@ -78,8 +78,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
             onClose()
           },
           onError: (err) => {
-            const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message
-            message.error(msg ?? 'Tạo tài khoản thất bại.')
+            message.error(getErrorMessage(err, 'Tạo tài khoản thất bại.'))
           },
         },
       )

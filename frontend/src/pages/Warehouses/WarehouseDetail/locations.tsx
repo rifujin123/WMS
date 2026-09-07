@@ -8,6 +8,7 @@ import LocationDetailDrawer from './LocationDetailDrawer'
 import type { LocationDto } from '../../../types/location'
 import { useWarehouse } from '../../../hooks/useWarehouses'
 import { useDeleteLocation, useLocationsByWarehouse, useLocationsPage } from '../../../hooks/useLocations'
+import { getErrorMessage } from '../../../lib/errorHandler'
 
 function WarehouseLocations() {
   const { id: warehouseId } = useParams<{ id: string }>()
@@ -50,7 +51,7 @@ function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
             message.success('Đã xoá vị trí.')
             setDrawerLocation(null)
           },
-          onError: () => message.error('Xoá vị trí thất bại.'),
+          onError: (err: unknown) => message.error(getErrorMessage(err, 'Xoá vị trí thất bại.')),
         }),
     })
   }

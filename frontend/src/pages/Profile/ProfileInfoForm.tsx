@@ -4,6 +4,7 @@ import { App, Button, Card, Col, Divider, Form, Input, Row } from 'antd'
 import type { UserProfile } from '../../types/user'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { useUpdateProfile } from '../../hooks/useUserProfile'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface ProfileInfoFormProps {
   profile: UserProfile
@@ -29,9 +30,7 @@ function ProfileInfoForm({ profile }: ProfileInfoFormProps) {
         message.success('Cập nhật thông tin thành công.')
       },
       onError: (err) => {
-        message.error(
-          err instanceof Error ? err.message : 'Cập nhật thông tin thất bại.',
-        )
+        message.error(getErrorMessage(err, 'Cập nhật thông tin thất bại.'))
       },
     })
   }

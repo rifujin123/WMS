@@ -50,10 +50,10 @@ public class PickingService : IPickingService
 
     public async Task<PickingDto> CreateAsync(CreatePickingDto dto)
     {
-        if (await _warehouseRepo.GetByIdAsync(dto.WarehouseId) == null) throw new InvalidOperationException("Warehouse not found.");
-        var saleOrder = await _saleOrderRepo.GetByIdAsync(dto.SaleOrderId) ?? throw new InvalidOperationException("SaleOrder not found.");
+        if (await _warehouseRepo.GetByIdAsync(dto.WarehouseId) == null) throw new InvalidOperationException("Không tìm thấy kho hàng.");
+        var saleOrder = await _saleOrderRepo.GetByIdAsync(dto.SaleOrderId) ?? throw new InvalidOperationException("Không tìm thấy đơn bán hàng.");
         if (saleOrder.Status != SaleOrderStatus.New && saleOrder.Status != SaleOrderStatus.Allocated)
-            throw new InvalidOperationException($"Cannot create picking for SaleOrder in '{saleOrder.Status}' status. Must be 'New' or 'Allocated'.");
+            throw new InvalidOperationException($"Không thể tạo phiếu lấy hàng cho đơn bán ở trạng thái '{saleOrder.Status}'. Đơn bán phải ở trạng thái 'Mới' (New) hoặc 'Đã phân bổ' (Allocated).");
 
         var now = DateTime.UtcNow;
         var picking = new Picking { PickingNo = $"PICK-{now:yyyyMMddHHmmssfff}-{Guid.NewGuid().ToString("N")[..8]}", WarehouseId = dto.WarehouseId, Status = PickingStatus.Open, CreatedDate = now };
@@ -80,13 +80,13 @@ public class PickingService : IPickingService
                 {
                     var available = await _stockRepo.GetAvailableByProductAndWarehouseAsync(sod.ProductId, dto.WarehouseId);
                     var locations = available.Count > 0
-                        ? $" Available at: {string.Join(", ", available.Select(s => $"{s.Location.Code} ({s.OnhandQty - s.ReservedQty})"))}."
-                        : " No stock in this warehouse.";
-                    throw new InvalidOperationException($"Insufficient stock for product '{sod.Product.Sku}'. Required: {requiredQty}, Available: {requiredQty - remaining}.{locations}");
+                        ? $" Tồn khả dụng tại: {string.Join(", ", available.Select(s => $"{s.Location.Code} ({s.OnhandQty - s.ReservedQty})"))}."
+                        : " Không có tồn kho trong kho này.";
+                    throw new InvalidOperationException($"Không đủ tồn kho khả dụng cho sản phẩm '{sod.Product.Sku}'. Cần: {requiredQty}, Khả dụng: {requiredQty - remaining}.{locations}");
                 }
                 sod.Status = SaleOrderDetailStatus.Allocated;
             }
-            if (picking.PickingDetails.Count == 0) throw new InvalidOperationException("No allocatable lines in this SaleOrder.");
+            if (picking.PickingDetails.Count == 0) throw new InvalidOperationException("Không có dòng sản phẩm nào có thể phân bổ trong đơn bán này.");
 
             saleOrder.Status = SaleOrderStatus.Picking;
             await _saleOrderRepo.UpdateAsync(saleOrder);
@@ -101,7 +101,7 @@ public class PickingService : IPickingService
     {
         var picking = await _repo.GetByIdAsync(id);
         if (picking == null) return null;
-        if (picking.Status != PickingStatus.Open) throw new InvalidOperationException($"Cannot assign picking in '{picking.Status}' status. Must be 'Open'.");
+        if (picking.Status != PickingStatus.Open) throw new InvalidOperationException($"Không thể phân công phiếu lấy ở trạng thái '{picking.Status}'. Phiếu phải ở trạng thái 'Mở' (Open).");
 
         picking.AssignedToId = assignedToId;
         picking.AssignedById = _currentUser.UserId;
@@ -116,10 +116,10 @@ public class PickingService : IPickingService
     {
         var picking = await _repo.GetByIdAsync(id);
         if (picking == null) return null;
-        if (picking.Status != PickingStatus.Assigned) throw new InvalidOperationException($"Cannot start picking in '{picking.Status}' status. Must be 'Assigned'.");
-        if (picking.AssignedToId == null) throw new InvalidOperationException("Picking must be assigned before starting.");
+        if (picking.Status != PickingStatus.Assigned) throw new InvalidOperationException($"Không thể bắt đầu phiếu lấy ở trạng thái '{picking.Status}'. Phiếu phải ở trạng thái 'Đã phân công' (Assigned).");
+        if (picking.AssignedToId == null) throw new InvalidOperationException("Phiếu lấy hàng phải được phân công trước khi bắt đầu.");
         if (picking.AssignedToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
-            throw new InvalidOperationException("You can only start a picking assigned to you.");
+            throw new InvalidOperationException("Bạn chỉ có thể bắt đầu phiếu lấy hàng được phân công cho bạn.");
 
         picking.Status = PickingStatus.InProgress;
         picking.StartedById = _currentUser.UserId;
@@ -133,14 +133,14 @@ public class PickingService : IPickingService
     {
         var picking = await _repo.GetByIdAsync(id);
         if (picking == null) return null;
-        if (picking.Status != PickingStatus.InProgress) throw new InvalidOperationException($"Cannot complete picking in '{picking.Status}' status. Must be 'InProgress'.");
+        if (picking.Status != PickingStatus.InProgress) throw new InvalidOperationException($"Không thể hoàn thành phiếu lấy ở trạng thái '{picking.Status}'. Phiếu phải ở trạng thái 'Đang xử lý' (InProgress).");
         if (picking.AssignedToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
-            throw new InvalidOperationException("You can only complete a picking assigned to you.");
+            throw new InvalidOperationException("Bạn chỉ có thể hoàn thành phiếu lấy hàng được phân công cho bạn.");
         var byId = dto.Details.ToDictionary(d => d.DetailId);
         foreach (var detail in picking.PickingDetails)
         {
-            if (!byId.TryGetValue(detail.Id, out var input)) throw new InvalidOperationException($"Missing picked quantity for detail '{detail.Id}'.");
-            if (input.QtyPicked != detail.QtyToPick) throw new InvalidOperationException($"Picked quantity must equal required quantity for product '{detail.Product.Sku}'. Required: {detail.QtyToPick}, Picked: {input.QtyPicked}.");
+            if (!byId.TryGetValue(detail.Id, out var input)) throw new InvalidOperationException($"Thiếu số lượng đã lấy cho dòng sản phẩm.");
+            if (input.QtyPicked != detail.QtyToPick) throw new InvalidOperationException($"Số lượng đã lấy phải khớp với số lượng yêu cầu của sản phẩm '{detail.Product.Sku}'. Cần lấy: {detail.QtyToPick}, Thực tế lấy: {input.QtyPicked}.");
         }
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
@@ -149,10 +149,10 @@ public class PickingService : IPickingService
             var sodList = await _saleOrderRepo.GetDetailsWithOrdersByIdsAsync(sodIds);
             foreach (var detail in picking.PickingDetails)
             {
-                if (detail.LocationId == null) throw new InvalidOperationException($"Location is required to complete detail '{detail.Id}'.");
+                if (detail.LocationId == null) throw new InvalidOperationException($"Cần có thông tin vị trí để hoàn thành dòng lấy hàng.");
                 var input = byId[detail.Id];
-                var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId.Value) ?? throw new InvalidOperationException("Stock not found for picked location.");
-                if (stock.ReservedQty < input.QtyPicked || stock.OnhandQty < input.QtyPicked) throw new InvalidOperationException($"Insufficient stock for product '{detail.Product.Sku}' at location '{stock.Location.Code}'.");
+                var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy dữ liệu tồn kho tại vị trí lấy hàng.");
+                if (stock.ReservedQty < input.QtyPicked || stock.OnhandQty < input.QtyPicked) throw new InvalidOperationException($"Không đủ tồn kho cho sản phẩm '{detail.Product.Sku}' tại vị trí '{stock.Location.Code}'.");
                 stock.ReservedQty -= input.QtyPicked;
                 stock.OnhandQty -= input.QtyPicked;
                 await _stockRepo.UpdateAsync(stock);
@@ -183,7 +183,7 @@ public class PickingService : IPickingService
     {
         var picking = await _repo.GetByIdAsync(id);
         if (picking == null) return false;
-        if (picking.Status != PickingStatus.Open) throw new InvalidOperationException($"Cannot delete picking in '{picking.Status}' status. Must be 'Open'.");
+        if (picking.Status != PickingStatus.Open) throw new InvalidOperationException($"Không thể xóa phiếu lấy hàng ở trạng thái '{picking.Status}'. Chỉ có thể xóa phiếu 'Mở' (Open).");
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {

@@ -15,6 +15,7 @@ import type { TableColumnsType } from 'antd'
 import VendorFormModal from './VendorFormModal'
 import type { VendorDto } from '../../types/vendor'
 import { useVendors, useDeleteVendor } from '../../hooks/useVendors'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 function Vendors() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -39,7 +40,7 @@ function Vendors() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá nhà cung cấp.'),
-          onError: (err: Error) => message.error(`Xoá thất bại: ${err.message}`),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá nhà cung cấp thất bại.')),
         }),
     })
   }

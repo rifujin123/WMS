@@ -90,7 +90,7 @@ public class ReceivingServiceTests
         };
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(dto));
-        Assert.Contains("Remaining: 10", ex.Message);
+        Assert.Contains("cần nhận là 10", ex.Message);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class ReceivingServiceTests
         receivingRepo.Items.Add(receiving);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ConfirmAsync(receiving.Id));
-        Assert.Contains("Cannot confirm receiving until all PurchaseOrder quantities are processed", ex.Message);
+        Assert.Contains("khớp với số lượng còn lại", ex.Message);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class ReceivingServiceTests
         receivingRepo.Items.Add(second);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ConfirmAsync(second.Id));
-        Assert.Contains("already has a confirmed receiving", ex.Message);
+        Assert.Contains("đã có phiếu nhận được xác nhận", ex.Message);
     }
 
     [Fact]

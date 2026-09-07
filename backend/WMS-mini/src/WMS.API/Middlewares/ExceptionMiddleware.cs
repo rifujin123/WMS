@@ -27,7 +27,7 @@ public class ExceptionMiddleware
         }
         catch (KeyNotFoundException ex)
         {
-            await WriteError(context, HttpStatusCode.NotFound, "Resource not found.", "NOT_FOUND");
+            await WriteError(context, HttpStatusCode.NotFound, string.IsNullOrWhiteSpace(ex.Message) ? "Không tìm thấy tài nguyên yêu cầu." : ex.Message, "NOT_FOUND");
         }
         catch (InvalidOperationException ex)
         {
@@ -35,12 +35,12 @@ public class ExceptionMiddleware
         }
         catch (UnauthorizedAccessException ex)
         {
-            await WriteError(context, HttpStatusCode.Forbidden, "Access denied.", "FORBIDDEN");
+            await WriteError(context, HttpStatusCode.Forbidden, "Bạn không có quyền thực hiện thao tác này.", "FORBIDDEN");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception");
-            await WriteError(context, HttpStatusCode.InternalServerError, "Internal server error.", "INTERNAL_ERROR");
+            await WriteError(context, HttpStatusCode.InternalServerError, "Đã có lỗi xảy ra trên hệ thống. Vui lòng thử lại sau.", "INTERNAL_ERROR");
         }
     }
 
