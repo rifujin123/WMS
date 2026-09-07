@@ -21,6 +21,7 @@ import ResetPasswordModal from './ResetPasswordModal'
 import { useSetUserLock, useUsersPage } from '../../hooks/useUsers'
 import type { UserListItem } from '../../types/user'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 const roleLabel: Record<UserListItem['role'], string> = {
   Admin: 'Admin',
@@ -75,7 +76,7 @@ function Users() {
           { id: row.id, locked },
           {
             onSuccess: () => message.success(locked ? 'Đã khoá tài khoản.' : 'Đã mở khoá tài khoản.'),
-            onError: () => message.error('Thao tác thất bại.'),
+            onError: (err: Error) => message.error(getErrorMessage(err, 'Thao tác thất bại.')),
           },
         ),
     })

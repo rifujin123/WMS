@@ -10,6 +10,7 @@ import type {
 import { useProductLookup } from '../../hooks/useProducts'
 import { useCustomerLookup } from '../../hooks/useCustomers'
 import { useCreateSaleOrder, useUpdateSaleOrder } from '../../hooks/useSaleOrders'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface SaleOrderFormModalProps {
   open: boolean
@@ -64,7 +65,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         onClose()
       }
       const onError = (err: Error) => {
-        message.error(isEdit ? `Cập nhật đơn bán thất bại: ${err.message}` : `Tạo đơn bán thất bại: ${err.message}`)
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật đơn bán thất bại.' : 'Tạo đơn bán thất bại.'))
       }
       if (isEdit && saleOrder) {
         updateMutation.mutate({ id: saleOrder.id, dto }, { onSuccess, onError })

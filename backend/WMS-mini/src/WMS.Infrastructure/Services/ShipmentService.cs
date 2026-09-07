@@ -53,14 +53,14 @@ public class ShipmentService : IShipmentService
     {
         var saleOrder = await _saleOrderRepo.GetByIdAsync(dto.SaleOrderId);
         if (saleOrder == null)
-            throw new InvalidOperationException("SaleOrder not found.");
+            throw new InvalidOperationException("Không tìm thấy đơn bán hàng.");
 
         if (saleOrder.Status != SaleOrderStatus.Packed)
             throw new InvalidOperationException(
-                $"Cannot create shipment for SaleOrder in '{saleOrder.Status}' status. Must be 'Packed'.");
+                $"Không thể tạo phiếu vận chuyển cho đơn bán ở trạng thái '{saleOrder.Status}'. Đơn bán phải ở trạng thái 'Đã đóng gói' (Packed).");
 
         if (await _repo.GetBySaleOrderIdAsync(dto.SaleOrderId) != null)
-            throw new InvalidOperationException("Shipment already exists for this SaleOrder.");
+            throw new InvalidOperationException("Đơn bán hàng này đã có phiếu vận chuyển.");
 
         var shipment = _mapper.Map<Shipment>(dto);
         shipment.CreatedDate = DateTime.UtcNow;
@@ -78,12 +78,12 @@ public class ShipmentService : IShipmentService
             return null;
 
         if (shipment.ShippedDate != null)
-            throw new InvalidOperationException("Shipment has already been marked as shipped.");
+            throw new InvalidOperationException("Phiếu vận chuyển này đã được đánh dấu là đã giao trước đó.");
 
         var saleOrder = shipment.SaleOrder;
         if (saleOrder.Status != SaleOrderStatus.Packed)
             throw new InvalidOperationException(
-                $"Cannot mark shipment as shipped for SaleOrder in '{saleOrder.Status}' status. Must be 'Packed'.");
+                $"Không thể giao hàng cho đơn bán ở trạng thái '{saleOrder.Status}'. Đơn bán phải ở trạng thái 'Đã đóng gói' (Packed).");
 
         var shippedDate = DateTime.UtcNow;
         await _unitOfWork.ExecuteInTransactionAsync(async () =>

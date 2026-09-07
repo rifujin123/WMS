@@ -38,6 +38,8 @@ import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
 
+import { getErrorMessage } from '../../lib/errorHandler'
+
 function PutAwayTasks() {
   // --- Dữ liệu & hooks (danh sách, thao tác) ---
   const { message } = App.useApp()
@@ -96,7 +98,7 @@ function PutAwayTasks() {
           message.success('Đã đặt vị trí đích.')
           setLocTask(null)
         },
-        onError: () => message.error('Đặt vị trí thất bại.'),
+        onError: (err: Error) => message.error(getErrorMessage(err, 'Đặt vị trí thất bại.')),
       },
     )
   }
@@ -118,7 +120,7 @@ function PutAwayTasks() {
             message.success('Đã phân công cho nhân viên.')
             setAssignTask(null)
           },
-          onError: () => message.error('Phân công thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Phân công thất bại.')),
         },
       )
     } catch {
@@ -136,7 +138,7 @@ function PutAwayTasks() {
       onOk: () =>
         startMutation.mutate(task.id, {
           onSuccess: () => message.success('Task đang được xử lý.'),
-          onError: () => message.error('Bắt đầu task thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Bắt đầu task thất bại.')),
         }),
     })
   }
@@ -150,7 +152,7 @@ function PutAwayTasks() {
       onOk: () =>
         completeMutation.mutate(task.id, {
           onSuccess: () => message.success('Đã nhập kho.'),
-          onError: () => message.error('Hoàn thành task thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Hoàn thành task thất bại.')),
         }),
     })
   }
@@ -165,7 +167,7 @@ function PutAwayTasks() {
       onOk: () =>
         deleteMutation.mutate(task.id, {
           onSuccess: () => message.success('Đã xoá task.'),
-          onError: () => message.error('Xoá task thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá task thất bại.')),
         }),
     })
   }

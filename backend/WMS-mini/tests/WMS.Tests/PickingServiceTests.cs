@@ -140,7 +140,7 @@ public class PickingServiceTests
 
         var dto = new CreatePickingDto { SaleOrderId = _saleOrderId, WarehouseId = _warehouseId };
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(dto));
-        Assert.Contains("Insufficient stock", ex.Message);
+        Assert.Contains("Không đủ tồn kho", ex.Message);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class PickingServiceTests
             },
         };
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteAsync(picking.Id, dto));
-        Assert.Contains("must equal required quantity", ex.Message);
+        Assert.Contains("khớp với số lượng yêu cầu", ex.Message);
         Assert.Equal(10, stockRepo.Items.Single().OnhandQty);
         Assert.Equal(PickingStatus.InProgress, picking.Status);
     }

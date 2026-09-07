@@ -36,6 +36,7 @@ import {
 import { useAllLocations } from '../../hooks/useLocations'
 import { useProductLookup } from '../../hooks/useProducts'
 import { useAuthContext } from '../../contexts/useAuthContext'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 const STOCK_ADJUSTMENT_STATUS_LABEL: Record<StockAdjustmentStatus, string> = {
   Draft: 'Nháp',
@@ -94,11 +95,7 @@ function StockAdjustments() {
       setCreateOpen(false)
       createForm.resetFields()
     } catch (error) {
-      message.error(
-        error instanceof Error && error.message
-          ? `Tạo phiếu thất bại: ${error.message}`
-          : 'Tạo phiếu thất bại. Vui lòng kiểm tra lại dữ liệu.',
-      )
+      message.error(getErrorMessage(error, 'Tạo phiếu điều chỉnh tồn kho thất bại.'))
     }
   }
 
@@ -112,7 +109,7 @@ function StockAdjustments() {
       onOk: () =>
         approveMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã duyệt phiếu điều chỉnh.'),
-          onError: (error: Error) => message.error(`Duyệt thất bại: ${error.message}`),
+          onError: (error: Error) => message.error(getErrorMessage(error, 'Duyệt phiếu điều chỉnh thất bại.')),
         }),
     })
   }
@@ -127,7 +124,7 @@ function StockAdjustments() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá phiếu điều chỉnh.'),
-          onError: (error: Error) => message.error(`Xoá thất bại: ${error.message}`),
+          onError: (error: Error) => message.error(getErrorMessage(error, 'Xoá phiếu điều chỉnh thất bại.')),
         }),
     })
   }

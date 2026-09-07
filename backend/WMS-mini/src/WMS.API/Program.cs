@@ -173,7 +173,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
-builder.Services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
+builder.Services.AddScoped<IDemoDataSeeder, MultiStatusDemoDataSeeder>();
 
 // AI Provider
 var aiProviderName = builder.Configuration.GetValue("AiProvider:Provider", "Mock");
@@ -181,7 +181,7 @@ if (aiProviderName.Equals("Real", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddScoped<IAiProvider, RealAiProvider>();
 else
     builder.Services.AddScoped<IAiProvider, MockAiProvider>();
-
+    
 builder.Services.AddScoped<IProductMappingService, ProductMappingService>();
 builder.Services.AddScoped<IInvoiceScanService, InvoiceScanService>();
 
@@ -260,6 +260,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
+
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

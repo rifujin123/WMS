@@ -28,7 +28,10 @@ import {
   useDeletePurchaseOrder,
   usePurchaseOrdersPage,
 } from '../../hooks/usePurchaseOrders'
+import { useAuthContext } from '../../contexts/useAuthContext'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
+
+import { getErrorMessage } from '../../lib/errorHandler'
 
 function PurchaseOrders() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -37,6 +40,8 @@ function PurchaseOrders() {
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
   const { message } = App.useApp()
+  const { user } = useAuthContext()
+  const canApprove = user?.role === 'Admin' || user?.role === 'WarehouseManager'
   const purchaseOrderParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -55,7 +60,7 @@ function PurchaseOrders() {
       onOk: () =>
         approveMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã duyệt đơn hàng.'),
-          onError: () => message.error('Duyệt đơn hàng thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Duyệt đơn hàng thất bại.')),
         }),
     })
   }
@@ -70,7 +75,7 @@ function PurchaseOrders() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá đơn hàng.'),
-          onError: () => message.error('Xoá đơn hàng thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá đơn hàng thất bại.')),
         }),
     })
   }
@@ -133,16 +138,18 @@ function PurchaseOrders() {
                   onClick={() => handleDelete(row)}
                 />
               </Tooltip>
-              <Tooltip title="Duyệt">
-                <Button
-                  type="link"
-                  icon={<CheckOutlined />}
-                  style={{ paddingInline: 8 }}
-                  onClick={() => handleApprove(row)}
-                >
-                  Duyệt
-                </Button>
-              </Tooltip>
+              {canApprove && (
+                <Tooltip title="Duyệt">
+                  <Button
+                    type="link"
+                    icon={<CheckOutlined />}
+                    style={{ paddingInline: 8 }}
+                    onClick={() => handleApprove(row)}
+                  >
+                    Duyệt
+                  </Button>
+                </Tooltip>
+              )}
             </>
           )}
         </div>

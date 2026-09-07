@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { CreateProductDto, ProductDto } from '../../types/product'
 import { useCategoryLookup } from '../../hooks/useCategories'
 import { useCreateProduct, useUpdateProduct } from '../../hooks/useProducts'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface ProductFormModalProps {
   open: boolean
@@ -48,8 +49,8 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
         message.success(isEdit ? 'Đã cập nhật sản phẩm.' : 'Đã tạo sản phẩm.')
         onClose()
       }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật sản phẩm thất bại.' : 'Tạo sản phẩm thất bại.')
+      const onError = (err: Error) =>
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật sản phẩm thất bại.' : 'Tạo sản phẩm thất bại.'))
       if (isEdit && product) {
         updateMutation.mutate(
           { id: product.id, dto, image: imageFile ?? undefined },

@@ -2,6 +2,7 @@ import { App, Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import type { CategoryDto } from '../../types/category'
 import { useCreateCategory, useUpdateCategory } from '../../hooks/useCategories'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface CategoryFormModalProps {
   open: boolean
@@ -31,8 +32,8 @@ function CategoryFormModal({ open, category, onClose }: CategoryFormModalProps) 
         message.success(isEdit ? 'Đã cập nhật danh mục.' : 'Đã tạo danh mục.')
         onClose()
       }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật danh mục thất bại.' : 'Tạo danh mục thất bại.')
+      const onError = (err: Error) =>
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật danh mục thất bại.' : 'Tạo danh mục thất bại.'))
       if (isEdit && category) {
         updateMutation.mutate({ id: category.id, dto }, { onSuccess, onError })
       } else {

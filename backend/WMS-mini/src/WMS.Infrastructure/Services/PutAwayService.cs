@@ -66,9 +66,9 @@ public class PutAwayService : IPutAwayService
 
     public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto)
     {
-        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("ReceivingDetail not found.");
+        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
         if (dto.Quantity > detail.ActualQuantity)
-            throw new InvalidOperationException($"Cannot create putaway with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
+            throw new InvalidOperationException($"Không thể tạo task cất hàng với số lượng {dto.Quantity}. Số lượng tối đa cho phép là {detail.ActualQuantity}.");
 
         var task = _mapper.Map<PutAwayTask>(dto);
         task.Status = PutAwayTaskStatus.Open;
@@ -82,11 +82,11 @@ public class PutAwayService : IPutAwayService
         var task = await _repo.GetByIdAsync(id);
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Open && task.Status != PutAwayTaskStatus.Assigned)
-            throw new InvalidOperationException($"Cannot update task in '{task.Status}' status. Must be 'Open' or 'Assigned'.");
+            throw new InvalidOperationException($"Không thể cập nhật task ở trạng thái '{task.Status}'. Chỉ cho phép cập nhật khi task ở trạng thái 'Mở' (Open) hoặc 'Đã phân công' (Assigned).");
 
-        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("ReceivingDetail not found.");
+        var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
         if (dto.Quantity > detail.ActualQuantity)
-            throw new InvalidOperationException($"Cannot update task with quantity {dto.Quantity}. Max allowed: {detail.ActualQuantity}.");
+            throw new InvalidOperationException($"Không thể cập nhật task với số lượng {dto.Quantity}. Số lượng tối đa cho phép là {detail.ActualQuantity}.");
 
         _mapper.Map(dto, task);
         await _repo.UpdateAsync(task);
@@ -99,7 +99,7 @@ public class PutAwayService : IPutAwayService
         var task = await _repo.GetByIdAsync(id);
         if (task == null) return false;
         if (task.Status != PutAwayTaskStatus.Open)
-            throw new InvalidOperationException($"Cannot delete task in '{task.Status}' status. Must be 'Open'.");
+            throw new InvalidOperationException($"Không thể xóa task ở trạng thái '{task.Status}'. Chỉ có thể xóa khi task ở trạng thái 'Mở' (Open).");
 
         await _repo.DeleteAsync(task);
         await _unitOfWork.SaveChangesAsync();
@@ -111,7 +111,7 @@ public class PutAwayService : IPutAwayService
         var task = await _repo.GetByIdAsync(id);
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Open)
-            throw new InvalidOperationException($"Cannot assign task in '{task.Status}' status. Must be 'Open'.");
+            throw new InvalidOperationException($"Không thể phân công task ở trạng thái '{task.Status}'. Chỉ có thể phân công khi task ở trạng thái 'Mở' (Open).");
 
         task.AssignToId = assignedToId;
         task.AssignedById = _currentUser.UserId;
@@ -127,15 +127,15 @@ public class PutAwayService : IPutAwayService
         var task = await _repo.GetByIdAsync(id);
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Assigned)
-            throw new InvalidOperationException($"Cannot start task in '{task.Status}' status. Must be 'Assigned'.");
+            throw new InvalidOperationException($"Không thể bắt đầu task ở trạng thái '{task.Status}'. Task phải ở trạng thái 'Đã phân công' (Assigned).");
         if (task.AssignToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
-            throw new InvalidOperationException("You can only start a task assigned to you.");
+            throw new InvalidOperationException("Bạn chỉ có thể bắt đầu task được phân công cho bạn.");
         if (task.ToLocationId == null)
-            throw new InvalidOperationException("ToLocation must be set before starting putaway.");
+            throw new InvalidOperationException("Phải thiết lập vị trí đích (Location) trước khi bắt đầu cất hàng.");
 
-        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Destination location not found.");
+        var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
         if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
-            throw new InvalidOperationException($"Location '{location.Code}' does not have enough capacity. Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
+            throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Yêu cầu cất: {task.Quantity}.");
 
         task.Status = PutAwayTaskStatus.InProgress;
         task.StartedById = _currentUser.UserId;
@@ -150,17 +150,17 @@ public class PutAwayService : IPutAwayService
         var task = await _repo.GetByIdAsync(id);
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.InProgress)
-            throw new InvalidOperationException($"Cannot complete task in '{task.Status}' status. Must be 'InProgress'.");
+            throw new InvalidOperationException($"Không thể hoàn thành task ở trạng thái '{task.Status}'. Task phải ở trạng thái 'Đang xử lý' (InProgress).");
         if (task.AssignToId != _currentUser.UserId && !_currentUser.IsInRole("Admin", "WarehouseManager"))
-            throw new InvalidOperationException("You can only complete a task assigned to you.");
+            throw new InvalidOperationException("Bạn chỉ có thể hoàn thành task được phân công cho bạn.");
         if (task.ToLocationId == null)
-            throw new InvalidOperationException("ToLocation must be set to complete putaway.");
+            throw new InvalidOperationException("Phải thiết lập vị trí đích (Location) trước khi hoàn thành cất hàng.");
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Destination location not found.");
+            var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
             if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
-                throw new InvalidOperationException($"Location '{location.Code}' does not have enough capacity. Available: {location.MaxQuantity - location.CurrentQuantity}, Required: {task.Quantity}.");
+                throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Yêu cầu cất: {task.Quantity}.");
 
             var stock = await _stockRepo.GetByProductAndLocationAsync(task.ProductId, task.ToLocationId.Value);
             if (stock == null)

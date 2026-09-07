@@ -63,7 +63,7 @@ public class StockAdjustmentService : IStockAdjustmentService
     {
         var adjustment = await _repo.GetByIdAsync(id);
         if (adjustment == null) return null;
-        if (adjustment.Status != StockAdjustmentStatus.Draft) throw new InvalidOperationException($"Cannot approve adjustment in '{adjustment.Status}' status. Must be 'Draft'.");
+        if (adjustment.Status != StockAdjustmentStatus.Draft) throw new InvalidOperationException($"Không thể duyệt phiếu điều chỉnh ở trạng thái '{adjustment.Status}'. Phiếu phải ở trạng thái 'Nháp' (Draft).");
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             foreach (var detail in adjustment.Details)
@@ -84,7 +84,7 @@ public class StockAdjustmentService : IStockAdjustmentService
                 var location = await _locationRepo.GetByIdAsync(detail.LocationId);
                 if (location != null)
                 {
-                    if (location.CurrentQuantity + delta > location.MaxQuantity) throw new InvalidOperationException($"Location '{location.Code}' does not have enough capacity. Available: {location.MaxQuantity - location.CurrentQuantity}, Adjustment delta: {delta}.");
+                    if (location.CurrentQuantity + delta > location.MaxQuantity) throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa sau khi điều chỉnh. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Số lượng chênh lệch: {delta}.");
                     location.CurrentQuantity += delta;
                     await _locationRepo.UpdateAsync(location);
                 }
@@ -104,7 +104,7 @@ public class StockAdjustmentService : IStockAdjustmentService
     {
         var entity = await _repo.GetByIdAsync(id);
         if (entity == null) return false;
-        if (entity.Status != StockAdjustmentStatus.Draft) throw new InvalidOperationException($"Cannot delete adjustment in '{entity.Status}' status. Must be 'Draft'.");
+        if (entity.Status != StockAdjustmentStatus.Draft) throw new InvalidOperationException($"Không thể xóa phiếu điều chỉnh ở trạng thái '{entity.Status}'. Phiếu phải ở trạng thái 'Nháp' (Draft).");
         await _repo.DeleteAsync(entity);
         await _unitOfWork.SaveChangesAsync();
         return true;

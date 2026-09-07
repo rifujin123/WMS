@@ -8,6 +8,8 @@ import ReceivingFormModal from './ReceivingFormModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
 import { useConfirmReceiving, useDeleteReceiving, useReceivingsPage } from '../../hooks/useReceivings'
 
+import { getErrorMessage } from '../../lib/errorHandler'
+
 function Receivings() {
   const { message } = App.useApp()
   const [modalOpen, setModalOpen] = useState(false)
@@ -33,8 +35,8 @@ function Receivings() {
         try {
           await confirmMutation.mutateAsync(row.id)
           message.success('Đã xác nhận phiếu nhận.')
-        } catch {
-          message.error('Xác nhận phiếu nhận thất bại.')
+        } catch (error) {
+          message.error(getErrorMessage(error, 'Xác nhận phiếu nhận thất bại.'))
         }
       },
     })
@@ -51,8 +53,8 @@ function Receivings() {
         try {
           await deleteMutation.mutateAsync(row.id)
           message.success('Đã xoá phiếu nhận.')
-        } catch {
-          message.error('Xoá phiếu nhận thất bại.')
+        } catch (error) {
+          message.error(getErrorMessage(error, 'Xoá phiếu nhận thất bại.'))
         }
       },
     })

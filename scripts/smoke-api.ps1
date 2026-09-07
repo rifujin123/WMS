@@ -242,6 +242,44 @@ $orphanCat = Invoke-Api POST '/Categories' -Token $admin -Expect @(201, 200) -La
 Invoke-Api DELETE "/Categories/$($orphanCat.id)" -Token $admin -Label 'delete orphan category' | Out-Null
 Invoke-Api GET "/Categories/$($orphanCat.id)" -Token $admin -Expect @(404) -Label 'orphan category gone' | Out-Null
 
+$cust = Invoke-Api POST '/Customers' -Token $admin -Expect @(201, 200) -Label 'create customer' -Body @{
+    name    = "Smoke Cust $Stamp"
+    email   = "cust-$Stamp@smoke.local"
+    phone   = '0911111111'
+    address = '123 Smoke St'
+}
+$custId = $cust.id
+Invoke-Api GET "/Customers/$custId" -Token $admin -Label 'get customer' | Out-Null
+Invoke-Api PUT "/Customers/$custId" -Token $admin -Label 'update customer' -Body @{
+    name    = "Smoke Cust $Stamp U"
+    email   = "cust-$Stamp-u@smoke.local"
+    phone   = '0922222222'
+    address = '456 Smoke St'
+} | Out-Null
+Invoke-Api GET '/Customers?page=1' -Token $admin -Label 'customers page' | Out-Null
+Invoke-Api GET '/Customers/lookup' -Token $admin -Label 'customers lookup' | Out-Null
+Invoke-Api DELETE "/Customers/$custId" -Token $admin -Label 'delete customer' | Out-Null
+Invoke-Api GET "/Customers/$custId" -Token $admin -Expect @(404) -Label 'customer gone' | Out-Null
+
+$vend = Invoke-Api POST '/Vendors' -Token $admin -Expect @(201, 200) -Label 'create vendor' -Body @{
+    name    = "Smoke Vend $Stamp"
+    email   = "vend-$Stamp@smoke.local"
+    phone   = '0933333333'
+    address = '789 Smoke St'
+}
+$vendId = $vend.id
+Invoke-Api GET "/Vendors/$vendId" -Token $admin -Label 'get vendor' | Out-Null
+Invoke-Api PUT "/Vendors/$vendId" -Token $admin -Label 'update vendor' -Body @{
+    name    = "Smoke Vend $Stamp U"
+    email   = "vend-$Stamp-u@smoke.local"
+    phone   = '0944444444'
+    address = '999 Smoke St'
+} | Out-Null
+Invoke-Api GET '/Vendors?page=1' -Token $admin -Label 'vendors page' | Out-Null
+Invoke-Api GET '/Vendors/lookup' -Token $admin -Label 'vendors lookup' | Out-Null
+Invoke-Api DELETE "/Vendors/$vendId" -Token $admin -Label 'delete vendor' | Out-Null
+Invoke-Api GET "/Vendors/$vendId" -Token $admin -Expect @(404) -Label 'vendor gone' | Out-Null
+
 # --- 4 PO ---
 Write-Step 'Purchase Orders'
 $poDel = Invoke-Api POST '/PurchaseOrders' -Token $staff -Expect @(201, 200) -Label 'staff create PO delete-me' -Body @{

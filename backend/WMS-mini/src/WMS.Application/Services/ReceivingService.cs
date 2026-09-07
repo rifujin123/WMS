@@ -42,7 +42,7 @@ public class ReceivingService : IReceivingService
         var po = await GetPurchaseOrderAsync(dto);
         ValidatePurchaseOrder(po);
         if (await _repo.GetConfirmedByPurchaseOrderIdAsync(dto.PurchaseOrderId) != null)
-            throw new InvalidOperationException("PurchaseOrder already has a confirmed receiving.");
+            throw new InvalidOperationException("Đơn đặt hàng đã có phiếu nhận được xác nhận.");
         ValidateDetails(dto, po);
         ValidateInvoiceImageUrl(dto.InvoiceImageUrl);
         var now = DateTime.UtcNow;
@@ -66,11 +66,11 @@ public class ReceivingService : IReceivingService
     {
         var receiving = await _repo.GetByIdAsync(id);
         if (receiving == null) return null;
-        if (receiving.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Cannot confirm receiving in '{receiving.Status}' status. Must be 'Draft'.");
-        var po = await _poRepo.GetByIdAsync(receiving.PurchaseOrderId) ?? throw new InvalidOperationException("PurchaseOrder not found.");
+        if (receiving.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Không thể xác nhận phiếu nhận ở trạng thái '{receiving.Status}'. Chỉ có thể xác nhận phiếu 'Nháp' (Draft).");
+        var po = await _poRepo.GetByIdAsync(receiving.PurchaseOrderId) ?? throw new InvalidOperationException("Không tìm thấy đơn đặt hàng.");
         ValidatePurchaseOrder(po);
         if (await _repo.GetConfirmedByPurchaseOrderIdAsync(receiving.PurchaseOrderId) != null)
-            throw new InvalidOperationException("PurchaseOrder already has a confirmed receiving.");
+            throw new InvalidOperationException("Đơn đặt hàng đã có phiếu nhận được xác nhận.");
         ValidateCompleteReceiving(receiving, po);
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
@@ -95,10 +95,10 @@ public class ReceivingService : IReceivingService
     {
         var entity = await _repo.GetByIdAsync(id);
         if (entity == null) return null;
-        if (entity.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Cannot update receiving in '{entity.Status}' status. Must be 'Draft'.");
+        if (entity.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Không thể cập nhật phiếu nhận ở trạng thái '{entity.Status}'. Chỉ có thể cập nhật phiếu 'Nháp' (Draft).");
         var po = await GetPurchaseOrderAsync(dto);
         if (await _repo.GetConfirmedByPurchaseOrderIdAsync(dto.PurchaseOrderId) is { Id: var confirmedId } && confirmedId != entity.Id)
-            throw new InvalidOperationException("PurchaseOrder already has a confirmed receiving.");
+            throw new InvalidOperationException("Đơn đặt hàng đã có phiếu nhận được xác nhận.");
         ValidatePurchaseOrder(po);
         ValidateDetails(dto, po);
         ValidateInvoiceImageUrl(dto.InvoiceImageUrl);
@@ -123,18 +123,18 @@ public class ReceivingService : IReceivingService
     {
         var entity = await _repo.GetByIdAsync(id);
         if (entity == null) return false;
-        if (entity.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Cannot delete receiving in '{entity.Status}' status. Must be 'Draft'.");
+        if (entity.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Không thể xóa phiếu nhận ở trạng thái '{entity.Status}'. Chỉ có thể xóa phiếu 'Nháp' (Draft).");
         await _repo.DeleteAsync(entity);
         await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
-    private async Task<PurchaseOrder> GetPurchaseOrderAsync(CreateReceivingDto dto) => await _poRepo.GetByIdAsync(dto.PurchaseOrderId) ?? throw new InvalidOperationException("PurchaseOrder not found.");
+    private async Task<PurchaseOrder> GetPurchaseOrderAsync(CreateReceivingDto dto) => await _poRepo.GetByIdAsync(dto.PurchaseOrderId) ?? throw new InvalidOperationException("Không tìm thấy đơn đặt hàng.");
 
     private static void ValidatePurchaseOrder(PurchaseOrder po)
     {
         if (po.Status != PurchaseOrderStatus.Approved)
-            throw new InvalidOperationException("PurchaseOrder must be Approved before receiving.");
+            throw new InvalidOperationException("Đơn đặt hàng phải ở trạng thái Đã duyệt (Approved) trước khi nhận hàng.");
     }
 
     private static void ValidateInvoiceImageUrl(string? invoiceImageUrl)
@@ -142,7 +142,7 @@ public class ReceivingService : IReceivingService
         if (string.IsNullOrWhiteSpace(invoiceImageUrl)) return;
         if (!Uri.TryCreate(invoiceImageUrl, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            throw new InvalidOperationException("InvoiceImageUrl must be an absolute HTTP or HTTPS URL.");
+            throw new InvalidOperationException("Đường dẫn ảnh hóa đơn phải là URL HTTP hoặc HTTPS hợp lệ.");
     }
 
     private static void ValidateCompleteReceiving(Receiving receiving, PurchaseOrder po)
@@ -160,7 +160,7 @@ public class ReceivingService : IReceivingService
         {
             var receivingQuantity = receivingByProduct.GetValueOrDefault(poDetail.ProductId);
             if (poDetail.ReceivedQuantity + receivingQuantity != poDetail.OrderedQuantity)
-                throw new InvalidOperationException("Cannot confirm receiving until all PurchaseOrder quantities are processed.");
+                throw new InvalidOperationException("Không thể xác nhận: Tổng số lượng nhận trong phiếu phải khớp với số lượng còn lại của đơn đặt hàng.");
         }
     }
 
@@ -187,7 +187,7 @@ public class ReceivingService : IReceivingService
             }
 
             if (remaining != 0)
-                throw new InvalidOperationException($"Cannot confirm: receiving {quantity} would exceed the ordered quantity for product '{detailGroup.Key}'.");
+                throw new InvalidOperationException($"Không thể xác nhận: Số lượng nhận {quantity} vượt quá số lượng đặt còn lại của sản phẩm.");
         }
     }
 
@@ -204,10 +204,10 @@ public class ReceivingService : IReceivingService
         foreach (var detail in dto.Details)
         {
             if (detail.ActualQuantity <= 0)
-                throw new InvalidOperationException($"Quantity for product '{detail.ProductId}' must be greater than zero.");
+                throw new InvalidOperationException($"Số lượng nhận của sản phẩm phải lớn hơn 0.");
 
             if (!poDetails.TryGetValue(detail.ProductId, out var poDetail))
-                throw new InvalidOperationException($"Product '{detail.ProductId}' is not in PurchaseOrder '{po.PoNumber}'.");
+                throw new InvalidOperationException($"Sản phẩm không thuộc đơn đặt hàng '{po.PoNumber}'.");
         }
 
         foreach (var detailGroup in dto.Details.GroupBy(d => d.ProductId))
@@ -216,7 +216,7 @@ public class ReceivingService : IReceivingService
             var quantity = detailGroup.Sum(d => d.ActualQuantity);
             var remaining = poDetail.OrderedQuantity - poDetail.ReceivedQuantity;
             if (quantity > remaining)
-                throw new InvalidOperationException($"Cannot receive {quantity} of product '{detailGroup.Key}'. Remaining: {remaining}.");
+                throw new InvalidOperationException($"Không thể nhận {quantity} sản phẩm. Số lượng còn lại cần nhận là {remaining}.");
         }
     }
 }

@@ -15,6 +15,7 @@ import type { TableColumnsType } from 'antd'
 import CustomerFormModal from './CustomerFormModal'
 import type { CustomerDto } from '../../types/customer'
 import { useCustomers, useDeleteCustomer } from '../../hooks/useCustomers'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 function Customers() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -39,7 +40,7 @@ function Customers() {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => message.success('Đã xoá khách hàng.'),
-          onError: (err: Error) => message.error(`Xoá thất bại: ${err.message}`),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá khách hàng thất bại.')),
         }),
     })
   }

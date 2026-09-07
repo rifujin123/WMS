@@ -9,6 +9,7 @@ import type {
 import { useProductLookup } from '../../hooks/useProducts'
 import { useVendorLookup } from '../../hooks/useVendors'
 import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../../hooks/usePurchaseOrders'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface PurchaseOrderFormModalProps {
   open: boolean
@@ -54,8 +55,8 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
         message.success(isEdit ? 'Đã cập nhật đơn hàng.' : 'Đã tạo đơn hàng.')
         onClose()
       }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật đơn hàng thất bại.' : 'Tạo đơn hàng thất bại.')
+      const onError = (err: Error) =>
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật đơn hàng thất bại.' : 'Tạo đơn hàng thất bại.'))
       if (isEdit && po) {
         updateMutation.mutate({ id: po.id, dto }, { onSuccess, onError })
       } else {

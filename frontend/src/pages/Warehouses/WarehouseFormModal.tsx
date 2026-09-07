@@ -2,6 +2,7 @@ import { App, Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import type { CreateWarehouseDto, UpdateWarehouseDto, WarehouseDto } from '../../types/warehouse'
 import { useCreateWarehouse, useUpdateWarehouse } from '../../hooks/useWarehouses'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface WarehouseFormModalProps {
   open: boolean
@@ -33,8 +34,8 @@ function WarehouseFormModal({ open, warehouse, onClose }: WarehouseFormModalProp
         message.success(isEdit ? 'Đã cập nhật kho.' : 'Đã tạo kho.')
         onClose()
       }
-      const onError = () =>
-        message.error(isEdit ? 'Cập nhật kho thất bại.' : 'Tạo kho thất bại.')
+      const onError = (err: Error) =>
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật kho thất bại.' : 'Tạo kho thất bại.'))
 
       if (isEdit && warehouse) {
         const dto: UpdateWarehouseDto = {

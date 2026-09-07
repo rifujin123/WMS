@@ -109,7 +109,7 @@ public class PutAwayServiceTests
         };
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(dto));
-        Assert.Contains("Max allowed: 10", ex.Message);
+        Assert.Contains("Số lượng tối đa cho phép là 10", ex.Message);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class PutAwayServiceTests
         repo.Items.Add(task);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartProgressAsync(task.Id));
-        Assert.Contains("capacity", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("không đủ sức chứa", ex.Message);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public class PutAwayServiceTests
         repo.Items.Add(task);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartProgressAsync(task.Id));
-        Assert.Contains("ToLocation", ex.Message);
+        Assert.Contains("vị trí đích", ex.Message);
     }
 
     [Fact]

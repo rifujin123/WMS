@@ -12,6 +12,7 @@ import { usePickings } from '../../hooks/usePickings'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL, PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
 import type { PickingDto, PickingStatus } from '../../types/picking'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 const OPEN_STATUSES = ['Open', 'Assigned', 'InProgress']
 
@@ -67,7 +68,7 @@ function StaffDashboard() {
       onOk: () =>
         startMutation.mutate(task.id, {
           onSuccess: () => message.success('Task đang được xử lý.'),
-          onError: () => message.error('Bắt đầu task thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Bắt đầu task thất bại.')),
         }),
     })
   }
@@ -86,7 +87,7 @@ function StaffDashboard() {
             queryClient.invalidateQueries({ queryKey: ['stocks'] })
             queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
           },
-          onError: () => message.error('Hoàn thành task thất bại.'),
+          onError: (err: Error) => message.error(getErrorMessage(err, 'Hoàn thành task thất bại.')),
         }),
     })
   }

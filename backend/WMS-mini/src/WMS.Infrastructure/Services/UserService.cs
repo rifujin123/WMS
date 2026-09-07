@@ -166,7 +166,7 @@ public class UserService : IUserService
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(result.Errors));
 
         var profile = _mapper.Map<UserProfileDto>(user);
         profile.Roles = (await _userManager.GetRolesAsync(user)).ToList();
@@ -176,11 +176,11 @@ public class UserService : IUserService
     public async Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) throw new Exception("User not found.");
+        if (user == null) throw new InvalidOperationException("Không tìm thấy người dùng.");
 
         var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
         if (!result.Succeeded)
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(result.Errors));
     }
 
     public async Task<string?> UploadAvatarAsync(Guid userId, Stream fileStream, string fileName)
@@ -193,7 +193,7 @@ public class UserService : IUserService
         user.AvatarUrl = url;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(result.Errors));
 
         return user.AvatarUrl;
     }
@@ -209,7 +209,7 @@ public class UserService : IUserService
 
         var updateResult = await _userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
-            throw new Exception(string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(updateResult.Errors));
 
         if (!string.IsNullOrWhiteSpace(dto.Role))
         {
@@ -228,11 +228,11 @@ public class UserService : IUserService
 
         var removeResult = await _userManager.RemovePasswordAsync(user);
         if (!removeResult.Succeeded)
-            throw new Exception(string.Join(", ", removeResult.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(removeResult.Errors));
 
         var addResult = await _userManager.AddPasswordAsync(user, newPassword);
         if (!addResult.Succeeded)
-            throw new Exception(string.Join(", ", addResult.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(addResult.Errors));
 
         return true;
     }
@@ -247,8 +247,25 @@ public class UserService : IUserService
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
-            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException(FormatIdentityErrors(result.Errors));
 
         return true;
+    }
+
+    private static string FormatIdentityErrors(IEnumerable<IdentityError> errors)
+    {
+        var translated = errors.Select(e => e.Code switch
+        {
+            "PasswordMismatch" => "Mật khẩu hiện tại không chính xác.",
+            "PasswordTooShort" => "Mật khẩu quá ngắn, yêu cầu ít nhất 6 ký tự.",
+            "PasswordRequiresNonAlphanumeric" => "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@, #, $, v.v.).",
+            "PasswordRequiresDigit" => "Mật khẩu phải chứa ít nhất một chữ số (0-9).",
+            "PasswordRequiresLower" => "Mật khẩu phải chứa ít nhất một chữ cái thường (a-z).",
+            "PasswordRequiresUpper" => "Mật khẩu phải chứa ít nhất một chữ cái hoa (A-Z).",
+            "DuplicateUserName" => "Tên đăng nhập đã được sử dụng.",
+            "DuplicateEmail" => "Địa chỉ email đã được sử dụng.",
+            _ => e.Description
+        });
+        return string.Join(" ", translated);
     }
 }

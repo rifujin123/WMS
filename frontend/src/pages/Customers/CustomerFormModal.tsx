@@ -2,6 +2,7 @@ import { App, Col, Form, Input, Modal, Row } from 'antd'
 import { useEffect } from 'react'
 import type { CustomerDto } from '../../types/customer'
 import { useCreateCustomer, useUpdateCustomer } from '../../hooks/useCustomers'
+import { getErrorMessage } from '../../lib/errorHandler'
 
 interface CustomerFormModalProps {
   open: boolean
@@ -47,7 +48,7 @@ function CustomerFormModal({ open, customer, onClose }: CustomerFormModalProps) 
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(isEdit ? `Cập nhật thất bại: ${err.message}` : `Thêm khách hàng thất bại: ${err.message}`)
+        message.error(getErrorMessage(err, isEdit ? 'Cập nhật khách hàng thất bại.' : 'Thêm khách hàng thất bại.'))
       if (isEdit && customer) {
         updateMutation.mutate({ id: customer.id, dto }, { onSuccess, onError })
       } else {
