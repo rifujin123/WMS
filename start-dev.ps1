@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 #  WMS — Khởi động backend (.NET) + frontend (Vite)
 #
 #  Cách dùng:
@@ -41,7 +41,26 @@ function Start-DevWindow([string]$Command, [string]$WorkingDir) {
 
 # ---- Khởi động backend (http://localhost:5246) ------------------------------
 Write-Host '[1/2] Dang khoi dong backend (dotnet run)...' -ForegroundColor Cyan
-$backendCmd = "`$Host.UI.RawUI.WindowTitle = 'WMS - Backend'; Set-Location -LiteralPath '$backendDir'; `$env:ASPNETCORE_ENVIRONMENT = 'Development'; `$env:ASPNETCORE_URLS = 'http://localhost:5246'; dotnet run --project .\src\WMS.API"
+
+# Đọc file .env nếu có để truyền vào môi trường chạy backend
+$envAssignments = ""
+$envFile = Join-Path $root '.env'
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith('#') -and $line.Contains('=')) {
+            $parts = $line.Split('=', 2)
+            $k = $parts[0].Trim()
+            $v = $parts[1].Trim()
+            $envAssignments += "`$env:$k = '$v'; "
+            if ($k -eq 'AI_PROVIDER_API_KEY') {
+                $envAssignments += "`$env:AiProvider__ApiKey = '$v'; "
+            }
+        }
+    }
+}
+
+$backendCmd = "`$Host.UI.RawUI.WindowTitle = 'WMS - Backend'; Set-Location -LiteralPath '$backendDir'; $envAssignments`$env:ASPNETCORE_ENVIRONMENT = 'Development'; `$env:ASPNETCORE_URLS = 'http://localhost:5246'; dotnet run --project .\src\WMS.API"
 Start-DevWindow $backendCmd $backendDir
 
 # ---- Khởi động frontend (http://localhost:5173) -----------------------------

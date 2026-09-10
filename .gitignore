@@ -75,6 +75,7 @@ docs/
 ## ── AI agent config ──────────────────────────────
 CLAUDE.md
 .agents/
+.specify/
 
 ## ── Todo ──────────────────────────────────────────
 todo/

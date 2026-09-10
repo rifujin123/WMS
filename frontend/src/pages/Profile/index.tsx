@@ -1,7 +1,7 @@
 import { Col, Row, Skeleton, Typography } from 'antd'
-import AvatarCard from './AvatarCard'
-import ChangePasswordForm from './ChangePasswordForm'
-import ProfileInfoForm from './ProfileInfoForm'
+import AvatarCard from './components/AvatarCard'
+import ChangePasswordForm from './components/ChangePasswordForm'
+import ProfileInfoForm from './components/ProfileInfoForm'
 import { useProfile } from '../../hooks/useUserProfile'
 
 function Profile() {

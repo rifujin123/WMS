@@ -1,11 +1,9 @@
-export type UserRole = 'Admin' | 'WarehouseManager' | 'WarehouseStaff'
+export const allRoles: string[] = ['Admin', 'WarehouseManager', 'WarehouseStaff']
 
-export const allRoles: UserRole[] = ['Admin', 'WarehouseManager', 'WarehouseStaff']
-
-export function isValidRole(role: string): role is UserRole {
-  return allRoles.includes(role as UserRole)
+export function isValidRole(role: string): boolean {
+  return allRoles.includes(role)
 }
 
-export function hasRole(role: UserRole | undefined, allowedRoles: UserRole[]) {
+export function hasRole(role: string | undefined, allowedRoles: string[]): boolean {
   return role !== undefined && allowedRoles.includes(role)
 }

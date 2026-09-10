@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthResponse } from '../types/auth'
-import { isValidRole, type UserRole } from '../router/routeRoles'
+import { isValidRole } from '../router/routeRoles'
 import { AuthContext, type AuthUser } from './authContextValue'
 
 const TOKEN_KEY = 'accessToken'
@@ -21,7 +21,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     }
 }
 
-function getRoleFromToken(token: string): UserRole | undefined {
+function getRoleFromToken(token: string): string | undefined {
     const payload = decodeJwtPayload(token)
     if (!payload) return undefined
 

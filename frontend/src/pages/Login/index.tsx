@@ -1,6 +1,6 @@
 import { Grid } from 'antd'
-import BrandPanel from './BrandPanel'
-import LoginForm from './LoginForm'
+import BrandPanel from './components/BrandPanel'
+import LoginForm from './components/LoginForm'
 
 function Login() {
   const screens = Grid.useBreakpoint()

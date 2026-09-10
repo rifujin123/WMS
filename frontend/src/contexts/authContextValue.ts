@@ -1,12 +1,10 @@
 import { createContext } from 'react'
 import type { AuthResponse } from '../types/auth'
-import type { UserRole } from '../router/routeRoles'
-
 export interface AuthUser {
   username: string
   email: string
   fullName: string
-  role: UserRole
+  role: string
   avatarUrl?: string
 }
 

@@ -21,7 +21,7 @@ import {
 } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
-import PurchaseOrderFormModal from './PurchaseOrderFormModal'
+import PurchaseOrderFormModal from './components/PurchaseOrderFormModal'
 import type { PurchaseOrderDto, PurchaseOrderStatus } from '../../types/purchaseOrder'
 import {
   useApprovePurchaseOrder,

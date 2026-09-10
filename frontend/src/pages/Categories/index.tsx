@@ -12,7 +12,7 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import CategoryFormModal from './CategoryFormModal'
+import CategoryFormModal from './components/CategoryFormModal'
 import type { CategoryDto } from '../../types/category'
 import { useCategories, useDeleteCategory } from '../../hooks/useCategories'
 

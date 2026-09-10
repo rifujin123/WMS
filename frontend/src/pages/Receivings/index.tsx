@@ -4,7 +4,7 @@ import { App, Button, Card, Empty, Input, Modal, Skeleton, Table, Tag, Tooltip, 
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import { useNavigate } from 'react-router-dom'
-import ReceivingFormModal from './ReceivingFormModal'
+import ReceivingFormModal from './components/ReceivingFormModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
 import { useConfirmReceiving, useDeleteReceiving, useReceivingsPage } from '../../hooks/useReceivings'
 

@@ -1,8 +1,8 @@
 import { Empty } from 'antd'
 import { useAuthContext } from '../../contexts/useAuthContext'
-import AdminDashboard from './AdminDashboard'
-import ManagerDashboard from './ManagerDashboard'
-import StaffDashboard from './StaffDashboard'
+import AdminDashboard from './components/AdminDashboard'
+import ManagerDashboard from './components/ManagerDashboard'
+import StaffDashboard from './components/StaffDashboard'
 
 function Dashboard() {
   const { user } = useAuthContext()

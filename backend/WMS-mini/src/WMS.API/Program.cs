@@ -57,12 +57,13 @@ builder.Services.AddOptions<DemoSeedOptions>()
 builder.Services.AddHttpClient("AiProvider", (sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<AiProviderOptions>>().Value;
-    if (!string.IsNullOrWhiteSpace(options.BaseUrl))
-        client.BaseAddress = new Uri(options.BaseUrl);
-    client.Timeout = TimeSpan.FromSeconds(30);
+    var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
+        ? "https://generativelanguage.googleapis.com"
+        : options.BaseUrl;
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(60);
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", options.ApiKey);
+        client.DefaultRequestHeaders.Add("x-goog-api-key", options.ApiKey);
 });
 
 var frontendOrigin = builder.Configuration["Frontend:Origin"]
@@ -176,12 +177,7 @@ builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IDemoDataSeeder, MultiStatusDemoDataSeeder>();
 
 // AI Provider
-var aiProviderName = builder.Configuration.GetValue("AiProvider:Provider", "Mock");
-if (aiProviderName.Equals("Real", StringComparison.OrdinalIgnoreCase))
-    builder.Services.AddScoped<IAiProvider, RealAiProvider>();
-else
-    builder.Services.AddScoped<IAiProvider, MockAiProvider>();
-    
+builder.Services.AddScoped<IAiProvider, AiProvider>();
 builder.Services.AddScoped<IProductMappingService, ProductMappingService>();
 builder.Services.AddScoped<IInvoiceScanService, InvoiceScanService>();
 
@@ -260,8 +256,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
-
-app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

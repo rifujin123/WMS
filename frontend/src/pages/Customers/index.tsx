@@ -12,7 +12,7 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import CustomerFormModal from './CustomerFormModal'
+import CustomerFormModal from './components/CustomerFormModal'
 import type { CustomerDto } from '../../types/customer'
 import { useCustomers, useDeleteCustomer } from '../../hooks/useCustomers'
 import { getErrorMessage } from '../../lib/errorHandler'
