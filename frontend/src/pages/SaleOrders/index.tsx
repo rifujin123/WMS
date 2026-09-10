@@ -21,7 +21,7 @@ import {
 } from 'antd'
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
-import SaleOrderFormModal from './SaleOrderFormModal'
+import SaleOrderFormModal from './components/SaleOrderFormModal'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
 import type { ShipmentDto } from '../../types/shipment'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'

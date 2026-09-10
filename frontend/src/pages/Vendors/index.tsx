@@ -12,7 +12,7 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import VendorFormModal from './VendorFormModal'
+import VendorFormModal from './components/VendorFormModal'
 import type { VendorDto } from '../../types/vendor'
 import { useVendors, useDeleteVendor } from '../../hooks/useVendors'
 import { getErrorMessage } from '../../lib/errorHandler'

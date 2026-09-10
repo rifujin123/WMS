@@ -29,7 +29,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../Logo'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
-import { hasRole, type UserRole } from '../../router/routeRoles'
+import { hasRole } from '../../router/routeRoles'
 
 const { Header, Content, Footer, Sider } = Layout
 
@@ -37,7 +37,7 @@ interface AppMenuItem {
   key: string
   icon: ReactNode
   label: string
-  allowedRoles: UserRole[]
+  allowedRoles: string[]
 }
 
 const appMenuItems: AppMenuItem[] = [
@@ -104,7 +104,7 @@ const appMenuItems: AppMenuItem[] = [
   },
 ]
 
-function getMenuItems(role: UserRole | undefined): MenuProps['items'] {
+function getMenuItems(role: string | undefined): MenuProps['items'] {
   return appMenuItems
     .filter((item) => hasRole(role, item.allowedRoles))
     .map((item) => ({ key: item.key, icon: item.icon, label: item.label }))

@@ -20,7 +20,7 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import ProductFormModal from './ProductFormModal'
+import ProductFormModal from './components/ProductFormModal'
 import type { ProductDto } from '../../types/product'
 import { useCategoryLookup } from '../../hooks/useCategories'
 import { useDeleteProduct, useProducts } from '../../hooks/useProducts'

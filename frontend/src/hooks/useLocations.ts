@@ -38,12 +38,6 @@ export function useCreateLocation() {
       queryClient.invalidateQueries({ queryKey: ['locationsPage'] })
       queryClient.invalidateQueries({ queryKey: ['allLocations'] })
     },
-    onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Tạo vị trí thất bại'
-      throw new Error(message)
-    },
   })
 }
 
@@ -57,12 +51,6 @@ export function useUpdateLocation() {
       queryClient.invalidateQueries({ queryKey: ['locationsPage'] })
       queryClient.invalidateQueries({ queryKey: ['allLocations'] })
     },
-    onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Sửa vị trí thất bại'
-      throw new Error(message)
-    },
   })
 }
 
@@ -74,12 +62,6 @@ export function useDeleteLocation() {
       queryClient.invalidateQueries({ queryKey: ['locations'] })
       queryClient.invalidateQueries({ queryKey: ['locationsPage'] })
       queryClient.invalidateQueries({ queryKey: ['allLocations'] })
-    },
-    onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Xoá vị trí thất bại'
-      throw new Error(message)
     },
   })
 }

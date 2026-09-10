@@ -13,7 +13,7 @@ import {
 } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import WarehouseFormModal from './WarehouseFormModal'
+import WarehouseFormModal from './components/WarehouseFormModal'
 import type { WarehouseDto } from '../../types/warehouse'
 import { useDeleteWarehouse, useWarehousesPage } from '../../hooks/useWarehouses'
 import { getErrorMessage } from '../../lib/errorHandler'

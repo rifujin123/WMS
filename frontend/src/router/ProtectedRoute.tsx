@@ -1,9 +1,9 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthContext } from '../contexts/useAuthContext'
-import { hasRole, type UserRole } from './routeRoles'
+import { hasRole } from './routeRoles'
 
 interface ProtectedRouteProps {
-  allowedRoles?: UserRole[]
+  allowedRoles?: string[]
 }
 
 function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
