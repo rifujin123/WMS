@@ -99,8 +99,8 @@ const appMenuItems: AppMenuItem[] = [
     key: '/stock-adjustments',
     icon: <AuditOutlined />,
     label: 'Điều chỉnh tồn',
-    // Điều chỉnh là nghiệp vụ kiểm soát; Staff không được thao tác trực tiếp.
-    allowedRoles: ['Admin', 'WarehouseManager'],
+    // Staff có thể tạo và chỉ xem Draft của mình; chỉ Admin được duyệt hoặc xóa.
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
 ]
 

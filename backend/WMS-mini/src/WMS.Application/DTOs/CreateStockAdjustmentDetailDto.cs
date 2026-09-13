@@ -10,6 +10,6 @@ public class CreateStockAdjustmentDetailDto
     [Required]
     public Guid LocationId { get; set; }
 
-    [Range(1, int.MaxValue)]
+    [Range(0, int.MaxValue)]
     public int CountedQty { get; set; }
 }

@@ -51,7 +51,7 @@ const STOCK_ADJUSTMENT_STATUS_COLOR: Record<StockAdjustmentStatus, string> = {
 function StockAdjustments() {
   const { message } = App.useApp()
   const { user } = useAuthContext()
-  const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+  const isAdmin = user?.role === 'Admin'
   const { data: adjustments, isPending } = useStockAdjustments()
   const { data: products } = useProductLookup()
   const { data: locations } = useAllLocations()
@@ -177,7 +177,7 @@ function StockAdjustments() {
       key: 'actions',
       width: 180,
       render: (_, row) =>
-        canManage && row.status === 'Draft' ? (
+        isAdmin && row.status === 'Draft' ? (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <Button
               type="primary"
@@ -273,6 +273,13 @@ function StockAdjustments() {
                   if (!details || details.length === 0) {
                     throw new Error('Vui lòng thêm ít nhất một dòng.')
                   }
+
+                  const pairs = details
+                    .filter((detail) => detail.productId && detail.locationId)
+                    .map((detail) => `${detail.productId}-${detail.locationId}`)
+                  if (new Set(pairs).size !== pairs.length) {
+                    throw new Error('M\u1ed7i c\u1eb7p s\u1ea3n ph\u1ea9m v\u00e0 v\u1ecb tr\u00ed ch\u1ec9 \u0111\u01b0\u1ee3c nh\u1eadp m\u1ed9t l\u1ea7n.')
+                  }
                 },
               }]}
             >
@@ -304,10 +311,10 @@ function StockAdjustments() {
                       </Form.Item>
                       <Form.Item
                         name={[field.name, 'countedQty']}
-                        rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
+                        rules={[{ required: true, type: 'number', min: 0, message: 'Nh\u1eadp s\u1ed1 l\u01b0\u1ee3ng t\u1eeb 0 tr\u1edf l\u00ean.' }]}
                         style={{ marginBottom: 0 }}
                       >
-                        <InputNumber style={{ width: '100%' }} min={1} placeholder="SL" />
+                        <InputNumber style={{ width: '100%' }} min={0} placeholder="SL" />
                       </Form.Item>
                       <Button
                         type="text"
@@ -322,7 +329,7 @@ function StockAdjustments() {
                     type="dashed"
                     block
                     icon={<PlusOutlined />}
-                    onClick={() => add({ countedQty: 1 } as CreateStockAdjustmentDetailDto)}
+                    onClick={() => add({ countedQty: 0 } as CreateStockAdjustmentDetailDto)}
                   >
                     Thêm dòng
                   </Button>

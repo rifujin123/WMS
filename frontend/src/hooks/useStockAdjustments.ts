@@ -20,8 +20,6 @@ export function useCreateStockAdjustment() {
     mutationFn: createStockAdjustmentRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stockAdjustments'] })
-      queryClient.invalidateQueries({ queryKey: ['stocks'] })
-      queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
     },
   })
 }
