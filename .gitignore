@@ -83,3 +83,7 @@ todo/
 ## ── Learning & Defense Workspace ─────────────────
 teach-wms/
 AGENTS.md
+## BMad workflow generated artifacts
+_bmad/
+_bmad-output/
+_bmad.setup-*/
