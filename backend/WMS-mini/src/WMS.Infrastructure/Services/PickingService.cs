@@ -152,9 +152,13 @@ public class PickingService : IPickingService
                 if (detail.LocationId == null) throw new InvalidOperationException($"Cần có thông tin vị trí để hoàn thành dòng lấy hàng.");
                 var input = byId[detail.Id];
                 var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy dữ liệu tồn kho tại vị trí lấy hàng.");
-                if (stock.ReservedQty < input.QtyPicked || stock.OnhandQty < input.QtyPicked) throw new InvalidOperationException($"Không đủ tồn kho cho sản phẩm '{detail.Product.Sku}' tại vị trí '{stock.Location.Code}'.");
+                var location = stock.Location ?? throw new InvalidOperationException("Không tìm thấy thông tin vị trí của tồn kho cần lấy hàng.");
+                if (stock.ReservedQty < input.QtyPicked) throw new InvalidOperationException($"Số lượng đã giữ chỗ không đủ cho sản phẩm '{detail.Product.Sku}' tại vị trí '{location.Code}'.");
+                if (stock.OnhandQty < input.QtyPicked) throw new InvalidOperationException($"Tồn kho thực tế không đủ cho sản phẩm '{detail.Product.Sku}' tại vị trí '{location.Code}'.");
+                if (location.CurrentQuantity < input.QtyPicked) throw new InvalidOperationException($"Số lượng hiện tại tại vị trí '{location.Code}' không đủ để hoàn thành lấy hàng.");
                 stock.ReservedQty -= input.QtyPicked;
                 stock.OnhandQty -= input.QtyPicked;
+                location.CurrentQuantity -= input.QtyPicked;
                 await _stockRepo.UpdateAsync(stock);
                 await _movementRepo.AddAsync(new StockMovement { ProductId = detail.ProductId, LocationId = detail.LocationId.Value, MovementType = MovementType.Out, Qty = input.QtyPicked, Notes = $"Picking completed. PickingNo: {picking.PickingNo}" });
                 detail.QtyPicked = input.QtyPicked;

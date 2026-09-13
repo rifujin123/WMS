@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { invalidateInventoryQueries } from '../lib/invalidateInventoryQueries'
 import type { AssignPutAwayDto, UpdatePutAwayTaskDto } from '../types/putAwayTask'
 import type { PutAwayTaskListParams } from '../services/putAwayTask'
 import {
@@ -77,12 +78,13 @@ export function useCompletePutAwayTask() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: completePutAwayTaskRequest,
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] })
       queryClient.invalidateQueries({ queryKey: ['putAwayTasksPage'] })
       // Hoàn thành task có thể làm PO chuyển sang Closed
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] })
       queryClient.invalidateQueries({ queryKey: ['purchaseOrdersPage'] })
+      await invalidateInventoryQueries(queryClient)
     },
   })
 }

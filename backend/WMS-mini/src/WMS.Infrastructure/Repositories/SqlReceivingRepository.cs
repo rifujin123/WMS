@@ -84,6 +84,7 @@ public class SqlReceivingRepository : IReceivingRepository
     public async Task<ReceivingDetail?> GetDetailByIdAsync(Guid id)
     {
         return await _db.ReceivingDetails
+            .Include(d => d.Receiving)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 

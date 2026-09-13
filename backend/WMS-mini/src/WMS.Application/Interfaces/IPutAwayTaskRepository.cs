@@ -12,4 +12,5 @@ public interface IPutAwayTaskRepository
     Task UpdateAsync(PutAwayTask putAwayTask);
     Task DeleteAsync(PutAwayTask putAwayTask);
     Task<int> GetIncompleteCountByPurchaseOrderAsync(Guid purchaseOrderId);
+    Task<int> GetTotalQuantityByReceivingDetailAsync(Guid receivingDetailId, Guid? excludeTaskId = null);
 }

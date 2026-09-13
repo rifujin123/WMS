@@ -105,4 +105,13 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         _db.PutAwayTasks
             .Where(t => t.ReceivingDetail.Receiving.PurchaseOrderId == purchaseOrderId)
             .CountAsync(t => t.Status != PutAwayTaskStatus.Completed);
+
+    public async Task<int> GetTotalQuantityByReceivingDetailAsync(Guid receivingDetailId, Guid? excludeTaskId = null)
+    {
+        var tasks = _db.PutAwayTasks.Where(t => t.ReceivingDetailId == receivingDetailId);
+        if (excludeTaskId.HasValue)
+            tasks = tasks.Where(t => t.Id != excludeTaskId.Value);
+
+        return await tasks.SumAsync(t => (int?)t.Quantity) ?? 0;
+    }
 }
