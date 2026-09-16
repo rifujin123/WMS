@@ -49,7 +49,9 @@ public class StockAdjustmentService : IStockAdjustmentService
                 : [];
         }
 
-        return _mapper.Map<List<StockAdjustmentDto>>(results);
+        var dtos = _mapper.Map<List<StockAdjustmentDto>>(results);
+        await PopulateSystemAndDifferenceQuantitiesAsync(dtos);
+        return dtos;
     }
 
     public async Task<StockAdjustmentDto?> GetByIdAsync(Guid id)
@@ -60,7 +62,9 @@ public class StockAdjustmentService : IStockAdjustmentService
             return null;
         }
 
-        return _mapper.Map<StockAdjustmentDto>(result);
+        var dto = _mapper.Map<StockAdjustmentDto>(result);
+        await PopulateSystemAndDifferenceQuantitiesAsync(dto);
+        return dto;
     }
 
     public async Task<StockAdjustmentDto> CreateAsync(CreateStockAdjustmentDto dto)
@@ -85,7 +89,9 @@ public class StockAdjustmentService : IStockAdjustmentService
 
         await _repo.AddAsync(entity);
         await _unitOfWork.SaveChangesAsync();
-        return _mapper.Map<StockAdjustmentDto>(entity);
+        var resultDto = _mapper.Map<StockAdjustmentDto>(entity);
+        await PopulateSystemAndDifferenceQuantitiesAsync(resultDto);
+        return resultDto;
     }
 
     public async Task<StockAdjustmentDto?> ApproveAsync(Guid id)
@@ -193,7 +199,9 @@ public class StockAdjustmentService : IStockAdjustmentService
             await _unitOfWork.SaveChangesAsync();
         });
 
-        return _mapper.Map<StockAdjustmentDto>(adjustment);
+        var dto = _mapper.Map<StockAdjustmentDto>(adjustment);
+        await PopulateSystemAndDifferenceQuantitiesAsync(dto);
+        return dto;
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -262,6 +270,65 @@ public class StockAdjustmentService : IStockAdjustmentService
 
         var userId = _currentUser.UserId;
         return userId.HasValue && adjustment.CreatedById == userId.Value;
+    }
+
+    private async Task PopulateSystemAndDifferenceQuantitiesAsync(StockAdjustmentDto dto)
+    {
+        await PopulateSystemAndDifferenceQuantitiesAsync([dto]);
+    }
+
+    private async Task PopulateSystemAndDifferenceQuantitiesAsync(List<StockAdjustmentDto> dtos)
+    {
+        if (dtos.Count == 0) return;
+
+        // Lấy toàn bộ tồn kho để tra cứu nhanh số lượng tồn trên hệ thống cho các phiếu Draft
+        var allStocks = await _stockRepo.GetAllAsync();
+        var stockLookup = allStocks
+            .GroupBy(s => (s.ProductId, s.LocationId))
+            .ToDictionary(g => g.Key, g => g.First());
+
+        // Lấy danh sách số phiếu của các phiếu đã duyệt
+        var approvedNos = dtos
+            .Where(d => d.Status == StockAdjustmentStatus.Approved)
+            .Select(d => d.AdjustmentNo)
+            .ToHashSet();
+
+        List<StockMovement> movements = [];
+        if (approvedNos.Count > 0)
+        {
+            var allMovements = await _movementRepo.GetAllAsync();
+            movements = allMovements
+                .Where(m => m.MovementType == MovementType.Adjustment && m.Notes != null && approvedNos.Any(no => m.Notes.Contains(no)))
+                .ToList();
+        }
+
+        foreach (var dto in dtos)
+        {
+            if (dto.Status == StockAdjustmentStatus.Draft)
+            {
+                foreach (var detail in dto.Details)
+                {
+                    detail.SystemQty = stockLookup.TryGetValue((detail.ProductId, detail.LocationId), out var stock)
+                        ? stock.OnhandQty
+                        : 0;
+                }
+            }
+            else // Approved
+            {
+                foreach (var detail in dto.Details)
+                {
+                    var movement = movements.FirstOrDefault(m =>
+                        m.ProductId == detail.ProductId &&
+                        m.LocationId == detail.LocationId &&
+                        m.Notes != null &&
+                        m.Notes.Contains(dto.AdjustmentNo));
+
+                    detail.SystemQty = movement != null
+                        ? detail.CountedQty - movement.Qty
+                        : detail.CountedQty;
+                }
+            }
+        }
     }
 
     private sealed record ApprovalDetail(

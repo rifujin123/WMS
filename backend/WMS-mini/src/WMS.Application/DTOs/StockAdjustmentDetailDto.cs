@@ -8,5 +8,7 @@ public class StockAdjustmentDetailDto
     public string ProductName { get; set; } = string.Empty;
     public Guid LocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
+    public int SystemQty { get; set; }
     public int CountedQty { get; set; }
+    public int DifferenceQty => CountedQty - SystemQty;
 }

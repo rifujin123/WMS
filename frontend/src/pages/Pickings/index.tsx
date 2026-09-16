@@ -316,15 +316,6 @@ function Pickings() {
                   </Tooltip>
                 </>
               )}
-              {row.status === 'InProgress' && (
-                <Button
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => handleComplete(row)}
-                >
-                  Hoàn thành
-                </Button>
-              )}
             </>
           )}
         </div>

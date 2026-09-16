@@ -37,7 +37,11 @@ builder.Host.UseSerilog((context, config) =>
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
-        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    {
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        o.JsonSerializerOptions.Converters.Add(new DateTimeUtcJsonConverter());
+        o.JsonSerializerOptions.Converters.Add(new NullableDateTimeUtcJsonConverter());
+    });
 
 builder.Services.AddOptions<PaginationOptions>()
     .Bind(builder.Configuration.GetSection(PaginationOptions.SectionName))

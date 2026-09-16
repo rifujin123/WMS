@@ -33,10 +33,11 @@ import {
   useDeleteStockAdjustment,
   useStockAdjustments,
 } from '../../hooks/useStockAdjustments'
-import { useAllLocations } from '../../hooks/useLocations'
+import { useStocks } from '../../hooks/useStocks'
 import { useProductLookup } from '../../hooks/useProducts'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
 
 const STOCK_ADJUSTMENT_STATUS_LABEL: Record<StockAdjustmentStatus, string> = {
   Draft: 'Nháp',
@@ -54,13 +55,14 @@ function StockAdjustments() {
   const isAdmin = user?.role === 'Admin'
   const { data: adjustments, isPending } = useStockAdjustments()
   const { data: products } = useProductLookup()
-  const { data: locations } = useAllLocations()
+  const { data: stocks } = useStocks()
   const createMutation = useCreateStockAdjustment()
   const approveMutation = useApproveStockAdjustment()
   const deleteMutation = useDeleteStockAdjustment()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm] = Form.useForm<CreateStockAdjustmentDto>()
+  const watchedDetails = Form.useWatch('details', createForm) as CreateStockAdjustmentDetailDto[] | undefined
 
   const filtered = (() => {
     const list = adjustments ?? []
@@ -68,14 +70,28 @@ function StockAdjustments() {
     return [...list].sort((a, b) => dayjs(b.createdDate).valueOf() - dayjs(a.createdDate).valueOf())
   })()
 
+  const getSystemQty = (productId?: string, locationId?: string) => {
+    if (!productId || !locationId || !stocks) return null
+    const match = stocks.find((s) => s.productId === productId && s.locationId === locationId)
+    return match ? match.onhandQty : 0
+  }
+
+  const getLocationOptions = (productId?: string) => {
+    if (!productId || !stocks) return []
+
+    // Chỉ hiển thị các vị trí đang có món hàng đang được chọn (onhandQty > 0)
+    // Label chỉ gồm mã vị trí và số tồn, không kèm chữ thừa
+    return stocks
+      .filter((s) => s.productId === productId && s.onhandQty > 0)
+      .map((s) => ({
+        value: s.locationId,
+        label: `${s.locationCode} (${s.onhandQty})`,
+      }))
+  }
+
   const productOptions = (products ?? []).map((p) => ({
     value: p.id,
     label: `${p.sku} — ${p.name}`,
-  }))
-
-  const locationOptions = (locations ?? []).map((l) => ({
-    value: l.id,
-    label: `${l.code} (${l.warehouseId ? 'kho' : ''} — còn ${l.currentQuantity})`,
   }))
 
   const handleCreate = async () => {
@@ -134,11 +150,49 @@ function StockAdjustments() {
       title: 'SKU',
       dataIndex: 'productSku',
       key: 'productSku',
+      width: 130,
       render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
     },
     { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
-    { title: 'Vị trí', dataIndex: 'locationCode', key: 'locationCode', render: (c?: string) => <Tag>{c ?? '—'}</Tag> },
-    { title: 'SL kiểm đếm', dataIndex: 'countedQty', key: 'countedQty', align: 'right' as const },
+    {
+      title: 'Vị trí',
+      dataIndex: 'locationCode',
+      key: 'locationCode',
+      width: 120,
+      render: (c?: string) => <Tag>{c ?? '—'}</Tag>,
+    },
+    {
+      title: 'Tồn hệ thống',
+      dataIndex: 'systemQty',
+      key: 'systemQty',
+      align: 'right' as const,
+      width: 120,
+      render: (qty: number) => <span style={{ color: '#595959', fontWeight: 600 }}>{qty ?? 0}</span>,
+    },
+    {
+      title: 'SL kiểm thực tế',
+      dataIndex: 'countedQty',
+      key: 'countedQty',
+      align: 'right' as const,
+      width: 130,
+      render: (qty: number) => <b style={{ color: '#1677ff' }}>{qty}</b>,
+    },
+    {
+      title: 'Chênh lệch',
+      dataIndex: 'differenceQty',
+      key: 'differenceQty',
+      align: 'right' as const,
+      width: 120,
+      render: (diff: number) => {
+        if (diff > 0) {
+          return <Tag color="green">+{diff}</Tag>
+        }
+        if (diff < 0) {
+          return <Tag color="red">{diff}</Tag>
+        }
+        return <Tag color="default">0</Tag>
+      },
+    },
   ]
 
   const columns: TableColumnsType<StockAdjustmentDto> = [
@@ -162,6 +216,20 @@ function StockAdjustments() {
       render: (_, row) => row.details.length,
     },
     {
+      title: 'Chênh lệch',
+      key: 'discrepancySummary',
+      render: (_, row) => {
+        const totalDiff = row.details.reduce((sum, d) => sum + (d.differenceQty ?? 0), 0)
+        if (totalDiff > 0) {
+          return <Tag color="green">+{totalDiff}</Tag>
+        }
+        if (totalDiff < 0) {
+          return <Tag color="red">{totalDiff}</Tag>
+        }
+        return <Tag color="default">0</Tag>
+      },
+    },
+    {
       title: 'Ghi chú',
       dataIndex: 'notes',
       key: 'notes',
@@ -171,7 +239,7 @@ function StockAdjustments() {
       title: 'Ngày tạo',
       dataIndex: 'createdDate',
       key: 'createdDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+      render: (date: string) => formatDateTime(date),
     },
     {
       key: 'actions',
@@ -257,7 +325,7 @@ function StockAdjustments() {
         okText="Tạo phiếu"
         cancelText="Huỷ"
         confirmLoading={createMutation.isPending}
-        width={760}
+        width={840}
         destroyOnHidden
       >
         <Form<CreateStockAdjustmentDto> form={createForm} layout="vertical" size="large" style={{ marginTop: 24 }}>
@@ -285,46 +353,93 @@ function StockAdjustments() {
             >
               {(fields, { add, remove }) => (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.8fr 40px', gap: 8, marginBottom: 8 }}>
-                    <Typography.Text type="secondary">Sản phẩm</Typography.Text>
-                    <Typography.Text type="secondary">Vị trí</Typography.Text>
-                    <Typography.Text type="secondary">SL kiểm đếm</Typography.Text>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 180px 90px 100px 32px', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <Typography.Text type="secondary" ellipsis>Sản phẩm</Typography.Text>
+                    <Typography.Text type="secondary" ellipsis>Vị trí</Typography.Text>
+                    <Typography.Text type="secondary" ellipsis>Tồn HT</Typography.Text>
+                    <Typography.Text type="secondary" ellipsis>SL kiểm đếm</Typography.Text>
+                    <span />
                   </div>
-                  {fields.map((field) => (
-                    <div
-                      key={field.key}
-                      style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.8fr 40px', gap: 8, marginBottom: 8, alignItems: 'start' }}
-                    >
-                      <Form.Item
-                        name={[field.name, 'productId']}
-                        rules={[{ required: true, message: 'Chọn sản phẩm.' }]}
-                        style={{ marginBottom: 0 }}
+                  {fields.map((field, index) => {
+                    const currentDetail = watchedDetails?.[index]
+                    const sysQty = getSystemQty(currentDetail?.productId, currentDetail?.locationId)
+
+                    return (
+                      <div
+                        key={field.key}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(0, 1fr) 180px 90px 100px 32px',
+                          gap: 8,
+                          marginBottom: 12,
+                          alignItems: 'start',
+                        }}
                       >
-                        <Select showSearch optionFilterProp="label" placeholder="Sản phẩm" options={productOptions} />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, 'locationId']}
-                        rules={[{ required: true, message: 'Chọn vị trí.' }]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Select showSearch optionFilterProp="label" placeholder="Vị trí" options={locationOptions} />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, 'countedQty']}
-                        rules={[{ required: true, type: 'number', min: 0, message: 'Nh\u1eadp s\u1ed1 l\u01b0\u1ee3ng t\u1eeb 0 tr\u1edf l\u00ean.' }]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <InputNumber style={{ width: '100%' }} min={0} placeholder="SL" />
-                      </Form.Item>
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => remove(field.name)}
-                        aria-label="Xoá dòng"
-                      />
-                    </div>
-                  ))}
+                        <Form.Item
+                          name={[field.name, 'productId']}
+                          rules={[{ required: true, message: 'Chọn sản phẩm.' }]}
+                          style={{ marginBottom: 0, minWidth: 0 }}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Sản phẩm"
+                            options={productOptions}
+                            style={{ width: '100%' }}
+                            onChange={() => {
+                              // Reset vị trí của dòng này khi đổi sản phẩm
+                              createForm.setFieldValue(['details', field.name, 'locationId'], undefined)
+                            }}
+                          />
+                        </Form.Item>
+                        <Form.Item
+                          name={[field.name, 'locationId']}
+                          rules={[{ required: true, message: 'Chọn vị trí.' }]}
+                          style={{ marginBottom: 0, minWidth: 0 }}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder={currentDetail?.productId ? 'Vị trí' : 'Chọn sản phẩm trước'}
+                            disabled={!currentDetail?.productId}
+                            options={getLocationOptions(currentDetail?.productId)}
+                            style={{ width: '100%' }}
+                            notFoundContent={
+                              <Empty
+                                image={null}
+                                description={
+                                  !currentDetail?.productId
+                                    ? 'Vui lòng chọn sản phẩm trước'
+                                    : 'Sản phẩm này chưa có tồn ở vị trí nào'
+                                }
+                              />
+                            }
+                          />
+                        </Form.Item>
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          disabled
+                          value={sysQty !== null ? sysQty : undefined}
+                          placeholder="—"
+                        />
+                        <Form.Item
+                          name={[field.name, 'countedQty']}
+                          rules={[{ required: true, type: 'number', min: 0, message: 'Nh\u1eadp s\u1ed1 l\u01b0\u1ee3ng t\u1eeb 0 tr\u1edf l\u00ean.' }]}
+                          style={{ marginBottom: 0, minWidth: 0 }}
+                        >
+                          <InputNumber style={{ width: '100%' }} min={0} placeholder="SL đếm" />
+                        </Form.Item>
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => remove(field.name)}
+                          aria-label="Xoá dòng"
+                          style={{ marginTop: 4 }}
+                        />
+                      </div>
+                    )
+                  })}
                   <Button
                     type="dashed"
                     block

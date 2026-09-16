@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import {
   AppstoreOutlined,
   AuditOutlined,
+  BarcodeOutlined,
   CarryOutOutlined,
   ContactsOutlined,
   DashboardOutlined,
@@ -11,6 +12,7 @@ import {
   ExportOutlined,
   FacebookFilled,
   FileTextOutlined,
+  ImportOutlined,
   InboxOutlined,
   InstagramFilled,
   LogoutOutlined,
@@ -18,10 +20,13 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PhoneOutlined,
+  SendOutlined,
   ShopOutlined,
   ShoppingOutlined,
+  TagsOutlined,
   TeamOutlined,
   TikTokOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { Avatar, Button, Dropdown, Layout, Menu, theme } from 'antd'
@@ -33,81 +38,158 @@ import { hasRole } from '../../router/routeRoles'
 
 const { Header, Content, Footer, Sider } = Layout
 
-interface AppMenuItem {
+interface LeafMenuItem {
   key: string
   icon: ReactNode
   label: string
   allowedRoles: string[]
 }
 
-const appMenuItems: AppMenuItem[] = [
+interface GroupMenuItem {
+  key: string
+  icon: ReactNode
+  label: string
+  children: LeafMenuItem[]
+}
+
+type NavConfigItem = LeafMenuItem | GroupMenuItem
+
+const navConfig: NavConfigItem[] = [
   {
     key: '/dashboard',
     icon: <DashboardOutlined />,
     label: 'Dashboard',
     allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
   },
-  { key: '/users', icon: <TeamOutlined />, label: 'Người dùng', allowedRoles: ['Admin'] },
-  { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm', allowedRoles: ['Admin'] },
-  { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục', allowedRoles: ['Admin'] },
-  { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng', allowedRoles: ['Admin'] },
-  { key: '/customers', icon: <ContactsOutlined />, label: 'Khách hàng', allowedRoles: ['Admin'] },
-  { key: '/vendors', icon: <ShopOutlined />, label: 'Nhà cung cấp', allowedRoles: ['Admin'] },
   {
-    key: '/purchase-orders',
-    icon: <FileTextOutlined />,
-    label: 'Đơn đặt hàng',
-    // Staff được xem và xử lý PO nhưng không được duyệt.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    key: 'inbound',
+    icon: <ImportOutlined />,
+    label: 'Nhập kho',
+    children: [
+      {
+        key: '/purchase-orders',
+        icon: <FileTextOutlined />,
+        label: 'Đơn đặt hàng',
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+      },
+      {
+        key: '/receivings',
+        icon: <InboxOutlined />,
+        label: 'Nhận hàng',
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+      },
+      {
+        key: '/putaway-tasks',
+        icon: <CarryOutOutlined />,
+        label: 'Cất hàng',
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+      },
+    ],
   },
   {
-    key: '/receivings',
-    icon: <InboxOutlined />,
-    label: 'Nhận hàng',
-    // Staff được nhận và kiểm đếm hàng; Manager/Admin giám sát toàn bộ.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/putaway-tasks',
-    icon: <CarryOutOutlined />,
-    label: 'Cất hàng',
-    // Staff xử lý task được phân công; Manager/Admin tạo và phân công task.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/sale-orders',
-    icon: <ShoppingOutlined />,
-    label: 'Đơn bán',
-    // Staff không tạo/sửa/xóa đơn bán; chỉ Manager/Admin điều phối.
-    allowedRoles: ['Admin', 'WarehouseManager'],
-  },
-  {
-    key: '/pickings',
+    key: 'outbound',
     icon: <ExportOutlined />,
-    label: 'Lấy hàng',
-    // Staff xử lý picking được giao; Manager/Admin tạo và phân công.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    label: 'Xuất kho',
+    children: [
+      {
+        key: '/sale-orders',
+        icon: <ShoppingOutlined />,
+        label: 'Đơn bán',
+        allowedRoles: ['Admin', 'WarehouseManager'],
+      },
+      {
+        key: '/pickings',
+        icon: <SendOutlined />,
+        label: 'Lấy hàng',
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+      },
+    ],
   },
   {
-    key: '/stock',
+    key: 'inventory',
     icon: <DatabaseOutlined />,
-    label: 'Tồn kho',
-    // Mọi role kho cần tra cứu tồn để thực hiện nghiệp vụ.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    label: 'Quản lý tồn kho',
+    children: [
+      {
+        key: '/stock',
+        icon: <DatabaseOutlined />,
+        label: 'Tồn kho',
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+      },
+      {
+        key: '/stock-adjustments',
+        icon: <AuditOutlined />,
+        label: 'Điều chỉnh tồn',
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+      },
+    ],
   },
   {
-    key: '/stock-adjustments',
-    icon: <AuditOutlined />,
-    label: 'Điều chỉnh tồn',
-    // Staff có thể tạo và chỉ xem Draft của mình; chỉ Admin được duyệt hoặc xóa.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    key: 'master-data',
+    icon: <AppstoreOutlined />,
+    label: 'Danh mục & Đối tác',
+    children: [
+      { key: '/products', icon: <BarcodeOutlined />, label: 'Sản phẩm', allowedRoles: ['Admin'] },
+      { key: '/categories', icon: <TagsOutlined />, label: 'Danh mục', allowedRoles: ['Admin'] },
+      { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng', allowedRoles: ['Admin'] },
+      { key: '/customers', icon: <ContactsOutlined />, label: 'Khách hàng', allowedRoles: ['Admin'] },
+      { key: '/vendors', icon: <ShopOutlined />, label: 'Nhà cung cấp', allowedRoles: ['Admin'] },
+    ],
+  },
+  {
+    key: 'hr',
+    icon: <TeamOutlined />,
+    label: 'Nhân sự',
+    children: [
+      { key: '/users', icon: <UserOutlined />, label: 'Người dùng', allowedRoles: ['Admin'] },
+    ],
   },
 ]
 
 function getMenuItems(role: string | undefined): MenuProps['items'] {
-  return appMenuItems
-    .filter((item) => hasRole(role, item.allowedRoles))
-    .map((item) => ({ key: item.key, icon: item.icon, label: item.label }))
+  const result: NonNullable<MenuProps['items']> = []
+
+  for (const item of navConfig) {
+    if ('children' in item) {
+      const allowedChildren = item.children.filter((child) => hasRole(role, child.allowedRoles))
+      if (allowedChildren.length > 0) {
+        result.push({
+          key: item.key,
+          icon: item.icon,
+          label: item.label,
+          children: allowedChildren.map((child) => ({
+            key: child.key,
+            icon: child.icon,
+            label: child.label,
+          })),
+        })
+      }
+    } else {
+      if (hasRole(role, item.allowedRoles)) {
+        result.push({
+          key: item.key,
+          icon: item.icon,
+          label: item.label,
+        })
+      }
+    }
+  }
+
+  return result
+}
+
+function getGroupKeyForPath(pathname: string): string | null {
+  for (const item of navConfig) {
+    if ('children' in item) {
+      const match = item.children.some(
+        (child) =>
+          pathname === child.key ||
+          (child.key !== '/dashboard' && pathname.startsWith(child.key + '/'))
+      )
+      if (match) return item.key
+    }
+  }
+  return null
 }
 
 function AppLayout() {
@@ -119,6 +201,51 @@ function AppLayout() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
+
+  // Tìm key item và nhóm khớp với đường dẫn hiện tại (hỗ trợ cả sub-path như /receivings/:id)
+  let selectedKey = location.pathname
+  let currentGroupKey: string | null = null
+
+  for (const item of navConfig) {
+    if ('children' in item) {
+      for (const child of item.children) {
+        if (
+          location.pathname === child.key ||
+          (child.key !== '/dashboard' && location.pathname.startsWith(child.key + '/'))
+        ) {
+          selectedKey = child.key
+          currentGroupKey = item.key
+          break
+        }
+      }
+    } else if (location.pathname === item.key) {
+      selectedKey = item.key
+      break
+    }
+  }
+
+  // Quản lý nhóm menu đang mở theo cơ chế Accordion (chỉ mở tối đa 1 nhóm tại một thời điểm)
+  const [openKeys, setOpenKeys] = useState<string[]>(() =>
+    currentGroupKey ? [currentGroupKey] : []
+  )
+  const [prevPathname, setPrevPathname] = useState(location.pathname)
+
+  // Khi chuyển trang sang một nhóm khác, tự động đóng nhóm cũ và mở nhóm mới
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname)
+    setOpenKeys(currentGroupKey ? [currentGroupKey] : [])
+  }
+
+  // Khi người dùng bấm mở/đóng một nhóm (Accordion: mở nhóm mới thì đóng nhóm cũ)
+  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
+    const rootSubmenuKeys = ['inbound', 'outbound', 'inventory', 'master-data', 'hr']
+    const latestOpenKey = keys.find((key) => !openKeys.includes(key))
+    if (!latestOpenKey || !rootSubmenuKeys.includes(latestOpenKey)) {
+      setOpenKeys([])
+    } else {
+      setOpenKeys([latestOpenKey])
+    }
+  }
 
   const userMenu: MenuProps = {
     items: [
@@ -151,12 +278,15 @@ function AppLayout() {
         collapsible
         collapsed={collapsed}
         collapsedWidth="0"
+        width={240}
         style={{
           position: 'absolute',
           top: 0,
           bottom: 0,
           insetInlineStart: 0,
           zIndex: 10,
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
         trigger={null}
         zeroWidthTriggerStyle={{ display: 'none' }}
@@ -167,7 +297,9 @@ function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 16,
+            padding: '18px 16px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            marginBottom: 8,
           }}
         >
           <Logo size={28} withWordmark={!collapsed} />
@@ -175,9 +307,15 @@ function AppLayout() {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[selectedKey]}
+          openKeys={collapsed ? [] : openKeys}
+          onOpenChange={handleOpenChange}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            const targetGroup = getGroupKeyForPath(key)
+            setOpenKeys(targetGroup ? [targetGroup] : [])
+            navigate(key)
+          }}
         />
       </Sider>
 
@@ -190,8 +328,8 @@ function AppLayout() {
         aria-label={collapsed ? 'Mở menu' : 'Đóng menu'}
         style={{
           position: 'absolute',
-          top: 80,
-          left: collapsed ? 12 : 176,
+          top: 76,
+          left: collapsed ? 12 : 216,
           zIndex: 20,
           boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
           transition: 'left 0.2s',

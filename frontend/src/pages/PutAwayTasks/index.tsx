@@ -285,15 +285,6 @@ function PutAwayTasks() {
                   <Button type="text" icon={<EditOutlined />} onClick={() => openLocModal(row)} />
                 </Tooltip>
               )}
-              {row.status === 'InProgress' && (
-                <Button
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => handleComplete(row)}
-                >
-                  Hoàn thành
-                </Button>
-              )}
             </>
           )}
         </div>
