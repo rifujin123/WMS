@@ -2,23 +2,19 @@ import { useEffect, useState } from 'react'
 import { SearchOutlined } from '@ant-design/icons'
 import {
   Card,
-  Drawer,
   Empty,
   Input,
   Select,
-  Skeleton,
   Table,
   Tag,
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { useAllLocations } from '../../hooks/useLocations'
-import { useStockSummaryPage, useStocksByProduct } from '../../hooks/useStocks'
+import { useStockSummaryPage } from '../../hooks/useStocks'
 import { useWarehouses } from '../../hooks/useWarehouses'
-import {
-  getLocationDetailsForProduct,
-} from '../../lib/stockLogic'
-import type { StockLocationRow, StockProductRow } from '../../lib/stockLogic'
+import type { StockProductRow } from '../../lib/stockLogic'
+import { StockDetailDrawer } from './components/StockDetailDrawer'
 
 function Stocks() {
   const [search, setSearch] = useState('')
@@ -40,20 +36,8 @@ function Stocks() {
     ...(locationFilter ? { locationId: locationFilter } : {}),
   }
   const { data: stocks, isPending } = useStockSummaryPage(stockParams)
-  const { data: selectedStocks, isPending: selectedStocksPending } = useStocksByProduct(selectedProduct?.productId)
   const { data: warehouses } = useWarehouses()
   const { data: locations } = useAllLocations()
-
-  // locationId → tên kho (join client-side, không cần đổi backend)
-  const warehouseNameByLocationId = (() => {
-    const warehouseNameById = new Map(warehouses?.map((w) => [w.id, w.name]) ?? [])
-    const map = new Map<string, string>()
-    for (const loc of locations ?? []) {
-      const name = warehouseNameById.get(loc.warehouseId)
-      if (name) map.set(loc.id, name)
-    }
-    return map
-  })()
 
   // Vị trí thuộc kho đang chọn (cascade Kho → Vị trí)
   const locationsOfWarehouse = locations?.filter(
@@ -61,15 +45,6 @@ function Stocks() {
   ) ?? []
 
   const productRows = stocks?.items ?? []
-
-  const selectedLocationRows =
-    selectedProduct && selectedStocks
-      ? getLocationDetailsForProduct(
-          selectedStocks,
-          selectedProduct.productId,
-          warehouseNameByLocationId,
-        )
-      : []
 
   const columns: TableColumnsType<StockProductRow> = [
     {
@@ -104,71 +79,47 @@ function Stocks() {
       width: 90,
     },
     {
-      title: 'Số vị trí đang chứa',
-      dataIndex: 'locationCount',
-      key: 'locationCount',
+      title: 'Khả dụng',
+      dataIndex: 'totalAvailable',
+      key: 'totalAvailable',
       align: 'right',
-      width: 200,
-    },
-  ]
-
-  const locationColumns: TableColumnsType<StockLocationRow> = [
-    {
-      title: 'Mã vị trí',
-      dataIndex: 'locationCode',
-      key: 'locationCode',
-      render: (code: string, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Tag color="blue" style={{ fontFamily: 'monospace' }}>
-            {code}
-          </Tag>
-          {locationFilter && row.locationId === locationFilter && (
-            <Tag color="orange">đang lọc</Tag>
-          )}
-        </div>
+      width: 90,
+      render: (qty: number) => (
+        <Tag color={qty > 0 ? 'green' : 'default'}>{qty}</Tag>
       ),
     },
-    {
-      title: 'Kho',
-      dataIndex: 'warehouseName',
-      key: 'warehouseName',
-    },
-    {
-      title: 'Tồn kho',
-      dataIndex: 'onhandQty',
-      key: 'onhandQty',
-      align: 'right',
-    },
-    {
-      title: 'Giữ chỗ',
-      dataIndex: 'reservedQty',
-      key: 'reservedQty',
-      align: 'right',
-    },
-    {
-      title: 'Khả dụng',
-      dataIndex: 'availableQty',
-      key: 'availableQty',
-      align: 'right',
-    },
   ]
-
-  const totalOnhand = selectedLocationRows.reduce((sum, r) => sum + r.onhandQty, 0)
-  const totalReserved = selectedLocationRows.reduce((sum, r) => sum + r.reservedQty, 0)
-  const totalAvailable = selectedLocationRows.reduce((sum, r) => sum + r.availableQty, 0)
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Tồn kho
-        </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-          Tổng tồn kho theo sản phẩm; bấm vào sản phẩm để xem chi tiết theo vị trí.
-        </Typography.Text>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+          flexWrap: 'wrap',
+          marginBottom: 20,
+        }}
+      >
+        <div>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            Tồn kho
+          </Typography.Title>
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            Xem tồn kho theo sản phẩm; bấm vào từng dòng để xem phân bổ theo vị trí lưu trữ.
+          </Typography.Text>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginBottom: 16,
+        }}
+      >
         <Input
           allowClear
           prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
@@ -181,10 +132,10 @@ function Stocks() {
           }}
         />
         <Select
-          placeholder="Kho"
+          placeholder="Lọc theo kho"
           allowClear
-          style={{ width: 200 }}
-          options={(warehouses ?? []).map((w) => ({ value: w.id, label: w.name }))}
+          style={{ width: 180 }}
+          options={warehouses?.map((w) => ({ value: w.id, label: w.name }))}
           value={warehouseFilter}
           onChange={(value) => {
             setWarehouseFilter(value)
@@ -193,10 +144,10 @@ function Stocks() {
           }}
         />
         <Select
-          placeholder="Vị trí"
+          placeholder="Lọc theo vị trí"
           allowClear
-          style={{ width: 220 }}
           disabled={!warehouseFilter}
+          style={{ width: 180 }}
           options={locationsOfWarehouse.map((l) => ({ value: l.id, label: l.code }))}
           value={locationFilter}
           onChange={(value) => {
@@ -228,58 +179,10 @@ function Stocks() {
         />
       </Card>
 
-      <Drawer
-        title={
-          selectedProduct ? (
-            <span>
-              {selectedProduct.productName}{' '}
-              <Tag color="blue" style={{ fontFamily: 'monospace', marginInlineStart: 4 }}>
-                {selectedProduct.productSku}
-              </Tag>
-            </span>
-          ) : (
-            ''
-          )
-        }
-        open={!!selectedProduct}
-        width={560}
-        placement="right"
+      <StockDetailDrawer
+        product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        destroyOnHidden
-      >
-        {selectedStocksPending ? (
-          <Skeleton active paragraph={{ rows: 6 }} />
-        ) : (
-          <Table<StockLocationRow>
-            rowKey="stockId"
-            columns={locationColumns}
-            dataSource={selectedLocationRows}
-            pagination={false}
-            size="small"
-            summary={() => (
-              <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={2}>
-                  <Typography.Text strong>Tổng</Typography.Text>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} align="right">
-                  <Typography.Text strong>{totalOnhand}</Typography.Text>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={2} align="right">
-                  <Typography.Text strong>{totalReserved}</Typography.Text>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={3} align="right">
-                  <Typography.Text strong>{totalAvailable}</Typography.Text>
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
-            )}
-            locale={{
-              emptyText: (
-                <Empty image={null} description="Sản phẩm chưa có tại vị trí nào" />
-              ),
-            }}
-          />
-        )}
-      </Drawer>
+      />
     </div>
   )
 }

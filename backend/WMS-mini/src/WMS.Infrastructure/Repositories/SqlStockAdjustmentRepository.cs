@@ -21,6 +21,7 @@ public class SqlStockAdjustmentRepository : IStockAdjustmentRepository
                 .ThenInclude(d => d.Product)
             .Include(a => a.Details)
                 .ThenInclude(d => d.Location)
+            .OrderByDescending(a => a.CreatedDate)
             .ToListAsync();
     }
 

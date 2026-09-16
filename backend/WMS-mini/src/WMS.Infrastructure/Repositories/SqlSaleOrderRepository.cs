@@ -19,6 +19,7 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
         return await _db.SaleOrders
             .Include(s => s.SaleOrderDetails)
                 .ThenInclude(d => d.Product)
+            .OrderByDescending(s => s.CreatedDate)
             .ToListAsync();
     }
 

@@ -12,7 +12,6 @@ import {
   Button,
   Card,
   Empty,
-  Form,
   Input,
   Modal,
   Select,
@@ -25,58 +24,45 @@ import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import type {
-  CreatePickingDto,
   PickingDetailDto,
   PickingDto,
   PickingStatus,
 } from '../../types/picking'
 import {
-  useAssignPicking,
   useCompletePicking,
-  useCreatePicking,
   useDeletePicking,
   usePickings,
   useStartPicking,
 } from '../../hooks/usePickings'
 import { useSaleOrders } from '../../hooks/useSaleOrders'
-import { useWarehouses } from '../../hooks/useWarehouses'
-import { useWarehouseStaff } from '../../hooks/useUsers'
 import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL } from '../../lib/statusMaps'
-
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
+import { CreatePickingModal } from './components/CreatePickingModal'
+import { AssignStaffModal } from './components/AssignStaffModal'
 
 function Pickings() {
-  // --- Dữ liệu & hooks (danh sách, thao tác) ---
   const { message } = App.useApp()
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
   const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
   const { data: profile } = useProfile()
-  // Staff chỉ thấy phiếu được giao cho mình (filter theo query assignToId)
   const { data: pickings, isPending } = usePickings(
     isStaff && profile?.id ? { assignToId: profile.id } : undefined,
   )
   const { data: saleOrders } = useSaleOrders()
-  const { data: warehouses } = useWarehouses()
-  const { data: warehouseStaff } = useWarehouseStaff()
-  const createMutation = useCreatePicking()
-  const assignMutation = useAssignPicking()
   const startMutation = useStartPicking()
   const completeMutation = useCompletePicking()
   const deleteMutation = useDeletePicking()
 
-  // --- State: bộ lọc & modal ---
+  // State bộ lọc và modal
   const [statusFilter, setStatusFilter] = useState<PickingStatus | undefined>(undefined)
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [assignPicking, setAssignPicking] = useState<PickingDto | null>(null)
-  const [createForm] = Form.useForm<CreatePickingDto>()
-  const [assignForm] = Form.useForm<{ userId: string }>()
 
-  // --- Dữ liệu dẫn xuất để hiển thị ---
-  // Đơn bán còn tạo phiếu lấy được: trạng thái Mới hoặc Đã phân bổ
   const creatableOrders = (saleOrders ?? []).filter(
     (so) => so.status === 'New' || so.status === 'Allocated',
   )
@@ -84,61 +70,19 @@ function Pickings() {
   const filtered = (() => {
     if (!pickings) return []
     const keyword = search.trim().toLowerCase()
-    return pickings.filter((p) => {
-      const matchesKeyword =
-        !keyword ||
-        p.pickingNo.toLowerCase().includes(keyword) ||
-        (p.warehouseName ?? '').toLowerCase().includes(keyword) ||
-        (p.assignedToName ?? '').toLowerCase().includes(keyword)
-      const matchesStatus = !statusFilter || p.status === statusFilter
-      return matchesKeyword && matchesStatus
-    })
+    return [...pickings]
+      .sort((a, b) => dayjs(b.createdDate).valueOf() - dayjs(a.createdDate).valueOf())
+      .filter((p) => {
+        const matchesKeyword =
+          !keyword ||
+          p.pickingNo.toLowerCase().includes(keyword) ||
+          (p.warehouseName ?? '').toLowerCase().includes(keyword) ||
+          (p.assignedToName ?? '').toLowerCase().includes(keyword)
+        const matchesStatus = !statusFilter || p.status === statusFilter
+        return matchesKeyword && matchesStatus
+      })
   })()
 
-  // --- Xử lý: tạo phiếu ---
-  const handleCreate = async () => {
-    try {
-      const values = await createForm.validateFields()
-      createMutation.mutate(values, {
-        onSuccess: () => {
-          message.success('Đã tạo phiếu lấy hàng.')
-          setCreateOpen(false)
-          createForm.resetFields()
-        },
-        onError: (err: Error) =>
-          message.error(getErrorMessage(err, 'Tạo phiếu lấy thất bại.')),
-      })
-    } catch {
-      return
-    }
-  }
-
-  // --- Xử lý: phân công nhân viên ---
-  const openAssignModal = (row: PickingDto) => {
-    setAssignPicking(row)
-    assignForm.resetFields()
-  }
-
-  const handleAssign = async () => {
-    if (!assignPicking) return
-    try {
-      const values = await assignForm.validateFields()
-      assignMutation.mutate(
-        { id: assignPicking.id, dto: { userId: values.userId } },
-        {
-          onSuccess: () => {
-            message.success('Đã phân công cho nhân viên.')
-            setAssignPicking(null)
-          },
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Phân công thất bại.')),
-        },
-      )
-    } catch {
-      return
-    }
-  }
-
-  // --- Xử lý: bắt đầu / hoàn thành / xoá phiếu ---
   const handleStart = (row: PickingDto) => {
     Modal.confirm({
       title: 'Bắt đầu lấy hàng',
@@ -190,7 +134,6 @@ function Pickings() {
     })
   }
 
-  // --- Định nghĩa cột bảng (chi tiết sản phẩm + bảng chính) ---
   const detailColumns: TableColumnsType<PickingDetailDto> = [
     {
       title: 'SKU',
@@ -271,7 +214,7 @@ function Pickings() {
       title: 'Ngày tạo',
       dataIndex: 'createdDate',
       key: 'createdDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+      render: (date: string) => formatDateTime(date),
     },
     {
       key: 'actions',
@@ -303,7 +246,7 @@ function Pickings() {
                     <Button
                       type="text"
                       icon={<UserAddOutlined />}
-                      onClick={() => openAssignModal(row)}
+                      onClick={() => setAssignPicking(row)}
                     />
                   </Tooltip>
                   <Tooltip title="Xoá">
@@ -325,7 +268,6 @@ function Pickings() {
 
   return (
     <div>
-      {/* Header trang + nút tạo phiếu */}
       <div
         style={{
           display: 'flex',
@@ -350,17 +292,13 @@ function Pickings() {
             icon={<PlusOutlined />}
             size="large"
             disabled={creatableOrders.length === 0}
-            onClick={() => {
-              createForm.resetFields()
-              setCreateOpen(true)
-            }}
+            onClick={() => setCreateOpen(true)}
           >
             Tạo phiếu lấy
           </Button>
         )}
       </div>
 
-      {/* Bộ lọc: tìm kiếm + trạng thái */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <Input
           allowClear
@@ -380,7 +318,6 @@ function Pickings() {
         />
       </div>
 
-      {/* Bảng danh sách phiếu, mở rộng xem chi tiết sản phẩm theo từng dòng */}
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <Table<PickingDto>
           rowKey="id"
@@ -404,76 +341,15 @@ function Pickings() {
         />
       </Card>
 
-      {/* Modal tạo phiếu lấy từ đơn bán */}
-      <Modal
-        title="Tạo phiếu lấy hàng"
+      <CreatePickingModal
         open={createOpen}
-        onOk={handleCreate}
-        onCancel={() => setCreateOpen(false)}
-        okText="Tạo phiếu"
-        cancelText="Huỷ"
-        confirmLoading={createMutation.isPending}
-        destroyOnHidden
-      >
-        <Form form={createForm} layout="vertical" size="large" style={{ marginTop: 24 }}>
-          <Form.Item
-            name="saleOrderId"
-            label="Đơn bán"
-            rules={[{ required: true, message: 'Vui lòng chọn đơn bán.' }]}
-          >
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Chọn đơn bán (Mới / Đã phân bổ)"
-              options={creatableOrders.map((so) => ({
-                value: so.id,
-                label: `${so.orderNo} — ${so.customerName ?? 'Khách lẻ'} (${so.status})`,
-              }))}
-            />
-          </Form.Item>
-          <Form.Item
-            name="warehouseId"
-            label="Kho"
-            rules={[{ required: true, message: 'Vui lòng chọn kho.' }]}
-          >
-            <Select
-              placeholder="Chọn kho lấy hàng"
-              options={warehouses?.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onClose={() => setCreateOpen(false)}
+      />
 
-      {/* Modal phân công nhân viên */}
-      <Modal
-        title="Phân công nhân viên"
-        open={assignPicking !== null}
-        onOk={handleAssign}
-        onCancel={() => setAssignPicking(null)}
-        okText="Phân công"
-        cancelText="Huỷ"
-        confirmLoading={assignMutation.isPending}
-        destroyOnHidden
-      >
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          {assignPicking ? assignPicking.pickingNo : ''}
-        </Typography.Paragraph>
-        <Form form={assignForm} layout="vertical" size="large">
-          <Form.Item
-            name="userId"
-            label="Nhân viên kho"
-            rules={[{ required: true, message: 'Vui lòng chọn nhân viên.' }]}
-          >
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Chọn nhân viên kho"
-              loading={!warehouseStaff}
-              options={(warehouseStaff ?? []).map((u) => ({ value: u.id, label: u.fullName }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <AssignStaffModal
+        picking={assignPicking}
+        onClose={() => setAssignPicking(null)}
+      />
     </div>
   )
 }

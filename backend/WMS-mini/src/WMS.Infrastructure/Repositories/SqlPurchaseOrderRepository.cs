@@ -20,6 +20,7 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
         return await _db.PurchaseOrders
             .Include(p => p.PurchaseOrderDetails)
             .ThenInclude(d => d.Product)
+            .OrderByDescending(p => p.CreatedDate)
             .ToListAsync();
     }
 
@@ -38,7 +39,7 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
         var totalCount = await orders.CountAsync(cancellationToken);
         var page = query.Page;
         var items = await orders
-            .OrderByDescending(po => po.ApprovedDate)
+            .OrderByDescending(po => po.CreatedDate)
             .ThenBy(po => po.PoNumber)
             .ThenBy(po => po.Id)
             .Skip((page - 1) * pageSize)
@@ -50,6 +51,7 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
                 VendorName = po.VendorName,
                 Status = po.Status,
                 ApprovedDate = po.ApprovedDate,
+                CreatedDate = po.CreatedDate,
                 PurchaseOrderDetails = po.PurchaseOrderDetails.Select(d => new PurchaseOrderDetailDto
                 {
                     Id = d.Id,

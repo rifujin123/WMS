@@ -28,8 +28,8 @@ import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/stat
 import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
 import { useCreateShipment, useMarkShipped, useShipments } from '../../hooks/useShipments'
 import { useAuthContext } from '../../contexts/useAuthContext'
-
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
 
 function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -54,14 +54,16 @@ function SaleOrders() {
   const filtered = (() => {
     if (!saleOrders) return []
     const keyword = search.trim().toLowerCase()
-    return saleOrders.filter((so) => {
-      const matchesKeyword =
-        !keyword ||
-        so.orderNo.toLowerCase().includes(keyword) ||
-        (so.customerName ?? '').toLowerCase().includes(keyword)
-      const matchesStatus = !statusFilter || so.status === statusFilter
-      return matchesKeyword && matchesStatus
-    })
+    return [...saleOrders]
+      .sort((a, b) => dayjs(b.orderDate).valueOf() - dayjs(a.orderDate).valueOf())
+      .filter((so) => {
+        const matchesKeyword =
+          !keyword ||
+          so.orderNo.toLowerCase().includes(keyword) ||
+          (so.customerName ?? '').toLowerCase().includes(keyword)
+        const matchesStatus = !statusFilter || so.status === statusFilter
+        return matchesKeyword && matchesStatus
+      })
   })()
 
   const handleDelete = (row: SaleOrderDto) => {
@@ -139,7 +141,7 @@ function SaleOrders() {
       title: 'Ngày đặt',
       dataIndex: 'orderDate',
       key: 'orderDate',
-      render: (orderDate: string) => dayjs(orderDate).format('DD/MM/YYYY'),
+      render: (orderDate: string) => formatDateTime(orderDate),
     },
   ]
 

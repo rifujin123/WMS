@@ -71,7 +71,7 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         if (assignToId.HasValue)
             tasks = tasks.Where(t => t.AssignToId == assignToId.Value);
 
-        return await tasks.ToListAsync();
+        return await tasks.OrderByDescending(t => t.CreatedDate).ToListAsync();
     }
 
     public async Task<PutAwayTask?> GetByIdAsync(Guid id)
