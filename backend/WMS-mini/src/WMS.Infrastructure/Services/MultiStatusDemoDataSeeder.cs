@@ -166,6 +166,12 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             return SeedSummary.Disabled();
         }
 
+        if (_options.Value.ResetDatabase)
+        {
+            _logger.LogInformation("Seed:ResetDatabase=true. Clearing existing data for a completely fresh seed...");
+            await ClearAllDataAsync(cancellationToken);
+        }
+
         // Đảm bảo các Role và 4 tài khoản Demo chuẩn (manager1, manager2, staff1, staff2) luôn được tạo/đồng bộ
         var usersSeeded = await SeedUsersAsync(cancellationToken);
 
@@ -204,6 +210,36 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             summary.Users, summary.Warehouses, summary.Locations, summary.Categories, summary.Products, summary.Vendors, summary.Customers, summary.StockMovements, summary.PurchaseOrders, summary.SaleOrders, summary.StockAdjustments);
 
         return summary;
+    }
+
+    private async Task ClearAllDataAsync(CancellationToken cancellationToken)
+    {
+        // Xóa tuần tự theo thứ tự khóa ngoại an toàn
+        _db.Shipments.RemoveRange(await _db.Shipments.ToListAsync(cancellationToken));
+        _db.Pickings.RemoveRange(await _db.Pickings.ToListAsync(cancellationToken));
+        _db.SaleOrderDetails.RemoveRange(await _db.SaleOrderDetails.ToListAsync(cancellationToken));
+        _db.SaleOrders.RemoveRange(await _db.SaleOrders.ToListAsync(cancellationToken));
+
+        _db.PutAwayTasks.RemoveRange(await _db.PutAwayTasks.ToListAsync(cancellationToken));
+        _db.ReceivingDetails.RemoveRange(await _db.ReceivingDetails.ToListAsync(cancellationToken));
+        _db.Receivings.RemoveRange(await _db.Receivings.ToListAsync(cancellationToken));
+        _db.PurchaseOrderDetails.RemoveRange(await _db.PurchaseOrderDetails.ToListAsync(cancellationToken));
+        _db.PurchaseOrders.RemoveRange(await _db.PurchaseOrders.ToListAsync(cancellationToken));
+
+        _db.StockAdjustmentDetails.RemoveRange(await _db.StockAdjustmentDetails.ToListAsync(cancellationToken));
+        _db.StockAdjustments.RemoveRange(await _db.StockAdjustments.ToListAsync(cancellationToken));
+        _db.StockMovements.RemoveRange(await _db.StockMovements.ToListAsync(cancellationToken));
+        _db.Stocks.RemoveRange(await _db.Stocks.ToListAsync(cancellationToken));
+        _db.Locations.RemoveRange(await _db.Locations.ToListAsync(cancellationToken));
+
+        _db.Products.RemoveRange(await _db.Products.ToListAsync(cancellationToken));
+        _db.Categories.RemoveRange(await _db.Categories.ToListAsync(cancellationToken));
+        _db.Vendors.RemoveRange(await _db.Vendors.ToListAsync(cancellationToken));
+        _db.Customers.RemoveRange(await _db.Customers.ToListAsync(cancellationToken));
+        _db.Warehouses.RemoveRange(await _db.Warehouses.ToListAsync(cancellationToken));
+
+        await _db.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("All existing demo tables wiped cleanly for a fresh seed.");
     }
 
     private async Task<int> SeedUsersAsync(CancellationToken cancellationToken)
