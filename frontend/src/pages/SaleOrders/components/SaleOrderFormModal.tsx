@@ -9,6 +9,7 @@ import type {
 } from '../../../types/saleOrder'
 import { useProductLookup } from '../../../hooks/useProducts'
 import { useCustomerLookup } from '../../../hooks/useCustomers'
+import { useWarehouses } from '../../../hooks/useWarehouses'
 import { useCreateSaleOrder, useUpdateSaleOrder } from '../../../hooks/useSaleOrders'
 import { getErrorMessage } from '../../../lib/errorHandler'
 
@@ -28,6 +29,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
   const { message } = App.useApp()
   const { data: products, isPending: productsPending } = useProductLookup()
   const { data: customers } = useCustomerLookup()
+  const { data: warehouses } = useWarehouses()
   const createMutation = useCreateSaleOrder()
   const updateMutation = useUpdateSaleOrder()
   const isEdit = saleOrder !== null
@@ -47,9 +49,12 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
       } else {
         form.resetFields()
         form.setFieldValue('orderDate', dayjs())
+        if (warehouses && warehouses.length === 1) {
+          form.setFieldValue('warehouseId', warehouses[0].id)
+        }
       }
     }
-  }, [open, saleOrder, form])
+  }, [open, saleOrder, warehouses, form])
 
   const handleOk = async () => {
     try {
@@ -61,7 +66,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         orderDate: values.orderDate.toISOString(),
       }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật đơn bán.' : 'Đã tạo đơn bán.')
+        message.success(isEdit ? 'Đã cập nhật đơn bán.' : 'Đã tạo đơn bán và tự động tạo phiếu lấy hàng.')
         onClose()
       }
       const onError = (err: Error) => {
@@ -120,7 +125,7 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
           </Col>
         </Row>
         <Row gutter={16}>
-          <Col span={12}>
+          <Col span={isEdit ? 24 : 12}>
             <Form.Item
               name="orderDate"
               label="Ngày đặt"
@@ -129,6 +134,25 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
               <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
             </Form.Item>
           </Col>
+          {!isEdit && (
+            <Col span={12}>
+              <Form.Item
+                name="warehouseId"
+                label="Kho xuất hàng (Tự tạo phiếu lấy)"
+                rules={[{ required: true, message: 'Vui lòng chọn kho xuất hàng.' }]}
+              >
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Chọn kho xuất hàng"
+                  options={(warehouses ?? []).map((w) => ({
+                    value: w.id,
+                    label: `${w.code} — ${w.name}`,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+          )}
         </Row>
 
         <Form.Item label="Danh sách sản phẩm" required>

@@ -47,6 +47,7 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
                 FromLocationCode = t.FromLocation == null ? null : t.FromLocation.Code,
                 ToLocationId = t.ToLocationId,
                 ToLocationCode = t.ToLocation == null ? null : t.ToLocation.Code,
+                WarehouseName = t.FromLocation != null ? t.FromLocation.Warehouse.Name : (t.ToLocation != null ? t.ToLocation.Warehouse.Name : null),
                 Status = t.Status,
                 AssignToId = t.AssignToId,
                 AssignToName = t.AssignTo == null ? null : t.AssignTo.FullName,

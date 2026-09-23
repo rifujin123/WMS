@@ -84,9 +84,12 @@ function Stocks() {
       key: 'totalAvailable',
       align: 'right',
       width: 90,
-      render: (qty: number) => (
-        <Tag color={qty > 0 ? 'green' : 'default'}>{qty}</Tag>
-      ),
+      render: (qty: number | undefined, record) => {
+        const available = typeof qty === 'number' ? qty : (record.totalOnhand - record.totalReserved)
+        return (
+          <Tag color={available > 0 ? 'green' : 'default'}>{available}</Tag>
+        )
+      },
     },
   ]
 

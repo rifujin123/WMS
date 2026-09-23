@@ -14,6 +14,7 @@ public class PutAwayTaskDto
     public string? FromLocationCode { get; set; }
     public Guid? ToLocationId { get; set; }
     public string? ToLocationCode { get; set; }
+    public string? WarehouseName { get; set; }
     public PutAwayTaskStatus Status { get; set; }
     public Guid? AssignToId { get; set; }
     public string? AssignToName { get; set; }

@@ -6,6 +6,9 @@ export interface StockDto {
   productName: string
   locationId: string
   locationCode: string
+  warehouseId?: string
+  warehouseName?: string
   onhandQty: number
   reservedQty: number
+  availableQty?: number
 }

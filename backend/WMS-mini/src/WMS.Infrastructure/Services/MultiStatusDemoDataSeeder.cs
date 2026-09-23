@@ -221,21 +221,23 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         await _db.SaveChangesAsync(cancellationToken);
 
         var hasher = new PasswordHasher<User>();
-        var password = _options.Value.DemoPassword;
-        var demoUsers = new[]
+        var demoUsers = new (string Username, string FullName, string Email, string Role, string Password)[]
         {
-            // Managers
-            ("manager1", "Nguyễn Văn An",     "manager1@wms.local",     "WarehouseManager"),
-            ("manager2", "Trần Thị Bình",     "manager2@wms.local",     "WarehouseManager"),
-            // Staff
-            ("nvhung",   "Nguyễn Văn Hùng",   "nvhung@wms.local",       "WarehouseStaff"),
-            ("nvlan",    "Lê Thị Lan",        "nvlan@wms.local",        "WarehouseStaff"),
-            ("pvnam",    "Phạm Văn Nam",      "pvnam@wms.local",        "WarehouseStaff"),
-            ("nthao",    "Nguyễn Thị Thảo",   "nthao@wms.local",        "WarehouseStaff"),
+            // Primary Accounts (Theo yêu cầu)
+            ("manager",  "Quản lý Kho",       "manager@wms.local",      "WarehouseManager", "Manager@123"),
+            ("staff1",   "Nhân viên Kho 1",   "staff1@wms.local",       "WarehouseStaff",   "Staff1@123"),
+            ("staff2",   "Nhân viên Kho 2",   "staff2@wms.local",       "WarehouseStaff",   "Staff2@123"),
+            // Secondary / Legacy Accounts
+            ("manager1", "Nguyễn Văn An",     "manager1@wms.local",     "WarehouseManager", "Manager@123"),
+            ("manager2", "Trần Thị Bình",     "manager2@wms.local",     "WarehouseManager", "Manager@123"),
+            ("nvhung",   "Nguyễn Văn Hùng",   "nvhung@wms.local",       "WarehouseStaff",   "Staff1@123"),
+            ("nvlan",    "Lê Thị Lan",        "nvlan@wms.local",        "WarehouseStaff",   "Staff2@123"),
+            ("pvnam",    "Phạm Văn Nam",      "pvnam@wms.local",        "WarehouseStaff",   "Staff1@123"),
+            ("nthao",    "Nguyễn Thị Thảo",   "nthao@wms.local",        "WarehouseStaff",   "Staff2@123"),
         };
 
         var created = 0;
-        foreach (var (username, fullName, email, role) in demoUsers)
+        foreach (var (username, fullName, email, role, customPassword) in demoUsers)
         {
             var normalized = username.ToUpperInvariant();
             var exists = await _db.Users.AsNoTracking()
@@ -253,7 +255,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
                 FullName = fullName,
                 CreatedAt = DateTime.UtcNow,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                PasswordHash = hasher.HashPassword(new User { UserName = username }, password)
+                PasswordHash = hasher.HashPassword(new User { UserName = username }, customPassword)
             };
             var roleId = await _db.Roles
                 .Where(r => r.Name == role)
@@ -553,11 +555,13 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var vendors = await _db.Vendors.AsNoTracking().ToListAsync(cancellationToken);
         var products = await _db.Products.AsNoTracking().ToListAsync(cancellationToken);
         var users = await _db.Users.AsNoTracking().ToListAsync(cancellationToken);
-        var manager1Id = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
-        var manager2Id = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER2")?.Id ?? Guid.Empty;
-        var hungStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
-        var lanStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "NVLAN")?.Id ?? Guid.Empty;
-        var namStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "PVNAM")?.Id ?? Guid.Empty;
+        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
+        var manager2Id = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER2")?.Id ?? managerId;
+        var staff1Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF1")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
+        var staff2Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF2")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVLAN")?.Id ?? Guid.Empty;
 
         if (vendors.Count < 5 || products.Count < 10)
             return 0;
@@ -571,7 +575,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var putAwayMovements = new List<(StockMovement Movement, DateTime Occurred)>();
 
         // -------------------------------------------------------------
-        // PO 1: Pending (Chờ duyệt) — NCC FPT Trading (chưa duyệt, chưa có receiving)
+        // PO 1: Pending (Chờ duyệt) — NCC FPT Trading (Có 2 items: IP15PM-256-TT & IP15PM-512-NT)
         // -------------------------------------------------------------
         var po1 = new PurchaseOrder
         {
@@ -580,11 +584,29 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             VendorName = vendors[1].Name,
             Status = PurchaseOrderStatus.Pending,
             ApprovedById = null,
-            ApprovedDate = null
+            ApprovedDate = null,
+            PurchaseOrderDetails = new List<PurchaseOrderDetail>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[0].Id,
+                    OrderedQuantity = 10,
+                    ReceivedQuantity = 0
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[1].Id,
+                    OrderedQuantity = 15,
+                    ReceivedQuantity = 0
+                }
+            }
         };
+        foreach (var d in po1.PurchaseOrderDetails) d.PurchaseOrder = po1;
         _db.PurchaseOrders.Add(po1);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po1.Id,
-            null, nameof(PurchaseOrderStatus.Pending), "Created", manager1Id, now.AddDays(-1)));
+            null, nameof(PurchaseOrderStatus.Pending), "Created", staff1Id, now.AddDays(-1)));
 
         // -------------------------------------------------------------
         // PO 2: Approved (Đã duyệt) — NCC Apple Reseller
@@ -596,12 +618,30 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             PoNumber = $"PO-{now.AddDays(-3):yyyyMMdd}-002",
             VendorName = vendors[3].Name,
             Status = PurchaseOrderStatus.Approved,
-            ApprovedById = manager1Id,
-            ApprovedDate = now.AddDays(-2)
+            ApprovedById = managerId,
+            ApprovedDate = now.AddDays(-2),
+            PurchaseOrderDetails = new List<PurchaseOrderDetail>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[0].Id,
+                    OrderedQuantity = 10,
+                    ReceivedQuantity = 0
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[1].Id,
+                    OrderedQuantity = 10,
+                    ReceivedQuantity = 0
+                }
+            }
         };
+        foreach (var d in po2.PurchaseOrderDetails) d.PurchaseOrder = po2;
         _db.PurchaseOrders.Add(po2);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po2.Id,
-            nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", manager1Id, now.AddDays(-2)));
+            nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", managerId, now.AddDays(-2)));
 
         var rcDraft = new Receiving
         {
@@ -610,7 +650,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             PurchaseOrderId = po2.Id,
             PurchaseOrder = po2,
             Status = ReceivingStatus.Draft,
-            ReceivedById = hungStaffId,
+            ReceivedById = staff1Id,
             ReceivedDate = now.AddHours(-4),
             ConfirmedById = null,
             ConfirmedDate = null,
@@ -638,7 +678,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         foreach (var d in rcDraft.ReceivingDetails) d.Receiving = rcDraft;
         _db.Receivings.Add(rcDraft);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(Receiving), rcDraft.Id,
-            null, nameof(ReceivingStatus.Draft), "Created", hungStaffId, now.AddHours(-4)));
+            null, nameof(ReceivingStatus.Draft), "Created", staff1Id, now.AddHours(-4)));
 
         // -------------------------------------------------------------
         // PO 3: Received (Đã nhận hàng) — NCC Samsung Electronics
@@ -651,13 +691,31 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             VendorName = vendors[2].Name,
             Status = PurchaseOrderStatus.Received,
             ApprovedById = manager2Id,
-            ApprovedDate = now.AddDays(-6)
+            ApprovedDate = now.AddDays(-6),
+            PurchaseOrderDetails = new List<PurchaseOrderDetail>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[2].Id,
+                    OrderedQuantity = 8,
+                    ReceivedQuantity = 8
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[3].Id,
+                    OrderedQuantity = 12,
+                    ReceivedQuantity = 12
+                }
+            }
         };
+        foreach (var d in po3.PurchaseOrderDetails) d.PurchaseOrder = po3;
         _db.PurchaseOrders.Add(po3);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po3.Id,
             nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", manager2Id, now.AddDays(-6)));
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po3.Id,
-            nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged", hungStaffId, now.AddDays(-2)));
+            nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged", staff1Id, now.AddDays(-2)));
 
         var rc3 = new Receiving
         {
@@ -666,7 +724,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             PurchaseOrderId = po3.Id,
             PurchaseOrder = po3,
             Status = ReceivingStatus.Confirmed,
-            ReceivedById = hungStaffId,
+            ReceivedById = staff1Id,
             ReceivedDate = now.AddDays(-2),
             ConfirmedById = manager2Id,
             ConfirmedDate = now.AddDays(-2).AddHours(1),
@@ -715,7 +773,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PutAwayTask), taskOpen.Id,
             null, nameof(PutAwayTaskStatus.Open), "Created", manager2Id, now.AddDays(-2).AddHours(1)));
 
-        // PutAway Task 2: Assigned (đã phân công nvhung)
+        // PutAway Task 2: Assigned (đã phân công staff1)
         var targetLocAssigned = FindPutAwayLocation(products[3].Id, 12, locationQty);
         var taskAssigned = new PutAwayTask
         {
@@ -726,7 +784,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             FromLocationId = null,
             ToLocationId = targetLocAssigned?.Id,
             Status = PutAwayTaskStatus.Assigned,
-            AssignToId = hungStaffId,
+            AssignToId = staff1Id,
             AssignedById = manager2Id,
             AssignedDate = now.AddHours(-6)
         };
@@ -743,14 +801,25 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             PoNumber = $"PO-{now.AddDays(-12):yyyyMMdd}-004",
             VendorName = vendors[0].Name,
             Status = PurchaseOrderStatus.Received,
-            ApprovedById = manager1Id,
-            ApprovedDate = now.AddDays(-11)
+            ApprovedById = managerId,
+            ApprovedDate = now.AddDays(-11),
+            PurchaseOrderDetails = new List<PurchaseOrderDetail>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[4].Id,
+                    OrderedQuantity = 10,
+                    ReceivedQuantity = 10
+                }
+            }
         };
+        foreach (var d in po4.PurchaseOrderDetails) d.PurchaseOrder = po4;
         _db.PurchaseOrders.Add(po4);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po4.Id,
-            nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", manager1Id, now.AddDays(-11)));
+            nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", managerId, now.AddDays(-11)));
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po4.Id,
-            nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged", lanStaffId, now.AddDays(-4)));
+            nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged", staff2Id, now.AddDays(-4)));
 
         var rc4 = new Receiving
         {
@@ -759,9 +828,9 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             PurchaseOrderId = po4.Id,
             PurchaseOrder = po4,
             Status = ReceivingStatus.Confirmed,
-            ReceivedById = lanStaffId,
+            ReceivedById = staff2Id,
             ReceivedDate = now.AddDays(-4),
-            ConfirmedById = manager1Id,
+            ConfirmedById = managerId,
             ConfirmedDate = now.AddDays(-4).AddHours(2),
             Notes = $"Nhận hàng {po4.PoNumber}",
             ReceivingDetails = new List<ReceivingDetail>
@@ -779,9 +848,9 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         foreach (var d in rc4.ReceivingDetails) d.Receiving = rc4;
         _db.Receivings.Add(rc4);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(Receiving), rc4.Id,
-            nameof(ReceivingStatus.Draft), nameof(ReceivingStatus.Confirmed), "StatusChanged", manager1Id, now.AddDays(-4).AddHours(2)));
+            nameof(ReceivingStatus.Draft), nameof(ReceivingStatus.Confirmed), "StatusChanged", managerId, now.AddDays(-4).AddHours(2)));
 
-        // PutAway Task 3: InProgress (đang cất bởi lanStaff)
+        // PutAway Task 3: InProgress (đang cất bởi staff2)
         var targetLocInProgress = FindPutAwayLocation(products[4].Id, 10, locationQty);
         var taskInProgress = new PutAwayTask
         {
@@ -792,17 +861,17 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             FromLocationId = null,
             ToLocationId = targetLocInProgress?.Id,
             Status = PutAwayTaskStatus.InProgress,
-            AssignToId = lanStaffId,
-            AssignedById = manager1Id,
+            AssignToId = staff2Id,
+            AssignedById = managerId,
             AssignedDate = now.AddDays(-3),
-            StartedById = lanStaffId,
+            StartedById = staff2Id,
             StartedDate = now.AddHours(-1)
         };
         _db.PutAwayTasks.Add(taskInProgress);
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PutAwayTask), taskInProgress.Id,
-            nameof(PutAwayTaskStatus.Open), nameof(PutAwayTaskStatus.Assigned), "StatusChanged", manager1Id, now.AddDays(-3)));
+            nameof(PutAwayTaskStatus.Open), nameof(PutAwayTaskStatus.Assigned), "StatusChanged", managerId, now.AddDays(-3)));
         _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PutAwayTask), taskInProgress.Id,
-            nameof(PutAwayTaskStatus.Assigned), nameof(PutAwayTaskStatus.InProgress), "StatusChanged", lanStaffId, now.AddHours(-1)));
+            nameof(PutAwayTaskStatus.Assigned), nameof(PutAwayTaskStatus.InProgress), "StatusChanged", staff2Id, now.AddHours(-1)));
 
         // -------------------------------------------------------------
         // PO 5 & PO 6: Closed (Đã hoàn tất toàn bộ PutAway Completed)
@@ -821,19 +890,27 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
                 PoNumber = poNo,
                 VendorName = vendor.Name,
                 Status = PurchaseOrderStatus.Closed,
-                ApprovedById = manager1Id,
+                ApprovedById = managerId,
                 ApprovedDate = now.AddDays(-day),
-                ClosedById = manager1Id,
-                ClosedDate = now.AddDays(-day + 8)
+                ClosedById = managerId,
+                ClosedDate = now.AddDays(-day + 8),
+                PurchaseOrderDetails = prodIdxs.Select(i => new PurchaseOrderDetail
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[i].Id,
+                    OrderedQuantity = qtyPer,
+                    ReceivedQuantity = qtyPer
+                }).ToList()
             };
+            foreach (var d in poClosed.PurchaseOrderDetails) d.PurchaseOrder = poClosed;
             _db.PurchaseOrders.Add(poClosed);
 
             _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), poClosed.Id,
-                nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", manager1Id, now.AddDays(-day)));
+                nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", managerId, now.AddDays(-day)));
             _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), poClosed.Id,
-                nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged", namStaffId, now.AddDays(-day + 2)));
+                nameof(PurchaseOrderStatus.Approved), nameof(PurchaseOrderStatus.Received), "StatusChanged", staff1Id, now.AddDays(-day + 2)));
             _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), poClosed.Id,
-                nameof(PurchaseOrderStatus.Received), nameof(PurchaseOrderStatus.Closed), "StatusChanged", manager1Id, now.AddDays(-day + 8)));
+                nameof(PurchaseOrderStatus.Received), nameof(PurchaseOrderStatus.Closed), "StatusChanged", managerId, now.AddDays(-day + 8)));
 
             var rcClosed = new Receiving
             {
@@ -842,9 +919,9 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
                 PurchaseOrderId = poClosed.Id,
                 PurchaseOrder = poClosed,
                 Status = ReceivingStatus.Confirmed,
-                ReceivedById = namStaffId,
+                ReceivedById = staff1Id,
                 ReceivedDate = now.AddDays(-day + 2),
-                ConfirmedById = manager1Id,
+                ConfirmedById = managerId,
                 ConfirmedDate = now.AddDays(-day + 3),
                 Notes = $"Nhận hàng hoàn tất {poClosed.PoNumber}",
                 ReceivingDetails = prodIdxs.Select(i => new ReceivingDetail
@@ -860,7 +937,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             _db.Receivings.Add(rcClosed);
 
             _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(Receiving), rcClosed.Id,
-                nameof(ReceivingStatus.Draft), nameof(ReceivingStatus.Confirmed), "StatusChanged", manager1Id, now.AddDays(-day + 3)));
+                nameof(ReceivingStatus.Draft), nameof(ReceivingStatus.Confirmed), "StatusChanged", managerId, now.AddDays(-day + 3)));
 
             foreach (var detail in rcClosed.ReceivingDetails)
             {
@@ -881,22 +958,22 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
                     FromLocationId = null,
                     ToLocationId = targetLoc.Id,
                     Status = PutAwayTaskStatus.Completed,
-                    AssignToId = namStaffId,
-                    AssignedById = manager1Id,
+                    AssignToId = staff1Id,
+                    AssignedById = managerId,
                     AssignedDate = now.AddDays(-day + 4),
-                    StartedById = namStaffId,
+                    StartedById = staff1Id,
                     StartedDate = now.AddDays(-day + 5),
-                    CompletedById = namStaffId,
+                    CompletedById = staff1Id,
                     CompletedDate = now.AddDays(-day + 6),
                 };
                 _db.PutAwayTasks.Add(putAway);
 
                 _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PutAwayTask), putAway.Id,
-                    nameof(PutAwayTaskStatus.Open), nameof(PutAwayTaskStatus.Assigned), "StatusChanged", manager1Id, now.AddDays(-day + 4)));
+                    nameof(PutAwayTaskStatus.Open), nameof(PutAwayTaskStatus.Assigned), "StatusChanged", managerId, now.AddDays(-day + 4)));
                 _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PutAwayTask), putAway.Id,
-                    nameof(PutAwayTaskStatus.Assigned), nameof(PutAwayTaskStatus.InProgress), "StatusChanged", namStaffId, now.AddDays(-day + 5)));
+                    nameof(PutAwayTaskStatus.Assigned), nameof(PutAwayTaskStatus.InProgress), "StatusChanged", staff1Id, now.AddDays(-day + 5)));
                 _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PutAwayTask), putAway.Id,
-                    nameof(PutAwayTaskStatus.InProgress), nameof(PutAwayTaskStatus.Completed), "StatusChanged", namStaffId, now.AddDays(-day + 6)));
+                    nameof(PutAwayTaskStatus.InProgress), nameof(PutAwayTaskStatus.Completed), "StatusChanged", staff1Id, now.AddDays(-day + 6)));
 
                 var putAwayOccurred = now.AddDays(-day + 6);
                 var putAwayMovement = new StockMovement
@@ -938,13 +1015,13 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
                 .Where(x => x.Id == movement.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(x => x.CreatedDate, occurred)
-                    .SetProperty(x => x.CreatedById, namStaffId == Guid.Empty ? null : (Guid?)namStaffId),
+                    .SetProperty(x => x.CreatedById, staff1Id == Guid.Empty ? null : (Guid?)staff1Id),
                     cancellationToken);
             await _db.AuditLogs
                 .Where(a => a.EntityType == nameof(StockMovement) && a.EntityId == movement.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(a => a.OccurredAtUtc, occurred)
-                    .SetProperty(a => a.ActorUserId, namStaffId == Guid.Empty ? null : (Guid?)namStaffId),
+                    .SetProperty(a => a.ActorUserId, staff1Id == Guid.Empty ? null : (Guid?)staff1Id),
                     cancellationToken);
         }
 
@@ -960,11 +1037,17 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var products = await _db.Products.AsNoTracking().ToListAsync(cancellationToken);
         var warehouses = await _db.Warehouses.AsNoTracking().ToListAsync(cancellationToken);
         var users = await _db.Users.AsNoTracking().ToListAsync(cancellationToken);
-        var hungStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
-        var lanStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "NVLAN")?.Id ?? Guid.Empty;
-        var namStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "PVNAM")?.Id ?? Guid.Empty;
-        var thaoStaffId = users.FirstOrDefault(u => u.NormalizedUserName == "NTHAO")?.Id ?? Guid.Empty;
-        var manager1Id = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
+        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
+        var staff1Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF1")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
+        var staff2Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF2")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVLAN")?.Id ?? Guid.Empty;
+        var hungStaffId = staff1Id;
+        var lanStaffId = staff2Id;
+        var namStaffId = staff1Id;
+        var thaoStaffId = staff2Id;
+        var manager1Id = managerId;
 
         if (customers.Count < 7 || products.Count < 25 || warehouses.Count == 0)
             return (0, 0);

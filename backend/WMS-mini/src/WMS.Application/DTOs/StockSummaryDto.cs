@@ -7,5 +7,6 @@ public class StockSummaryDto
     public string ProductName { get; set; } = string.Empty;
     public int TotalOnhand { get; set; }
     public int TotalReserved { get; set; }
+    public int TotalAvailable => TotalOnhand - TotalReserved;
     public int LocationCount { get; set; }
 }

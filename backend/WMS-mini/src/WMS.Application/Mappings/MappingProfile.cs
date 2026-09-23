@@ -58,6 +58,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.FromLocationCode, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.Code : null))
             .ForMember(d => d.ToLocationCode, o => o.MapFrom(s => s.ToLocation != null ? s.ToLocation.Code : null))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.Warehouse.Name : (s.ToLocation != null ? s.ToLocation.Warehouse.Name : null)))
             .ForMember(d => d.AssignToName, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.FullName : null))
             .ForMember(d => d.AssignToAvatarUrl, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.AvatarUrl : null));
         CreateMap<CreatePutAwayTaskDto, PutAwayTask>();
@@ -68,11 +69,15 @@ public class MappingProfile : Profile
         CreateMap<Stock, StockDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
-            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code));
+            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code))
+            .ForMember(d => d.WarehouseId, o => o.MapFrom(s => s.Location.WarehouseId))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Location.Warehouse != null ? s.Location.Warehouse.Name : string.Empty));
         CreateMap<StockMovement, StockMovementDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code))
+            .ForMember(d => d.WarehouseId, o => o.MapFrom(s => s.Location.WarehouseId))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Location.Warehouse != null ? s.Location.Warehouse.Name : null))
             .ForMember(d => d.OccurredAtUtc, o => o.MapFrom(s => s.CreatedDate))
             .ForMember(d => d.ActorUserId, o => o.MapFrom(s => s.CreatedById))
             .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FullName : null))
@@ -84,7 +89,8 @@ public class MappingProfile : Profile
         CreateMap<StockAdjustmentDetail, StockAdjustmentDetailDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
-            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code));
+            .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Location.Warehouse != null ? s.Location.Warehouse.Name : string.Empty));
 
         CreateMap<SaleOrder, SaleOrderDto>();
         CreateMap<CreateSaleOrderDto, SaleOrder>();

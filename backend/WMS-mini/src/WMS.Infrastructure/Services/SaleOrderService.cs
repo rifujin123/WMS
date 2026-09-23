@@ -10,17 +10,20 @@ public class SaleOrderService : ISaleOrderService
 {
     private readonly ISaleOrderRepository _repo;
     private readonly IProductRepository _productRepo;
+    private readonly IPickingService _pickingService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
 
     public SaleOrderService(
         ISaleOrderRepository repo,
         IProductRepository productRepo,
+        IPickingService pickingService,
         IMapper mapper,
         IUnitOfWork unitOfWork)
     {
         _repo = repo;
         _productRepo = productRepo;
+        _pickingService = pickingService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
     }
@@ -63,6 +66,26 @@ public class SaleOrderService : ISaleOrderService
 
         await _repo.AddAsync(saleOrder);
         await _unitOfWork.SaveChangesAsync();
+
+        if (dto.WarehouseId.HasValue && dto.WarehouseId.Value != Guid.Empty)
+        {
+            try
+            {
+                await _pickingService.CreateAsync(new CreatePickingDto
+                {
+                    SaleOrderId = saleOrder.Id,
+                    WarehouseId = dto.WarehouseId.Value
+                });
+            }
+            catch
+            {
+                // Nếu tạo picking task thất bại (ví dụ: thiếu tồn kho khả dụng), rollback đơn bán vừa tạo
+                await _repo.DeleteAsync(saleOrder);
+                await _unitOfWork.SaveChangesAsync();
+                throw;
+            }
+        }
+
         return (await GetByIdAsync(saleOrder.Id))!;
     }
 

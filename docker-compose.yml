@@ -23,7 +23,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Development
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER:-WMS}
       Jwt__Audience: ${JWT_AUDIENCE:-WMS}

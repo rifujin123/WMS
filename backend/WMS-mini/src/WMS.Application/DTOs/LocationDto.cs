@@ -6,6 +6,7 @@ public class LocationDto
 {
     public Guid Id { get; set; }
     public Guid WarehouseId { get; set; }
+    public string WarehouseName { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Aisle { get; set; } = string.Empty;
     public string Rack { get; set; } = string.Empty;

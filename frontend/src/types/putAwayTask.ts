@@ -11,6 +11,7 @@ export interface PutAwayTaskDto {
   fromLocationCode?: string
   toLocationId?: string
   toLocationCode?: string
+  warehouseName?: string
   status: PutAwayTaskStatus
   assignToId?: string
   assignToName?: string

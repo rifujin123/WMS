@@ -153,6 +153,7 @@ public class PickingService : IPickingService
                 var input = byId[detail.Id];
                 var stock = await _stockRepo.GetByProductAndLocationAsync(detail.ProductId, detail.LocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy dữ liệu tồn kho tại vị trí lấy hàng.");
                 var location = stock.Location ?? throw new InvalidOperationException("Không tìm thấy thông tin vị trí của tồn kho cần lấy hàng.");
+                if (location.WarehouseId != picking.WarehouseId) throw new InvalidOperationException("Vị trí không hợp lệ, vui lòng kiểm tra lại kho.");
                 if (stock.ReservedQty < input.QtyPicked) throw new InvalidOperationException($"Số lượng đã giữ chỗ không đủ cho sản phẩm '{detail.Product.Sku}' tại vị trí '{location.Code}'.");
                 if (stock.OnhandQty < input.QtyPicked) throw new InvalidOperationException($"Tồn kho thực tế không đủ cho sản phẩm '{detail.Product.Sku}' tại vị trí '{location.Code}'.");
                 if (location.CurrentQuantity < input.QtyPicked) throw new InvalidOperationException($"Số lượng hiện tại tại vị trí '{location.Code}' không đủ để hoàn thành lấy hàng.");

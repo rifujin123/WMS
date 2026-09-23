@@ -22,6 +22,18 @@ export const SALE_ORDER_STATUS_COLOR: Record<SaleOrderStatus, string> = {
   Shipped: 'green',
 }
 
+export const SALE_ORDER_DETAIL_STATUS_LABEL: Record<string, string> = {
+  Pending: 'Chờ phân bổ',
+  Allocated: 'Đã phân bổ',
+  Picked: 'Đã lấy',
+}
+
+export const SALE_ORDER_DETAIL_STATUS_COLOR: Record<string, string> = {
+  Pending: 'orange',
+  Allocated: 'blue',
+  Picked: 'green',
+}
+
 export const PUT_AWAY_STATUS_LABEL: Record<PutAwayTaskStatus, string> = {
   Open: 'Mở',
   Assigned: 'Đã phân công',

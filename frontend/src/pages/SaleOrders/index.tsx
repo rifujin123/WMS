@@ -22,6 +22,7 @@ import {
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import SaleOrderFormModal from './components/SaleOrderFormModal'
+import { SaleOrderDetailDrawer } from './components/SaleOrderDetailDrawer'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
 import type { ShipmentDto } from '../../types/shipment'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
@@ -34,6 +35,7 @@ import { formatDateTime } from '../../lib/date'
 function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<SaleOrderDto | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<SaleOrderDto | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<SaleOrderStatus | undefined>(undefined)
   const { message } = App.useApp()
@@ -114,8 +116,16 @@ function SaleOrders() {
       title: 'Số đơn',
       dataIndex: 'orderNo',
       key: 'orderNo',
-      render: (orderNo: string) => (
-        <Tag color="blue" style={{ fontFamily: 'monospace' }}>{orderNo}</Tag>
+      render: (orderNo: string, row: SaleOrderDto) => (
+        <Typography.Link
+          style={{ fontFamily: 'monospace', fontWeight: 600 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            setSelectedOrder(row)
+          }}
+        >
+          {orderNo}
+        </Typography.Link>
       ),
     },
     {
@@ -149,7 +159,10 @@ function SaleOrders() {
     key: 'actions',
     width: 180,
     render: (_, row) => (
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+      <div
+        style={{ display: 'flex', gap: 4, alignItems: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {row.status === 'New' && (
           <>
             <Tooltip title="Sửa">
@@ -201,7 +214,7 @@ function SaleOrders() {
             Đơn bán
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Quản lý đơn xuất hàng cho khách.
+            Quản lý đơn xuất hàng cho khách. Nhấp vào đơn bán để xem danh sách mặt hàng chi tiết.
           </Typography.Text>
         </div>
         {canManage && (
@@ -246,6 +259,10 @@ function SaleOrders() {
           loading={isPending}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           scroll={{ x: 720 }}
+          onRow={(record) => ({
+            onClick: () => setSelectedOrder(record),
+            style: { cursor: 'pointer' },
+          })}
           locale={{ emptyText: <Empty image={null} description="Chưa có đơn bán nào" /> }}
         />
       </Card>
@@ -257,6 +274,11 @@ function SaleOrders() {
           setModalOpen(false)
           setEditing(null)
         }}
+      />
+
+      <SaleOrderDetailDrawer
+        saleOrder={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
       />
     </div>
   )

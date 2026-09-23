@@ -69,6 +69,7 @@ public class PutAwayService : IPutAwayService
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
         ValidatePutAwayEligibility(detail);
         await ValidateAvailableQuantityAsync(detail, dto.Quantity);
+        await ValidateLocationWarehouseAsync(dto.FromLocationId, dto.ToLocationId, detail);
 
         var task = _mapper.Map<PutAwayTask>(dto);
         task.Status = PutAwayTaskStatus.Open;
@@ -87,6 +88,7 @@ public class PutAwayService : IPutAwayService
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
         ValidatePutAwayEligibility(detail);
         await ValidateAvailableQuantityAsync(detail, dto.Quantity, task.Id);
+        await ValidateLocationWarehouseAsync(dto.FromLocationId, dto.ToLocationId, detail);
 
         _mapper.Map(dto, task);
         await _repo.UpdateAsync(task);
@@ -224,5 +226,30 @@ public class PutAwayService : IPutAwayService
             throw new InvalidOperationException(
                 $"Tổng số lượng task cất hàng không được vượt quá số lượng thực nhận {detail.ActualQuantity}. " +
                 $"Đã tạo: {existingQuantity}, yêu cầu: {requestedQuantity}.");
+    }
+
+    private async Task ValidateLocationWarehouseAsync(Guid? fromLocationId, Guid? toLocationId, ReceivingDetail detail)
+    {
+        Location? fromLoc = null;
+        Location? toLoc = null;
+
+        if (fromLocationId.HasValue)
+        {
+            fromLoc = await _locationRepo.GetByIdAsync(fromLocationId.Value);
+            if (fromLoc == null)
+                throw new InvalidOperationException("Không tìm thấy vị trí nguồn trong kho.");
+        }
+
+        if (toLocationId.HasValue)
+        {
+            toLoc = await _locationRepo.GetByIdAsync(toLocationId.Value);
+            if (toLoc == null)
+                throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
+        }
+
+        if (fromLoc != null && toLoc != null && fromLoc.WarehouseId != toLoc.WarehouseId)
+        {
+            throw new InvalidOperationException("Vị trí không hợp lệ, vui lòng kiểm tra lại kho.");
+        }
     }
 }

@@ -121,6 +121,12 @@ function PutAwayTasks() {
       align: 'right',
     },
     {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      render: (name?: string) => name || '—',
+    },
+    {
       title: 'Vị trí đích',
       dataIndex: 'toLocationCode',
       key: 'toLocationCode',

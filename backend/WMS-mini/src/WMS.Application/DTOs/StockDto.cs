@@ -8,6 +8,9 @@ public class StockDto
     public string ProductName { get; set; } = string.Empty;
     public Guid LocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
+    public Guid WarehouseId { get; set; }
+    public string WarehouseName { get; set; } = string.Empty;
     public int OnhandQty { get; set; }
     public int ReservedQty { get; set; }
+    public int AvailableQty => OnhandQty - ReservedQty;
 }

@@ -97,11 +97,18 @@ function StockAdjustments() {
     },
     { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
     {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      width: 140,
+      render: (name?: string) => name || '—',
+    },
+    {
       title: 'Vị trí',
       dataIndex: 'locationCode',
       key: 'locationCode',
       width: 120,
-      render: (c?: string) => <Tag>{c ?? '—'}</Tag>,
+      render: (c?: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{c ?? '—'}</Tag>,
     },
     {
       title: 'Tồn hệ thống',

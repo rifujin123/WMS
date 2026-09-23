@@ -28,6 +28,12 @@ const pickingColumns: TableColumnsType<PickingDto> = [
     ),
   },
   {
+    title: 'Kho',
+    dataIndex: 'warehouseName',
+    key: 'warehouseName',
+    render: (name?: string) => name || '—',
+  },
+  {
     title: 'Số mặt hàng',
     key: 'itemCount',
     align: 'left',
@@ -115,6 +121,12 @@ function StaffDashboard() {
       key: 'quantity',
       align: 'left',
       width: 90,
+    },
+    {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      render: (name?: string) => name || '—',
     },
     {
       title: 'Vị trí đích',

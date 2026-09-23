@@ -13,6 +13,8 @@ public class CreateSaleOrderDto
 
     public DateTime OrderDate { get; set; }
 
+    public Guid? WarehouseId { get; set; }
+
     [Required]
     [MinLength(1)]
     public List<CreateSaleOrderDetailDto> SaleOrderDetails { get; set; } = new();
