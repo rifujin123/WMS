@@ -241,11 +241,12 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalized, cancellationToken);
             if (existingUser != null)
             {
+                existingUser.PasswordHash = hasher.HashPassword(new User { UserName = username }, customPassword);
                 if (existingUser.WarehouseId != warehouseId)
                 {
                     existingUser.WarehouseId = warehouseId;
-                    _db.Users.Update(existingUser);
                 }
+                _db.Users.Update(existingUser);
                 continue;
             }
 
