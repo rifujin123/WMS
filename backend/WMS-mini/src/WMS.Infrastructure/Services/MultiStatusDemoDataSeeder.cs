@@ -172,9 +172,6 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             await ClearAllDataAsync(cancellationToken);
         }
 
-        // Đảm bảo các Role và 4 tài khoản Demo chuẩn (manager1, manager2, staff1, staff2) luôn được tạo/đồng bộ
-        var usersSeeded = await SeedUsersAsync(cancellationToken);
-
         var hasWarehouses = await _db.Warehouses.AsNoTracking().AnyAsync(cancellationToken);
         if (hasWarehouses)
         {
@@ -183,6 +180,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         }
 
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
+        var usersSeeded = await SeedUsersAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
         var (vendors, customers) = await SeedVendorsAndCustomersAsync(cancellationToken);
         await SeedStockAsync(cancellationToken);
@@ -214,32 +212,49 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
 
     private async Task ClearAllDataAsync(CancellationToken cancellationToken)
     {
-        // Xóa tuần tự theo thứ tự khóa ngoại an toàn
-        _db.Shipments.RemoveRange(await _db.Shipments.ToListAsync(cancellationToken));
-        _db.Pickings.RemoveRange(await _db.Pickings.ToListAsync(cancellationToken));
-        _db.SaleOrderDetails.RemoveRange(await _db.SaleOrderDetails.ToListAsync(cancellationToken));
-        _db.SaleOrders.RemoveRange(await _db.SaleOrders.ToListAsync(cancellationToken));
+        _logger.LogInformation("Executing full database wipe (disabling FK constraints, deleting all rows from all tables, re-enabling FK constraints)...");
 
-        _db.PutAwayTasks.RemoveRange(await _db.PutAwayTasks.ToListAsync(cancellationToken));
-        _db.ReceivingDetails.RemoveRange(await _db.ReceivingDetails.ToListAsync(cancellationToken));
-        _db.Receivings.RemoveRange(await _db.Receivings.ToListAsync(cancellationToken));
-        _db.PurchaseOrderDetails.RemoveRange(await _db.PurchaseOrderDetails.ToListAsync(cancellationToken));
-        _db.PurchaseOrders.RemoveRange(await _db.PurchaseOrders.ToListAsync(cancellationToken));
+        const string wipeSql = @"
+            EXEC sp_MSforeachtable ""ALTER TABLE ? NOCHECK CONSTRAINT all"";
 
-        _db.StockAdjustmentDetails.RemoveRange(await _db.StockAdjustmentDetails.ToListAsync(cancellationToken));
-        _db.StockAdjustments.RemoveRange(await _db.StockAdjustments.ToListAsync(cancellationToken));
-        _db.StockMovements.RemoveRange(await _db.StockMovements.ToListAsync(cancellationToken));
-        _db.Stocks.RemoveRange(await _db.Stocks.ToListAsync(cancellationToken));
-        _db.Locations.RemoveRange(await _db.Locations.ToListAsync(cancellationToken));
+            DELETE FROM [dbo].[AuditLogs];
+            DELETE FROM [dbo].[StatusHistories];
+            DELETE FROM [dbo].[AssociationRules];
+            DELETE FROM [dbo].[RmaDetails];
+            DELETE FROM [dbo].[Rmas];
+            DELETE FROM [dbo].[Shipments];
+            DELETE FROM [dbo].[PickingDetails];
+            DELETE FROM [dbo].[Pickings];
+            DELETE FROM [dbo].[SaleOrderDetails];
+            DELETE FROM [dbo].[SaleOrders];
+            DELETE FROM [dbo].[PutAwayTasks];
+            DELETE FROM [dbo].[ReceivingDetails];
+            DELETE FROM [dbo].[Receivings];
+            DELETE FROM [dbo].[PurchaseOrderDetails];
+            DELETE FROM [dbo].[PurchaseOrders];
+            DELETE FROM [dbo].[StockAdjustmentDetails];
+            DELETE FROM [dbo].[StockAdjustments];
+            DELETE FROM [dbo].[StockMovements];
+            DELETE FROM [dbo].[Stocks];
+            DELETE FROM [dbo].[Locations];
+            DELETE FROM [dbo].[Products];
+            DELETE FROM [dbo].[Categories];
+            DELETE FROM [dbo].[Vendors];
+            DELETE FROM [dbo].[Customers];
+            DELETE FROM [dbo].[Warehouses];
+            DELETE FROM [dbo].[AspNetUserRoles];
+            DELETE FROM [dbo].[AspNetRoleClaims];
+            DELETE FROM [dbo].[AspNetUserClaims];
+            DELETE FROM [dbo].[AspNetUserLogins];
+            DELETE FROM [dbo].[AspNetUserTokens];
+            DELETE FROM [dbo].[AspNetRoles];
+            DELETE FROM [dbo].[AspNetUsers];
 
-        _db.Products.RemoveRange(await _db.Products.ToListAsync(cancellationToken));
-        _db.Categories.RemoveRange(await _db.Categories.ToListAsync(cancellationToken));
-        _db.Vendors.RemoveRange(await _db.Vendors.ToListAsync(cancellationToken));
-        _db.Customers.RemoveRange(await _db.Customers.ToListAsync(cancellationToken));
-        _db.Warehouses.RemoveRange(await _db.Warehouses.ToListAsync(cancellationToken));
+            EXEC sp_MSforeachtable ""ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all"";
+        ";
 
-        await _db.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("All existing demo tables wiped cleanly for a fresh seed.");
+        await _db.Database.ExecuteSqlRawAsync(wipeSql, cancellationToken);
+        _logger.LogInformation("All database tables wiped cleanly for a 100% fresh seed.");
     }
 
     private async Task<int> SeedUsersAsync(CancellationToken cancellationToken)
@@ -264,10 +279,11 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var hasher = new PasswordHasher<User>();
         var demoUsers = new (string Username, string FullName, string Email, string Role, string Password, Guid? WarehouseId)[]
         {
-            ("manager1", "Quản lý Kho HCM",   "manager1@wms.local", "WarehouseManager", "Manager@123", whHcm?.Id),
-            ("manager2", "Quản lý Kho HN",    "manager2@wms.local", "WarehouseManager", "Manager@123", whHn?.Id),
-            ("staff1",   "Nhân viên Kho HCM", "staff1@wms.local",   "WarehouseStaff",   "Staff1@123",  whHcm?.Id),
-            ("staff2",   "Nhân viên Kho HN",  "staff2@wms.local",   "WarehouseStaff",   "Staff2@123",  whHn?.Id),
+            ("admin",    "System Administrator", "admin@wms.local",    "Admin",            "Admin@123",   null),
+            ("manager1", "Quản lý Kho HCM",      "manager1@wms.local", "WarehouseManager", "Manager@123", whHcm?.Id),
+            ("manager2", "Quản lý Kho HN",       "manager2@wms.local", "WarehouseManager", "Manager@123", whHn?.Id),
+            ("staff1",   "Nhân viên Kho HCM",    "staff1@wms.local",   "WarehouseStaff",   "Staff1@123",  whHcm?.Id),
+            ("staff2",   "Nhân viên Kho HN",     "staff2@wms.local",   "WarehouseStaff",   "Staff2@123",  whHn?.Id),
         };
 
         var created = 0;
