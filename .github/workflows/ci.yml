@@ -1,9 +1,9 @@
-# CI/CD — build + test + lint cho WMS
+# CI — build + test + lint cho WMS
 #
-# 1. CI: Chạy song song backend (build + test) và frontend (lint + build) trên mọi push/PR.
-# 2. CD: Chỉ khi CẢ HAI job trên đều PASS và commit thuộc nhánh master/main, mới trigger Render Deploy Hook.
+# Chạy backend (build + test) và frontend (lint + build) trên mỗi push/PR tới nhánh chính.
+# Không cần secret: chỉ dùng config mẫu, không khởi động DB thật.
 
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
@@ -57,34 +57,4 @@ jobs:
         run: npm run lint
 
       - name: Build
-        run: npm run build
-
-  deploy:
-    name: Deploy to Render
-    needs: [backend, frontend]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Render Backend Deploy Hook
-        env:
-          HOOK_API: ${{ secrets.RENDER_API_DEPLOY_HOOK || secrets.RENDER_BACKEND_DEPLOY_HOOK || secrets.RENDER_DEPLOY_HOOK }}
-        run: |
-          if [ -n "$HOOK_API" ]; then
-            echo "🚀 Triggering Render Backend Deploy..."
-            curl -fsS -X POST "$HOOK_API"
-            echo "✅ Backend deploy triggered successfully."
-          else
-            echo "⚠️ Secret RENDER_API_DEPLOY_HOOK not configured. Skipping backend webhook."
-          fi
-
-      - name: Trigger Render Frontend Deploy Hook
-        env:
-          HOOK_WEB: ${{ secrets.RENDER_WEB_DEPLOY_HOOK || secrets.RENDER_FRONTEND_DEPLOY_HOOK || secrets.RENDER_DEPLOY_HOOK_WEB }}
-        run: |
-          if [ -n "$HOOK_WEB" ]; then
-            echo "🚀 Triggering Render Frontend Deploy..."
-            curl -fsS -X POST "$HOOK_WEB"
-            echo "✅ Frontend deploy triggered successfully."
-          else
-            echo "⚠️ Secret RENDER_WEB_DEPLOY_HOOK not configured. Skipping frontend webhook."
-          fi
+        run: npm run build
