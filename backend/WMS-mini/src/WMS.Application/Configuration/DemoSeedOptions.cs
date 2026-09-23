@@ -10,4 +10,7 @@ public class DemoSeedOptions
 
     /// Mật khẩu demo dùng chung cho các user seed (Chỉ dùng demo, không dùng production).
     public string DemoPassword { get; init; } = "Admin@123";
+
+    /// Nếu true, xóa sạch toàn bộ dữ liệu cũ và seed lại mới 100%.
+    public bool ResetDatabase { get; init; } = false;
 }
