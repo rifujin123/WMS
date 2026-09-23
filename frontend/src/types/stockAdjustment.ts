@@ -7,7 +7,10 @@ export interface StockAdjustmentDetailDto {
   productName: string
   locationId: string
   locationCode: string
+  warehouseName?: string
+  systemQty: number
   countedQty: number
+  differenceQty: number
 }
 
 export interface StockAdjustmentDto {

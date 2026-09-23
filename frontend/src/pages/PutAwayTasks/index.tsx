@@ -11,7 +11,6 @@ import {
   Button,
   Card,
   Empty,
-  Form,
   Modal,
   Select,
   Table,
@@ -20,115 +19,43 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import WarehouseLocationGrid from '../../components/WarehouseLocationGrid'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
 import {
-  useAssignPutAwayTask,
   useCompletePutAwayTask,
   useDeletePutAwayTask,
   usePutAwayTasksPage,
   useStartPutAwayTask,
-  useUpdatePutAwayTask,
 } from '../../hooks/usePutAwayTasks'
-import { useLocationsByWarehouse } from '../../hooks/useLocations'
-import { useWarehouses } from '../../hooks/useWarehouses'
-import { useWarehouseStaff } from '../../hooks/useUsers'
 import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
-
 import { getErrorMessage } from '../../lib/errorHandler'
+import { SetLocationModal } from './components/SetLocationModal'
+import { AssignStaffModal } from './components/AssignStaffModal'
 
 function PutAwayTasks() {
-  // --- Dữ liệu & hooks (danh sách, thao tác) ---
   const { message } = App.useApp()
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
   const { data: profile } = useProfile()
   const [statusFilter, setStatusFilter] = useState<PutAwayTaskStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
+
   const putAwayParams = {
     page,
     ...(isStaff && profile?.id ? { assignToId: profile.id } : {}),
     ...(statusFilter ? { status: statusFilter } : {}),
   }
   const { data: tasks, isPending } = usePutAwayTasksPage(putAwayParams)
-  const { data: warehouses } = useWarehouses()
-  const { data: warehouseStaff } = useWarehouseStaff()
-  const updateMutation = useUpdatePutAwayTask()
-  const assignMutation = useAssignPutAwayTask()
   const startMutation = useStartPutAwayTask()
   const completeMutation = useCompletePutAwayTask()
   const deleteMutation = useDeletePutAwayTask()
 
-  // --- State: bộ lọc & modal ---
+  // State quản lý mở modal
   const [locTask, setLocTask] = useState<PutAwayTaskDto | null>(null)
   const [assignTask, setAssignTask] = useState<PutAwayTaskDto | null>(null)
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(undefined)
-  const [selectedLocId, setSelectedLocId] = useState<string | undefined>(undefined)
-  const [assignForm] = Form.useForm<{ userId: string }>()
-  const { data: locations } = useLocationsByWarehouse(selectedWarehouseId)
 
-  // --- Xử lý: đặt vị trí đích ---
-  const openLocModal = (task: PutAwayTaskDto) => {
-    setLocTask(task)
-    setSelectedWarehouseId(undefined)
-    setSelectedLocId(task.toLocationId ?? undefined)
-  }
-
-  const handleSetLocation = () => {
-    if (!locTask) return
-    if (!selectedLocId) {
-      message.warning('Vui lòng chọn vị trí trong sơ đồ kho.')
-      return
-    }
-    updateMutation.mutate(
-      {
-        id: locTask.id,
-        dto: {
-          receivingDetailId: locTask.receivingDetailId,
-          productId: locTask.productId,
-          quantity: locTask.quantity,
-          toLocationId: selectedLocId,
-        },
-      },
-      {
-        onSuccess: () => {
-          message.success('Đã đặt vị trí đích.')
-          setLocTask(null)
-        },
-        onError: (err: Error) => message.error(getErrorMessage(err, 'Đặt vị trí thất bại.')),
-      },
-    )
-  }
-
-  // --- Xử lý: phân công nhân viên ---
-  const openAssignModal = (task: PutAwayTaskDto) => {
-    setAssignTask(task)
-    assignForm.resetFields()
-  }
-
-  const handleAssign = async () => {
-    if (!assignTask) return
-    try {
-      const values = await assignForm.validateFields()
-      assignMutation.mutate(
-        { id: assignTask.id, dto: { userId: values.userId } },
-        {
-          onSuccess: () => {
-            message.success('Đã phân công cho nhân viên.')
-            setAssignTask(null)
-          },
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Phân công thất bại.')),
-        },
-      )
-    } catch {
-      return
-    }
-  }
-
-  // --- Xử lý: bắt đầu / hoàn thành / xoá task ---
   const handleStart = (task: PutAwayTaskDto) => {
     Modal.confirm({
       title: 'Bắt đầu cất hàng',
@@ -172,7 +99,6 @@ function PutAwayTasks() {
     })
   }
 
-  // --- Định nghĩa cột bảng ---
   const columns: TableColumnsType<PutAwayTaskDto> = [
     {
       title: 'SKU',
@@ -193,6 +119,12 @@ function PutAwayTasks() {
       dataIndex: 'quantity',
       key: 'quantity',
       align: 'right',
+    },
+    {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      render: (name?: string) => name || '—',
     },
     {
       title: 'Vị trí đích',
@@ -260,14 +192,14 @@ function PutAwayTasks() {
                     <Button
                       type="text"
                       icon={<EditOutlined />}
-                      onClick={() => openLocModal(row)}
+                      onClick={() => setLocTask(row)}
                     />
                   </Tooltip>
                   <Tooltip title="Phân công nhân viên">
                     <Button
                       type="text"
                       icon={<UserAddOutlined />}
-                      onClick={() => openAssignModal(row)}
+                      onClick={() => setAssignTask(row)}
                     />
                   </Tooltip>
                   <Tooltip title="Xoá">
@@ -282,17 +214,8 @@ function PutAwayTasks() {
               )}
               {row.status === 'Assigned' && !row.toLocationId && (
                 <Tooltip title="Đặt vị trí đích">
-                  <Button type="text" icon={<EditOutlined />} onClick={() => openLocModal(row)} />
+                  <Button type="text" icon={<EditOutlined />} onClick={() => setLocTask(row)} />
                 </Tooltip>
-              )}
-              {row.status === 'InProgress' && (
-                <Button
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => handleComplete(row)}
-                >
-                  Hoàn thành
-                </Button>
               )}
             </>
           )}
@@ -303,7 +226,6 @@ function PutAwayTasks() {
 
   return (
     <div>
-      {/* Header trang */}
       <div
         style={{
           display: 'flex',
@@ -324,7 +246,6 @@ function PutAwayTasks() {
         </div>
       </div>
 
-      {/* Bộ lọc trạng thái */}
       <div style={{ marginBottom: 16 }}>
         <Select
           placeholder="Lọc theo trạng thái"
@@ -339,7 +260,6 @@ function PutAwayTasks() {
         />
       </div>
 
-      {/* Bảng danh sách task */}
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <Table<PutAwayTaskDto>
           rowKey="id"
@@ -358,72 +278,15 @@ function PutAwayTasks() {
         />
       </Card>
 
-      {/* Modal đặt vị trí đích — chọn kho trước, rồi chọn vị trí theo sơ đồ của kho */}
-      <Modal
-        title="Đặt vị trí đích"
-        open={locTask !== null}
-        onOk={handleSetLocation}
-        onCancel={() => setLocTask(null)}
-        okText="Lưu"
-        cancelText="Huỷ"
-        width={900}
-        confirmLoading={updateMutation.isPending}
-        destroyOnHidden
-      >
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          {locTask ? `${locTask.productSku} — ${locTask.productName} (${locTask.quantity})` : ''}
-        </Typography.Paragraph>
-        <Select
-          placeholder="Chọn kho"
-          style={{ width: '100%', marginBottom: 16 }}
-          value={selectedWarehouseId}
-          options={warehouses?.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))}
-          onChange={(value) => {
-            setSelectedWarehouseId(value)
-            setSelectedLocId(undefined)
-          }}
-        />
-        {selectedWarehouseId ? (
-          <WarehouseLocationGrid
-            locations={locations ?? []}
-            selectedLocationId={selectedLocId}
-            onLocationClick={(location) => setSelectedLocId(location.id)}
-          />
-        ) : (
-          <Empty image={null} description="Chọn kho để xem sơ đồ vị trí" />
-        )}
-      </Modal>
+      <SetLocationModal
+        task={locTask}
+        onClose={() => setLocTask(null)}
+      />
 
-      {/* Modal phân công nhân viên — chỉ khi task Open và đã có vị trí */}
-      <Modal
-        title="Phân công nhân viên"
-        open={assignTask !== null}
-        onOk={handleAssign}
-        onCancel={() => setAssignTask(null)}
-        okText="Phân công"
-        cancelText="Huỷ"
-        confirmLoading={assignMutation.isPending}
-        destroyOnHidden
-      >
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          {assignTask ? `${assignTask.productSku} — ${assignTask.productName} (${assignTask.quantity})` : ''}
-        </Typography.Paragraph>
-        <Form form={assignForm} layout="vertical" size="large">
-          <Form.Item
-            name="userId"
-            label="Nhân viên kho"
-            rules={[{ required: true, message: 'Vui lòng chọn nhân viên.' }]}
-          >
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Chọn nhân viên kho"
-              loading={!warehouseStaff}
-              options={(warehouseStaff ?? []).map((u) => ({ value: u.id, label: u.fullName }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <AssignStaffModal
+        task={assignTask}
+        onClose={() => setAssignTask(null)}
+      />
     </div>
   )
 }

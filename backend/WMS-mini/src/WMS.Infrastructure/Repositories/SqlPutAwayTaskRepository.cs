@@ -47,6 +47,7 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
                 FromLocationCode = t.FromLocation == null ? null : t.FromLocation.Code,
                 ToLocationId = t.ToLocationId,
                 ToLocationCode = t.ToLocation == null ? null : t.ToLocation.Code,
+                WarehouseName = t.FromLocation != null ? t.FromLocation.Warehouse.Name : (t.ToLocation != null ? t.ToLocation.Warehouse.Name : null),
                 Status = t.Status,
                 AssignToId = t.AssignToId,
                 AssignToName = t.AssignTo == null ? null : t.AssignTo.FullName,
@@ -63,7 +64,9 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         IQueryable<PutAwayTask> tasks = _db.PutAwayTasks
             .Include(t => t.Product)
             .Include(t => t.FromLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.ToLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.AssignTo)
             .Include(t => t.ReceivingDetail)
             .AsNoTracking();
@@ -71,7 +74,7 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         if (assignToId.HasValue)
             tasks = tasks.Where(t => t.AssignToId == assignToId.Value);
 
-        return await tasks.ToListAsync();
+        return await tasks.OrderByDescending(t => t.CreatedDate).ToListAsync();
     }
 
     public async Task<PutAwayTask?> GetByIdAsync(Guid id)
@@ -79,7 +82,9 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         return await _db.PutAwayTasks
             .Include(t => t.Product)
             .Include(t => t.FromLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.ToLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.AssignTo)
             .Include(t => t.ReceivingDetail)
                 .ThenInclude(d => d.Receiving)
@@ -105,4 +110,13 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         _db.PutAwayTasks
             .Where(t => t.ReceivingDetail.Receiving.PurchaseOrderId == purchaseOrderId)
             .CountAsync(t => t.Status != PutAwayTaskStatus.Completed);
+
+    public async Task<int> GetTotalQuantityByReceivingDetailAsync(Guid receivingDetailId, Guid? excludeTaskId = null)
+    {
+        var tasks = _db.PutAwayTasks.Where(t => t.ReceivingDetailId == receivingDetailId);
+        if (excludeTaskId.HasValue)
+            tasks = tasks.Where(t => t.Id != excludeTaskId.Value);
+
+        return await tasks.SumAsync(t => (int?)t.Quantity) ?? 0;
+    }
 }

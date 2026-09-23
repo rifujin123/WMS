@@ -17,14 +17,17 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
     public async Task<List<SaleOrder>> GetAllAsync()
     {
         return await _db.SaleOrders
+            .Include(s => s.Warehouse)
             .Include(s => s.SaleOrderDetails)
                 .ThenInclude(d => d.Product)
+            .OrderByDescending(s => s.CreatedDate)
             .ToListAsync();
     }
 
     public async Task<SaleOrder?> GetByIdAsync(Guid id)
     {
         return await _db.SaleOrders
+            .Include(s => s.Warehouse)
             .Include(s => s.SaleOrderDetails)
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(s => s.Id == id);

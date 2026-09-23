@@ -707,6 +707,9 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid?>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedById");
@@ -721,6 +724,8 @@ namespace WMS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("UpdatedById");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("PurchaseOrders");
                 });
@@ -1170,6 +1175,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
@@ -1182,6 +1190,8 @@ namespace WMS.Infrastructure.Migrations
                     b.HasIndex("PackedById");
 
                     b.HasIndex("UpdatedById");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("SaleOrders");
                 });
@@ -1641,6 +1651,9 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<Guid?>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -1650,6 +1663,8 @@ namespace WMS.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -1734,10 +1749,16 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid?>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("CreatedById1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DeletedById1")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeletedDate")
@@ -1754,6 +1775,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedById")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UpdatedById1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
 
@@ -1762,11 +1786,11 @@ namespace WMS.Infrastructure.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.HasIndex("CreatedById");
+                    b.HasIndex("CreatedById1");
 
-                    b.HasIndex("DeletedById");
+                    b.HasIndex("DeletedById1");
 
-                    b.HasIndex("UpdatedById");
+                    b.HasIndex("UpdatedById1");
 
                     b.ToTable("Warehouses");
                 });
@@ -2109,6 +2133,11 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("ApprovedBy");
 
                     b.Navigation("ClosedBy");
@@ -2118,6 +2147,8 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("DeletedBy");
 
                     b.Navigation("UpdatedBy");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrderDetail", b =>
@@ -2422,6 +2453,11 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CreatedBy");
 
                     b.Navigation("DeletedBy");
@@ -2429,6 +2465,8 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("PackedBy");
 
                     b.Navigation("UpdatedBy");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>
@@ -2672,6 +2710,16 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("UpdatedBy");
                 });
 
+            modelBuilder.Entity("WMS.Domain.Entities.User", b =>
+                {
+                    b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Warehouse");
+                });
+
             modelBuilder.Entity("WMS.Domain.Entities.Vendor", b =>
                 {
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
@@ -2700,18 +2748,15 @@ namespace WMS.Infrastructure.Migrations
                 {
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
                         .WithMany()
-                        .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .HasForeignKey("CreatedById1");
 
                     b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
                         .WithMany()
-                        .HasForeignKey("DeletedById")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .HasForeignKey("DeletedById1");
 
                     b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
                         .WithMany()
-                        .HasForeignKey("UpdatedById")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .HasForeignKey("UpdatedById1");
 
                     b.Navigation("CreatedBy");
 

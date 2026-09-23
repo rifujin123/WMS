@@ -29,7 +29,7 @@ public class SqlPickingRepository : IPickingRepository
         if (assignToId.HasValue)
             pickings = pickings.Where(p => p.AssignedToId == assignToId.Value);
 
-        return await pickings.ToListAsync();
+        return await pickings.OrderByDescending(p => p.CreatedDate).ToListAsync();
     }
 
     public async Task<Picking?> GetByIdAsync(Guid id)
@@ -56,6 +56,10 @@ public class SqlPickingRepository : IPickingRepository
 
     public async Task DeleteAsync(Picking picking)
     {
+        if (picking.PickingDetails != null && picking.PickingDetails.Any())
+        {
+            _db.PickingDetails.RemoveRange(picking.PickingDetails);
+        }
         _db.Pickings.Remove(picking);
     }
 

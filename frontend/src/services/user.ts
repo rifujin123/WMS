@@ -17,7 +17,7 @@ export interface UserListParams {
   status?: string
 }
 
-export function getUsers(params?: { role?: string; search?: string; status?: string }): Promise<UserListItem[]> {
+export function getUsers(params?: { role?: string; search?: string; status?: string; warehouseId?: string }): Promise<UserListItem[]> {
   return api.get('/Users/lookup', { params })
 }
 
@@ -25,8 +25,8 @@ export function getUsersPage(params: UserListParams): Promise<PagedResponse<User
   return api.get('/Users', { params })
 }
 
-export function getWarehouseStaff(): Promise<UserListItem[]> {
-  return getUsers({ role: 'WarehouseStaff' })
+export function getWarehouseStaff(warehouseId?: string): Promise<UserListItem[]> {
+  return getUsers({ role: 'WarehouseStaff', warehouseId })
 }
 
 export function updateUser(id: string, dto: UpdateUserDto): Promise<{ message: string }> {

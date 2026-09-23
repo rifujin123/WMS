@@ -43,6 +43,7 @@ public class AiProvider : IAiProvider
             ".webp" => "image/webp",
             ".heic" => "image/heic",
             ".heif" => "image/heif",
+            ".pdf" => "application/pdf",
             ".jpg" or ".jpeg" => "image/jpeg",
             _ => "image/jpeg",
         };
@@ -90,29 +91,59 @@ public class AiProvider : IAiProvider
             }
         };
 
-        // 3. Gửi POST tới endpoint /v1beta/models/{model}:generateContent
-        var model = string.IsNullOrWhiteSpace(_options.Model) ? "gemini-1.5-flash" : _options.Model;
+        // 3. Gửi POST tới endpoint /v1beta/models/{model}:generateContent kèm cơ chế fallback tự động
+        var primaryModel = string.IsNullOrWhiteSpace(_options.Model) ? "gemini-3.5-flash-lite" : _options.Model;
+        var candidateModels = new[] { primaryModel, "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash" }
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         var client = _httpClientFactory.CreateClient("AiProvider");
+        string? responseJson = null;
+        string? lastError = null;
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1beta/models/{model}:generateContent")
+        foreach (var modelName in candidateModels)
         {
-            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
-        };
+            for (var attempt = 1; attempt <= 2; attempt++)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1beta/models/{modelName}:generateContent")
+                {
+                    Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
+                };
 
-        if (!request.Headers.Contains("x-goog-api-key"))
-        {
-            request.Headers.Add("x-goog-api-key", _options.ApiKey);
+                if (!request.Headers.Contains("x-goog-api-key"))
+                {
+                    request.Headers.Add("x-goog-api-key", _options.ApiKey);
+                }
+
+                using var response = await client.SendAsync(request, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    break;
+                }
+
+                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                lastError = $"Gemini API ({modelName}) trả về lỗi ({(int)response.StatusCode} {response.ReasonPhrase}): {errorBody}";
+
+                if ((int)response.StatusCode == 503 && attempt == 1)
+                {
+                    await Task.Delay(1000, cancellationToken);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (responseJson != null) break;
         }
 
-        using var response = await client.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        if (responseJson == null)
         {
-            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new HttpRequestException($"Gemini API trả về lỗi ({(int)response.StatusCode} {response.ReasonPhrase}): {errorBody}");
+            throw new HttpRequestException(lastError ?? "Không thể kết nối đến Gemini API.");
         }
 
         // 4. Đọc chuỗi JSON từ candidates[0].content.parts[0].text
-        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         var root = JsonNode.Parse(responseJson)
             ?? throw new InvalidOperationException("Gemini provider trả về response rỗng.");
 

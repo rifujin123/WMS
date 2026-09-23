@@ -192,15 +192,16 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     })
   }
 
-  // Xử lý upload ảnh → gọi scan
+  // Xử lý upload ảnh/PDF → gọi scan
   const handleInvoiceFile: UploadProps['beforeUpload'] = (file) => {
-    const acceptedTypes = ['image/jpeg', 'image/png']
-    if (!acceptedTypes.includes(file.type)) {
-      message.error('Chỉ nhận ảnh JPG hoặc PNG.')
+    const acceptedTypes = ['image/jpeg', 'image/png', 'application/pdf']
+    const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf'
+    if (!acceptedTypes.includes(file.type) && !isPdf) {
+      message.error('Chỉ nhận ảnh JPG, PNG hoặc file PDF hóa đơn.')
       return Upload.LIST_IGNORE
     }
     if (file.size > 5 * 1024 * 1024) {
-      message.error('Ảnh phải nhỏ hơn 5MB.')
+      message.error('File phải nhỏ hơn 5MB.')
       return Upload.LIST_IGNORE
     }
     if (!selectedPurchaseOrderId) {
@@ -208,7 +209,11 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       return Upload.LIST_IGNORE
     }
 
-    setInvoicePreview(URL.createObjectURL(file)) // hiện ảnh local ngay
+    if (!isPdf) {
+      setInvoicePreview(URL.createObjectURL(file)) // hiện ảnh local ngay
+    } else {
+      setInvoicePreview(undefined)
+    }
     scanMutation.mutate(
       { purchaseOrderId: selectedPurchaseOrderId, file },
       {
@@ -307,19 +312,19 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
               <Input.TextArea rows={2} placeholder="Ghi chú thêm (không bắt buộc)" maxLength={500} />
             </Form.Item>
 
-            <Form.Item label="Ảnh hóa đơn (Scan AI)">
+            <Form.Item label="Hóa đơn / Phiếu giao hàng (Scan AI)">
               <Upload
-                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
                 beforeUpload={handleInvoiceFile}
                 maxCount={1}
                 showUploadList={false}
               >
                 <Button icon={<UploadOutlined />} loading={scanMutation.isPending}>
-                  {scanMutation.isPending ? 'Đang trích xuất...' : 'Chọn ảnh và scan'}
+                  {scanMutation.isPending ? 'Đang trích xuất...' : 'Chọn file và scan AI'}
                 </Button>
               </Upload>
               <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                JPG hoặc PNG, tối đa 5MB. Dữ liệu sẽ được điền tự động từ AI.
+                Hỗ trợ PDF, JPG hoặc PNG, tối đa 5MB. Dữ liệu sẽ được điền tự động từ AI.
               </Typography.Text>
             </Form.Item>
 

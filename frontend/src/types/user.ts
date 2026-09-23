@@ -9,6 +9,9 @@ export interface UserListItem {
   avatarUrl?: string
   role: UserRole
   status: UserStatus
+  warehouseId?: string
+  warehouseName?: string
+  warehouseCode?: string
   createdAt: string
 }
 
@@ -19,6 +22,9 @@ export interface UserProfile {
   fullName: string
   phoneNumber?: string
   avatarUrl?: string
+  warehouseId?: string
+  warehouseName?: string
+  warehouseCode?: string
   createdAt: string
   roles: string[]
 }
@@ -33,10 +39,21 @@ export interface ChangePasswordDto {
   newPassword: string
 }
 
+export interface CreateUserDto {
+  username: string
+  email: string
+  password: string
+  fullName: string
+  avatarUrl?: string
+  role?: UserRole
+  warehouseId?: string
+}
+
 export interface UpdateUserDto {
   fullName: string
   email: string
   role: UserRole
+  warehouseId?: string
 }
 
 export interface ResetPasswordDto {

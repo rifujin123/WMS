@@ -21,18 +21,32 @@ public class PurchaseOrderService : IPurchaseOrderService
         _currentUser = currentUser;
     }
 
-    public async Task<List<PurchaseOrderDto>> GetAllAsync() => _mapper.Map<List<PurchaseOrderDto>>(await _repo.GetAllAsync());
+    public async Task<List<PurchaseOrderDto>> GetAllAsync()
+    {
+        var orders = await _repo.GetAllAsync();
+        if (!_currentUser.IsInRole("Admin") && _currentUser.WarehouseId.HasValue)
+        {
+            orders = orders.Where(p => p.WarehouseId == _currentUser.WarehouseId.Value).ToList();
+        }
+        return _mapper.Map<List<PurchaseOrderDto>>(orders);
+    }
 
     public Task<PagedResult<PurchaseOrderDto>> GetPagedAsync(
         PurchaseOrderListQuery query,
         int pageSize,
-        CancellationToken cancellationToken = default) =>
-        _repo.GetPagedAsync(query, pageSize, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        if (!_currentUser.IsInRole("Admin") && _currentUser.WarehouseId.HasValue)
+        {
+            query.WarehouseId = _currentUser.WarehouseId.Value;
+        }
+        return _repo.GetPagedAsync(query, pageSize, cancellationToken);
+    }
 
     public async Task<PurchaseOrderDto?> GetByIdAsync(Guid id)
     {
         var entity = await _repo.GetByIdAsync(id);
-        if(entity == null)
+        if (entity == null)
             return null;
         return _mapper.Map<PurchaseOrderDto>(entity);
     }
@@ -42,10 +56,14 @@ public class PurchaseOrderService : IPurchaseOrderService
         if (await _repo.ExistsByPoNumberAsync(dto.PoNumber))
             throw new InvalidOperationException($"Số PO '{dto.PoNumber}' đã tồn tại.");
         var entity = _mapper.Map<PurchaseOrder>(dto);
+        if (!entity.WarehouseId.HasValue && _currentUser.WarehouseId.HasValue)
+        {
+            entity.WarehouseId = _currentUser.WarehouseId.Value;
+        }
         entity.Status = PurchaseOrderStatus.Pending;
         await _repo.AddAsync(entity);
         await _unitOfWork.SaveChangesAsync();
-        return _mapper.Map<PurchaseOrderDto>(entity);
+        return (await GetByIdAsync(entity.Id))!;
     }
 
     public async Task<PurchaseOrderDto?> UpdateAsync(Guid id, UpdatePurchaseOrderDto dto)

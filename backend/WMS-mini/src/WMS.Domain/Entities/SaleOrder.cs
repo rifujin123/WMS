@@ -18,6 +18,9 @@ public class SaleOrder : BaseAuditableEntity
     public User? PackedBy { get; set; }
     public DateTime? PackedDate { get; set; }
 
+    public Guid? WarehouseId { get; set; }
+    public Warehouse? Warehouse { get; set; }
+
     public ICollection<SaleOrderDetail> SaleOrderDetails { get; set; } = new List<SaleOrderDetail>();
     public Shipment? Shipment { get; set; }
     public ICollection<Rma> Rmas { get; set; } = new List<Rma>();

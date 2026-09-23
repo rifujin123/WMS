@@ -8,6 +8,7 @@ export interface StockSummaryDto {
   productName: string
   totalOnhand: number
   totalReserved: number
+  totalAvailable?: number
   locationCount: number
 }
 

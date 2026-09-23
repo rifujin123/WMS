@@ -10,6 +10,8 @@ public class StockMovementDto
     public string ProductName { get; set; } = string.Empty;
     public Guid LocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
+    public Guid? WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
     public MovementType MovementType { get; set; }
     public int Qty { get; set; }
     public string? Notes { get; set; }

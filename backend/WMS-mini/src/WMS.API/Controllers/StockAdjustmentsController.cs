@@ -43,7 +43,7 @@ public class StockAdjustmentsController : ControllerBase
     }
 
     [HttpPatch("{id}/approve")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Approve([FromRoute] Guid id)
     {
         var result = await _service.ApproveAsync(id);
@@ -54,7 +54,7 @@ public class StockAdjustmentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

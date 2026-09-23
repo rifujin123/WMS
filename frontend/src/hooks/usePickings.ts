@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { invalidateInventoryQueries } from '../lib/invalidateInventoryQueries'
 import type { AssignPickingDto, CompletePickingDto } from '../types/picking'
 import {
   assignPicking as assignPickingRequest,
@@ -54,10 +55,11 @@ export function useCompletePicking() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: CompletePickingDto }) =>
       completePickingRequest(id, dto),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['pickings'] })
       // Hoàn thành phiếu lấy làm đơn bán chuyển sang Packed
       queryClient.invalidateQueries({ queryKey: ['saleOrders'] })
+      await invalidateInventoryQueries(queryClient)
     },
   })
 }

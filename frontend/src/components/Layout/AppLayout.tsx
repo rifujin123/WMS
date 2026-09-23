@@ -1,27 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import {
-  AppstoreOutlined,
-  AuditOutlined,
-  CarryOutOutlined,
-  ContactsOutlined,
-  DashboardOutlined,
-  DatabaseOutlined,
   DownOutlined,
-  EnvironmentOutlined,
-  ExportOutlined,
-  FacebookFilled,
-  FileTextOutlined,
-  InboxOutlined,
-  InstagramFilled,
   LogoutOutlined,
-  MailOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  PhoneOutlined,
-  ShopOutlined,
-  ShoppingOutlined,
-  TeamOutlined,
-  TikTokOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { Avatar, Button, Dropdown, Layout, Menu, theme } from 'antd'
@@ -29,86 +11,10 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../Logo'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
-import { hasRole } from '../../router/routeRoles'
+import { getGroupKeyForPath, getMenuItems, navConfig } from './navConfig'
+import { AppFooter } from './AppFooter'
 
-const { Header, Content, Footer, Sider } = Layout
-
-interface AppMenuItem {
-  key: string
-  icon: ReactNode
-  label: string
-  allowedRoles: string[]
-}
-
-const appMenuItems: AppMenuItem[] = [
-  {
-    key: '/dashboard',
-    icon: <DashboardOutlined />,
-    label: 'Dashboard',
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  { key: '/users', icon: <TeamOutlined />, label: 'Người dùng', allowedRoles: ['Admin'] },
-  { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm', allowedRoles: ['Admin'] },
-  { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục', allowedRoles: ['Admin'] },
-  { key: '/warehouses', icon: <EnvironmentOutlined />, label: 'Kho hàng', allowedRoles: ['Admin'] },
-  { key: '/customers', icon: <ContactsOutlined />, label: 'Khách hàng', allowedRoles: ['Admin'] },
-  { key: '/vendors', icon: <ShopOutlined />, label: 'Nhà cung cấp', allowedRoles: ['Admin'] },
-  {
-    key: '/purchase-orders',
-    icon: <FileTextOutlined />,
-    label: 'Đơn đặt hàng',
-    // Staff được xem và xử lý PO nhưng không được duyệt.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/receivings',
-    icon: <InboxOutlined />,
-    label: 'Nhận hàng',
-    // Staff được nhận và kiểm đếm hàng; Manager/Admin giám sát toàn bộ.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/putaway-tasks',
-    icon: <CarryOutOutlined />,
-    label: 'Cất hàng',
-    // Staff xử lý task được phân công; Manager/Admin tạo và phân công task.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/sale-orders',
-    icon: <ShoppingOutlined />,
-    label: 'Đơn bán',
-    // Staff không tạo/sửa/xóa đơn bán; chỉ Manager/Admin điều phối.
-    allowedRoles: ['Admin', 'WarehouseManager'],
-  },
-  {
-    key: '/pickings',
-    icon: <ExportOutlined />,
-    label: 'Lấy hàng',
-    // Staff xử lý picking được giao; Manager/Admin tạo và phân công.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/stock',
-    icon: <DatabaseOutlined />,
-    label: 'Tồn kho',
-    // Mọi role kho cần tra cứu tồn để thực hiện nghiệp vụ.
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
-  },
-  {
-    key: '/stock-adjustments',
-    icon: <AuditOutlined />,
-    label: 'Điều chỉnh tồn',
-    // Điều chỉnh là nghiệp vụ kiểm soát; Staff không được thao tác trực tiếp.
-    allowedRoles: ['Admin', 'WarehouseManager'],
-  },
-]
-
-function getMenuItems(role: string | undefined): MenuProps['items'] {
-  return appMenuItems
-    .filter((item) => hasRole(role, item.allowedRoles))
-    .map((item) => ({ key: item.key, icon: item.icon, label: item.label }))
-}
+const { Header, Content, Sider } = Layout
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -119,6 +25,51 @@ function AppLayout() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
+
+  // Tìm key item và nhóm khớp với đường dẫn hiện tại (hỗ trợ cả sub-path như /receivings/:id)
+  let selectedKey = location.pathname
+  let currentGroupKey: string | null = null
+
+  for (const item of navConfig) {
+    if ('children' in item) {
+      for (const child of item.children) {
+        if (
+          location.pathname === child.key ||
+          (child.key !== '/dashboard' && location.pathname.startsWith(child.key + '/'))
+        ) {
+          selectedKey = child.key
+          currentGroupKey = item.key
+          break
+        }
+      }
+    } else if (location.pathname === item.key) {
+      selectedKey = item.key
+      break
+    }
+  }
+
+  // Quản lý nhóm menu đang mở theo cơ chế Accordion (chỉ mở tối đa 1 nhóm tại một thời điểm)
+  const [openKeys, setOpenKeys] = useState<string[]>(() =>
+    currentGroupKey ? [currentGroupKey] : []
+  )
+  const [prevPathname, setPrevPathname] = useState(location.pathname)
+
+  // Khi chuyển trang sang một nhóm khác, tự động đóng nhóm cũ và mở nhóm mới
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname)
+    setOpenKeys(currentGroupKey ? [currentGroupKey] : [])
+  }
+
+  // Khi người dùng bấm mở/đóng một nhóm (Accordion: mở nhóm mới thì đóng nhóm cũ)
+  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
+    const rootSubmenuKeys = ['inbound', 'outbound', 'inventory', 'master-data', 'hr']
+    const latestOpenKey = keys.find((key) => !openKeys.includes(key))
+    if (!latestOpenKey || !rootSubmenuKeys.includes(latestOpenKey)) {
+      setOpenKeys([])
+    } else {
+      setOpenKeys([latestOpenKey])
+    }
+  }
 
   const userMenu: MenuProps = {
     items: [
@@ -151,12 +102,15 @@ function AppLayout() {
         collapsible
         collapsed={collapsed}
         collapsedWidth="0"
+        width={240}
         style={{
           position: 'absolute',
           top: 0,
           bottom: 0,
           insetInlineStart: 0,
           zIndex: 10,
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
         trigger={null}
         zeroWidthTriggerStyle={{ display: 'none' }}
@@ -167,7 +121,9 @@ function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 16,
+            padding: '18px 16px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            marginBottom: 8,
           }}
         >
           <Logo size={28} withWordmark={!collapsed} />
@@ -175,9 +131,15 @@ function AppLayout() {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[selectedKey]}
+          openKeys={collapsed ? [] : openKeys}
+          onOpenChange={handleOpenChange}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            const targetGroup = getGroupKeyForPath(key)
+            setOpenKeys(targetGroup ? [targetGroup] : [])
+            navigate(key)
+          }}
         />
       </Sider>
 
@@ -190,8 +152,8 @@ function AppLayout() {
         aria-label={collapsed ? 'Mở menu' : 'Đóng menu'}
         style={{
           position: 'absolute',
-          top: 80,
-          left: collapsed ? 12 : 176,
+          top: 76,
+          left: collapsed ? 12 : 216,
           zIndex: 20,
           boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
           transition: 'left 0.2s',
@@ -239,110 +201,7 @@ function AppLayout() {
             <Outlet />
           </div>
         </Content>
-        <Footer
-          style={{
-            marginTop: 24,
-            padding: '32px 24px 16px',
-            background: '#0B1420',
-            color: 'rgba(255,255,255,0.72)',
-          }}
-        >
-          {/* Mock nội dung footer, thay bằng thông tin thật khi có */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 32,
-              maxWidth: 1200,
-              margin: '0 auto',
-            }}
-          >
-            <div>
-              <Logo size={28} withWordmark />
-              <p style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.7 }}>
-                Hệ thống quản lý kho hàng doanh nghiệp, theo dõi tồn kho,
-                nhập xuất và điều chuyển theo thời gian thực.
-              </p>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 14,
-                  marginBottom: 12,
-                }}
-              >
-                Liên hệ
-              </div>
-              <ul
-                style={{
-                  listStyle: 'none',
-                  margin: 0,
-                  padding: 0,
-                  fontSize: 13,
-                  lineHeight: 2,
-                }}
-              >
-                <li>
-                  <EnvironmentOutlined style={{ marginRight: 8 }} />
-                  123 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh
-                </li>
-                <li>
-                  <PhoneOutlined style={{ marginRight: 8 }} />
-                  028 1234 5678
-                </li>
-                <li>
-                  <MailOutlined style={{ marginRight: 8 }} />
-                  hotro@wms.vn
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 14,
-                  marginBottom: 12,
-                }}
-              >
-                Kết nối
-              </div>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Facebook"
-                  style={{ color: '#fff', fontSize: 24 }}
-                >
-                  <FacebookFilled />
-                </a>
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Instagram"
-                  style={{ color: '#fff', fontSize: 24 }}
-                >
-                  <InstagramFilled />
-                </a>
-                <a
-                  href="https://tiktok.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="TikTok"
-                  style={{ color: '#fff', fontSize: 24 }}
-                >
-                  <TikTokOutlined />
-                </a>
-              </div>
-            </div>
-          </div>
-        </Footer>
+        <AppFooter />
       </Layout>
     </Layout>
   )

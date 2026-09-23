@@ -27,6 +27,16 @@ public class CurrentUserService : ICurrentUserService
 
     public string? UserName => _httpContextAccessor.HttpContext?.User.Identity?.Name;
 
+    public Guid? WarehouseId
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            var whId = user?.FindFirstValue("warehouseId") ?? user?.FindFirstValue("WarehouseId");
+            return Guid.TryParse(whId, out var parsedId) ? parsedId : null;
+        }
+    }
+
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;
 
     public bool IsInRole(params string[] roles)

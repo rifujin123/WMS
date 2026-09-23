@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { invalidateInventoryQueries } from '../lib/invalidateInventoryQueries'
 import {
   approveStockAdjustment as approveStockAdjustmentRequest,
   createStockAdjustment as createStockAdjustmentRequest,
@@ -19,8 +20,6 @@ export function useCreateStockAdjustment() {
     mutationFn: createStockAdjustmentRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stockAdjustments'] })
-      queryClient.invalidateQueries({ queryKey: ['stocks'] })
-      queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
     },
   })
 }
@@ -29,10 +28,11 @@ export function useApproveStockAdjustment() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: approveStockAdjustmentRequest,
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['stockAdjustments'] })
       queryClient.invalidateQueries({ queryKey: ['stocks'] })
       queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
+      await invalidateInventoryQueries(queryClient)
     },
   })
 }

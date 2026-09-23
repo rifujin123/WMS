@@ -15,6 +15,9 @@ export interface SaleOrderDto {
   id: string
   orderNo: string
   customerName?: string
+  warehouseId?: string
+  warehouseName?: string
+  warehouseCode?: string
   orderDate: string
   status: SaleOrderStatus
   saleOrderDetails: SaleOrderDetailDto[]
@@ -29,5 +32,6 @@ export interface CreateSaleOrderDto {
   orderNo: string
   customerName?: string
   orderDate: string
+  warehouseId?: string
   saleOrderDetails: CreateSaleOrderDetailDto[]
 }

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:docker": "powershell -Command \"try { docker compose -f ../docker-compose.yml up } finally { docker compose -f ../docker-compose.yml down }\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

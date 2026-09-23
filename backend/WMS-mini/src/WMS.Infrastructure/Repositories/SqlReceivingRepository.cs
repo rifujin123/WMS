@@ -22,6 +22,7 @@ public class SqlReceivingRepository : IReceivingRepository
             .Include(r => r.PurchaseOrder)
             .Include(r => r.ReceivingDetails)
                 .ThenInclude(d => d.Product)
+            .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
     }
 
@@ -42,7 +43,8 @@ public class SqlReceivingRepository : IReceivingRepository
         var totalCount = await receivings.CountAsync(cancellationToken);
         var page = query.Page;
         var items = await receivings
-            .OrderByDescending(r => r.ReceivedDate)
+            .OrderByDescending(r => r.CreatedDate)
+            .ThenByDescending(r => r.ReceivedDate)
             .ThenBy(r => r.ReceivingNo)
             .ThenBy(r => r.Id)
             .Skip((page - 1) * pageSize)
@@ -60,6 +62,17 @@ public class SqlReceivingRepository : IReceivingRepository
                 Notes = r.Notes,
                 InvoiceImageUrl = r.InvoiceImageUrl,
                 CreatedDate = r.CreatedDate,
+                Details = r.ReceivingDetails.Select(d => new ReceivingDetailDto
+                {
+                    Id = d.Id,
+                    ReceivingId = d.ReceivingId,
+                    ProductId = d.ProductId,
+                    ProductSku = d.Product.Sku,
+                    ProductName = d.Product.Name,
+                    ExpectedQuantity = d.ExpectedQuantity,
+                    ActualQuantity = d.ActualQuantity,
+                    Condition = d.Condition,
+                }).ToList(),
             })
             .ToListAsync(cancellationToken);
 
@@ -84,6 +97,7 @@ public class SqlReceivingRepository : IReceivingRepository
     public async Task<ReceivingDetail?> GetDetailByIdAsync(Guid id)
     {
         return await _db.ReceivingDetails
+            .Include(d => d.Receiving)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 

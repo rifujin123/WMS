@@ -22,18 +22,20 @@ import {
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import SaleOrderFormModal from './components/SaleOrderFormModal'
+import { SaleOrderDetailDrawer } from './components/SaleOrderDetailDrawer'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
 import type { ShipmentDto } from '../../types/shipment'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
 import { useCreateShipment, useMarkShipped, useShipments } from '../../hooks/useShipments'
 import { useAuthContext } from '../../contexts/useAuthContext'
-
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
 
 function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<SaleOrderDto | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<SaleOrderDto | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<SaleOrderStatus | undefined>(undefined)
   const { message } = App.useApp()
@@ -54,14 +56,16 @@ function SaleOrders() {
   const filtered = (() => {
     if (!saleOrders) return []
     const keyword = search.trim().toLowerCase()
-    return saleOrders.filter((so) => {
-      const matchesKeyword =
-        !keyword ||
-        so.orderNo.toLowerCase().includes(keyword) ||
-        (so.customerName ?? '').toLowerCase().includes(keyword)
-      const matchesStatus = !statusFilter || so.status === statusFilter
-      return matchesKeyword && matchesStatus
-    })
+    return [...saleOrders]
+      .sort((a, b) => dayjs(b.orderDate).valueOf() - dayjs(a.orderDate).valueOf())
+      .filter((so) => {
+        const matchesKeyword =
+          !keyword ||
+          so.orderNo.toLowerCase().includes(keyword) ||
+          (so.customerName ?? '').toLowerCase().includes(keyword)
+        const matchesStatus = !statusFilter || so.status === statusFilter
+        return matchesKeyword && matchesStatus
+      })
   })()
 
   const handleDelete = (row: SaleOrderDto) => {
@@ -112,8 +116,16 @@ function SaleOrders() {
       title: 'Số đơn',
       dataIndex: 'orderNo',
       key: 'orderNo',
-      render: (orderNo: string) => (
-        <Tag color="blue" style={{ fontFamily: 'monospace' }}>{orderNo}</Tag>
+      render: (orderNo: string, row: SaleOrderDto) => (
+        <Typography.Link
+          style={{ fontFamily: 'monospace', fontWeight: 600 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            setSelectedOrder(row)
+          }}
+        >
+          {orderNo}
+        </Typography.Link>
       ),
     },
     {
@@ -121,6 +133,12 @@ function SaleOrders() {
       dataIndex: 'customerName',
       key: 'customerName',
       render: (customerName?: string) => customerName ?? '—',
+    },
+    {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      render: (wh?: string) => wh ? <Tag color="geekblue">{wh}</Tag> : <Tag>Toàn hệ thống</Tag>,
     },
     {
       title: 'Số mặt hàng',
@@ -139,7 +157,7 @@ function SaleOrders() {
       title: 'Ngày đặt',
       dataIndex: 'orderDate',
       key: 'orderDate',
-      render: (orderDate: string) => dayjs(orderDate).format('DD/MM/YYYY'),
+      render: (orderDate: string) => formatDateTime(orderDate),
     },
   ]
 
@@ -147,7 +165,10 @@ function SaleOrders() {
     key: 'actions',
     width: 180,
     render: (_, row) => (
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+      <div
+        style={{ display: 'flex', gap: 4, alignItems: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {row.status === 'New' && (
           <>
             <Tooltip title="Sửa">
@@ -199,7 +220,7 @@ function SaleOrders() {
             Đơn bán
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Quản lý đơn xuất hàng cho khách.
+            Quản lý đơn xuất hàng cho khách. Nhấp vào đơn bán để xem danh sách mặt hàng chi tiết.
           </Typography.Text>
         </div>
         {canManage && (
@@ -244,6 +265,10 @@ function SaleOrders() {
           loading={isPending}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           scroll={{ x: 720 }}
+          onRow={(record) => ({
+            onClick: () => setSelectedOrder(record),
+            style: { cursor: 'pointer' },
+          })}
           locale={{ emptyText: <Empty image={null} description="Chưa có đơn bán nào" /> }}
         />
       </Card>
@@ -255,6 +280,11 @@ function SaleOrders() {
           setModalOpen(false)
           setEditing(null)
         }}
+      />
+
+      <SaleOrderDetailDrawer
+        saleOrder={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
       />
     </div>
   )

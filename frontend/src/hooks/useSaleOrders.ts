@@ -6,6 +6,7 @@ import {
   getSaleOrders,
   updateSaleOrder as updateSaleOrderRequest,
 } from '../services/saleOrder'
+import { invalidateInventoryQueries } from '../lib/invalidateInventoryQueries'
 
 export function useSaleOrders(options?: { refetchInterval?: number }) {
   return useQuery({
@@ -19,7 +20,13 @@ export function useCreateSaleOrder() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createSaleOrderRequest,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['saleOrders'] }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['saleOrders'] }),
+        queryClient.invalidateQueries({ queryKey: ['pickings'] }),
+        invalidateInventoryQueries(queryClient),
+      ])
+    },
   })
 }
 

@@ -13,4 +13,6 @@ public class UpdateUserDto
 
     [Required]
     public string Role { get; set; } = string.Empty;
+
+    public Guid? WarehouseId { get; set; }
 }

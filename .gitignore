@@ -43,6 +43,9 @@ artifacts/
 **/.nuxt/
 **/.vite/
 **/.svelte-kit/
+*.tsbuildinfo
+.eslintcache
+vite.config.ts.timestamp-*
 
 ## ── Logs ─────────────────────────────────────────
 logs/
@@ -71,9 +74,11 @@ CLAUDE.md
 
 ## ── Docs ─────────────────────────────────────────
 docs/
+docs/BACKEND_TECHNIQUES_EXPLAINED.md
+docs/FRONTEND_TECHNIQUES_EXPLAINED.md
+docs/WMS_TECHNIQUES_FULL_GUIDE.html
 
 ## ── AI agent config ──────────────────────────────
-CLAUDE.md
 .agents/
 .specify/
 
@@ -83,3 +88,8 @@ todo/
 ## ── Learning & Defense Workspace ─────────────────
 teach-wms/
 AGENTS.md
+## ── Scratch & BMad ─────────────────────────────────
+scratch/
+_bmad/
+_bmad-output/
+_bmad.setup-*/

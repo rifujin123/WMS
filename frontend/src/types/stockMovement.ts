@@ -7,6 +7,8 @@ export interface StockMovementDto {
   productName: string
   locationId: string
   locationCode: string
+  warehouseId?: string
+  warehouseName?: string
   movementType: MovementType
   qty: number
   notes?: string
@@ -18,6 +20,7 @@ export interface StockMovementDto {
 
 export interface StockMovementQuery {
   page?: number
+  warehouseId?: string
   productId?: string
   locationId?: string
   movementType?: MovementType

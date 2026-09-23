@@ -79,10 +79,6 @@ export const router = createBrowserRouter([
             element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager']} />,
             children: [
               { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
-              {
-                path: 'stock-adjustments',
-                element: <Suspense fallback={<PageFallback />}><StockAdjustments /></Suspense>,
-              },
             ],
           },
           {
@@ -103,6 +99,7 @@ export const router = createBrowserRouter([
               },
               { path: 'pickings', element: <Suspense fallback={<PageFallback />}><Pickings /></Suspense> },
               { path: 'stock', element: <Suspense fallback={<PageFallback />}><Stocks /></Suspense> },
+              { path: 'stock-adjustments', element: <Suspense fallback={<PageFallback />}><StockAdjustments /></Suspense> },
             ],
           },
           { path: '*', element: <Navigate to="/dashboard" replace /> },

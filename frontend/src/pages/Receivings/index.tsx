@@ -1,19 +1,42 @@
 import { useState } from 'react'
-import { CheckCircleOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { App, Button, Card, Empty, Input, Modal, Skeleton, Table, Tag, Tooltip, Typography } from 'antd'
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
+import {
+  App,
+  Button,
+  Card,
+  Empty,
+  Input,
+  Modal,
+  Skeleton,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd'
 import type { TableColumnsType } from 'antd'
-import dayjs from 'dayjs'
 import { useNavigate } from 'react-router-dom'
 import ReceivingFormModal from './components/ReceivingFormModal'
+import { ReceivingDetailModal } from './components/ReceivingDetailModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
-import { useConfirmReceiving, useDeleteReceiving, useReceivingsPage } from '../../hooks/useReceivings'
-
+import {
+  useConfirmReceiving,
+  useDeleteReceiving,
+  useReceivingsPage,
+} from '../../hooks/useReceivings'
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
 
 function Receivings() {
   const { message } = App.useApp()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ReceivingDto | null>(null)
+  const [viewingReceiving, setViewingReceiving] = useState<ReceivingDto | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const navigate = useNavigate()
@@ -87,7 +110,7 @@ function Receivings() {
       title: 'Ngày nhận',
       dataIndex: 'receivedDate',
       key: 'receivedDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+      render: (date: string) => formatDateTime(date),
     },
     {
       title: 'Trạng thái',
@@ -104,10 +127,24 @@ function Receivings() {
       width: 180,
       render: (_, row) => (
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <Tooltip title="Xem sản phẩm">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => setViewingReceiving(row)}
+            />
+          </Tooltip>
           {row.status === 'Draft' && (
             <>
               <Tooltip title="Sửa">
-                <Button type="text" icon={<EditOutlined />} onClick={() => { setEditing(row); setModalOpen(true) }} />
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setEditing(row)
+                    setModalOpen(true)
+                  }}
+                />
               </Tooltip>
               <Tooltip title="Xoá">
                 <Button
@@ -149,14 +186,17 @@ function Receivings() {
             Nhận hàng
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Ghi nhận hàng đến từ đơn đặt hàng.
+            Ghi nhận hàng đến từ đơn đặt hàng. Bấm icon con mắt để xem chi tiết sản phẩm.
           </Typography.Text>
         </div>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           size="large"
-          onClick={() => { setEditing(null); setModalOpen(true) }}
+          onClick={() => {
+            setEditing(null)
+            setModalOpen(true)
+          }}
         >
           Tạo phiếu nhận
         </Button>
@@ -202,9 +242,17 @@ function Receivings() {
         <ReceivingFormModal
           open
           receiving={editing}
-          onClose={() => { setModalOpen(false); setEditing(null) }}
+          onClose={() => {
+            setModalOpen(false)
+            setEditing(null)
+          }}
         />
       )}
+
+      <ReceivingDetailModal
+        receiving={viewingReceiving}
+        onClose={() => setViewingReceiving(null)}
+      />
     </div>
   )
 }

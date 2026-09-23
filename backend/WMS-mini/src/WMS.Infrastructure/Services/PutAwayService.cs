@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
@@ -14,6 +15,7 @@ public class PutAwayService : IPutAwayService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
+    private readonly UserManager<User> _userManager;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
@@ -25,6 +27,7 @@ public class PutAwayService : IPutAwayService
         IStockRepository stockRepo, 
         IStockMovementRepository movementRepo, 
         ILocationRepository locationRepo, 
+        UserManager<User> userManager,
         IUnitOfWork unitOfWork, 
         ICurrentUserService currentUser, 
         IMapper mapper)
@@ -35,6 +38,7 @@ public class PutAwayService : IPutAwayService
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
+        _userManager = userManager;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
@@ -67,8 +71,9 @@ public class PutAwayService : IPutAwayService
     public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto)
     {
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
-        if (dto.Quantity > detail.ActualQuantity)
-            throw new InvalidOperationException($"Không thể tạo task cất hàng với số lượng {dto.Quantity}. Số lượng tối đa cho phép là {detail.ActualQuantity}.");
+        ValidatePutAwayEligibility(detail);
+        await ValidateAvailableQuantityAsync(detail, dto.Quantity);
+        await ValidateLocationWarehouseAsync(dto.FromLocationId, dto.ToLocationId, detail);
 
         var task = _mapper.Map<PutAwayTask>(dto);
         task.Status = PutAwayTaskStatus.Open;
@@ -85,8 +90,9 @@ public class PutAwayService : IPutAwayService
             throw new InvalidOperationException($"Không thể cập nhật task ở trạng thái '{task.Status}'. Chỉ cho phép cập nhật khi task ở trạng thái 'Mở' (Open) hoặc 'Đã phân công' (Assigned).");
 
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
-        if (dto.Quantity > detail.ActualQuantity)
-            throw new InvalidOperationException($"Không thể cập nhật task với số lượng {dto.Quantity}. Số lượng tối đa cho phép là {detail.ActualQuantity}.");
+        ValidatePutAwayEligibility(detail);
+        await ValidateAvailableQuantityAsync(detail, dto.Quantity, task.Id);
+        await ValidateLocationWarehouseAsync(dto.FromLocationId, dto.ToLocationId, detail);
 
         _mapper.Map(dto, task);
         await _repo.UpdateAsync(task);
@@ -112,6 +118,13 @@ public class PutAwayService : IPutAwayService
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Open)
             throw new InvalidOperationException($"Không thể phân công task ở trạng thái '{task.Status}'. Chỉ có thể phân công khi task ở trạng thái 'Mở' (Open).");
+
+        var user = await _userManager.FindByIdAsync(assignedToId.ToString()) ?? throw new InvalidOperationException("Không tìm thấy nhân viên được phân công.");
+        var taskWarehouseId = task.ToLocation?.WarehouseId ?? task.FromLocation?.WarehouseId;
+        if (taskWarehouseId.HasValue && user.WarehouseId.HasValue && user.WarehouseId.Value != taskWarehouseId.Value)
+        {
+            throw new InvalidOperationException("Nhân viên không thuộc kho này, vui lòng chọn nhân viên khác.");
+        }
 
         task.AssignToId = assignedToId;
         task.AssignedById = _currentUser.UserId;
@@ -158,6 +171,9 @@ public class PutAwayService : IPutAwayService
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            var detail = await _receivingRepo.GetDetailByIdAsync(task.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
+            ValidatePutAwayEligibility(detail);
+
             var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
             if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
                 throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Yêu cầu cất: {task.Quantity}.");
@@ -203,5 +219,48 @@ public class PutAwayService : IPutAwayService
         });
 
         return _mapper.Map<PutAwayTaskDto>(task);
+    }
+
+    private static void ValidatePutAwayEligibility(ReceivingDetail detail)
+    {
+        if (detail.Receiving.Status != ReceivingStatus.Confirmed)
+            throw new InvalidOperationException("Chỉ có thể cất hàng sau khi phiếu nhận đã được xác nhận.");
+
+        if (detail.Condition != ProductCondition.Ok)
+            throw new InvalidOperationException("Chỉ có thể cất hàng cho sản phẩm có tình trạng đạt yêu cầu.");
+    }
+
+    private async Task ValidateAvailableQuantityAsync(ReceivingDetail detail, int requestedQuantity, Guid? excludeTaskId = null)
+    {
+        var existingQuantity = await _repo.GetTotalQuantityByReceivingDetailAsync(detail.Id, excludeTaskId);
+        if (existingQuantity + requestedQuantity > detail.ActualQuantity)
+            throw new InvalidOperationException(
+                $"Tổng số lượng task cất hàng không được vượt quá số lượng thực nhận {detail.ActualQuantity}. " +
+                $"Đã tạo: {existingQuantity}, yêu cầu: {requestedQuantity}.");
+    }
+
+    private async Task ValidateLocationWarehouseAsync(Guid? fromLocationId, Guid? toLocationId, ReceivingDetail detail)
+    {
+        Location? fromLoc = null;
+        Location? toLoc = null;
+
+        if (fromLocationId.HasValue)
+        {
+            fromLoc = await _locationRepo.GetByIdAsync(fromLocationId.Value);
+            if (fromLoc == null)
+                throw new InvalidOperationException("Không tìm thấy vị trí nguồn trong kho.");
+        }
+
+        if (toLocationId.HasValue)
+        {
+            toLoc = await _locationRepo.GetByIdAsync(toLocationId.Value);
+            if (toLoc == null)
+                throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
+        }
+
+        if (fromLoc != null && toLoc != null && fromLoc.WarehouseId != toLoc.WarehouseId)
+        {
+            throw new InvalidOperationException("Vị trí không hợp lệ, vui lòng kiểm tra lại kho.");
+        }
     }
 }

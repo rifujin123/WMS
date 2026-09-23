@@ -48,9 +48,9 @@ public class ReceivingsController : ControllerBase
         if (file.Length > 5 * 1024 * 1024)
             return BadRequest(new { message = "Ảnh phải nhỏ hơn 5MB." });
 
-        var allowed = new[] { "image/jpeg", "image/png" };
-        if (!allowed.Contains(file.ContentType))
-            return BadRequest(new { message = "Chỉ nhận ảnh JPG hoặc PNG." });
+        var allowed = new[] { "image/jpeg", "image/png", "application/pdf" };
+        if (!allowed.Contains(file.ContentType) && !file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Chỉ nhận ảnh JPG, PNG hoặc file PDF hóa đơn." });
 
         try
         {

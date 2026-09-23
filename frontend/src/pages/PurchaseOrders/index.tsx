@@ -3,6 +3,7 @@ import {
   CheckOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeOutlined,
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
@@ -20,8 +21,8 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import dayjs from 'dayjs'
 import PurchaseOrderFormModal from './components/PurchaseOrderFormModal'
+import { PurchaseOrderDetailModal } from './components/PurchaseOrderDetailModal'
 import type { PurchaseOrderDto, PurchaseOrderStatus } from '../../types/purchaseOrder'
 import {
   useApprovePurchaseOrder,
@@ -30,12 +31,13 @@ import {
 } from '../../hooks/usePurchaseOrders'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
-
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
 
 function PurchaseOrders() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PurchaseOrderDto | null>(null)
+  const [viewingPo, setViewingPo] = useState<PurchaseOrderDto | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
@@ -101,6 +103,12 @@ function PurchaseOrders() {
       render: (vendorName?: string) => vendorName ?? '—',
     },
     {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      render: (wh?: string) => wh ? <Tag color="geekblue">{wh}</Tag> : <Tag>Toàn hệ thống</Tag>,
+    },
+    {
       title: 'Số mặt hàng',
       key: 'itemCount',
       render: (_, row) => row.purchaseOrderDetails.length,
@@ -114,17 +122,30 @@ function PurchaseOrders() {
       ),
     },
     {
+      title: 'Ngày tạo',
+      dataIndex: 'createdDate',
+      key: 'createdDate',
+      render: (date?: string) => formatDateTime(date),
+    },
+    {
       title: 'Ngày duyệt',
       dataIndex: 'approvedDate',
       key: 'approvedDate',
       render: (approvedDate?: string) =>
-        approvedDate ? dayjs(approvedDate).format('DD/MM/YYYY') : '—',
+        approvedDate ? formatDateTime(approvedDate) : '—',
     },
     {
       key: 'actions',
-      width: 140,
+      width: 150,
       render: (_, row) => (
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <Tooltip title="Xem sản phẩm">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => setViewingPo(row)}
+            />
+          </Tooltip>
           {row.status === 'Pending' && (
             <>
               <Tooltip title="Sửa">
@@ -174,7 +195,7 @@ function PurchaseOrders() {
             Đơn đặt hàng
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Quản lý đơn nhập hàng từ nhà cung cấp.
+            Quản lý đơn nhập hàng từ nhà cung cấp. Bấm icon con mắt để xem chi tiết sản phẩm.
           </Typography.Text>
         </div>
         <Button
@@ -240,6 +261,11 @@ function PurchaseOrders() {
           setModalOpen(false)
           setEditing(null)
         }}
+      />
+
+      <PurchaseOrderDetailModal
+        po={viewingPo}
+        onClose={() => setViewingPo(null)}
       />
     </div>
   )

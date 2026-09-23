@@ -74,6 +74,7 @@ public class SqlStockRepository : IStockRepository
         return await _db.Stocks
             .Include(s => s.Product)
             .Include(s => s.Location)
+                .ThenInclude(l => l.Warehouse)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
@@ -82,6 +83,7 @@ public class SqlStockRepository : IStockRepository
         return await _db.Stocks
             .Include(s => s.Product)
             .Include(s => s.Location)
+                .ThenInclude(l => l.Warehouse)
             .Where(s => s.ProductId == productId)
             .ToListAsync();
     }

@@ -35,9 +35,9 @@ public class UsersController : ControllerBase
 
     [HttpGet("lookup")]
     [Authorize(Roles = "Admin,WarehouseManager")]
-    public async Task<IActionResult> Lookup([FromQuery] string? role)
+    public async Task<IActionResult> Lookup([FromQuery] string? role, [FromQuery] Guid? warehouseId)
     {
-        var users = await _userService.GetAllAsync(role);
+        var users = await _userService.GetAllAsync(role, warehouseId: warehouseId);
         return Ok(users);
     }
 

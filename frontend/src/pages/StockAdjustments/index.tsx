@@ -9,11 +9,7 @@ import {
   Button,
   Card,
   Empty,
-  Form,
-  Input,
-  InputNumber,
   Modal,
-  Select,
   Table,
   Tag,
   Typography,
@@ -21,22 +17,19 @@ import {
 import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import type {
-  CreateStockAdjustmentDetailDto,
-  CreateStockAdjustmentDto,
   StockAdjustmentDetailDto,
   StockAdjustmentDto,
   StockAdjustmentStatus,
 } from '../../types/stockAdjustment'
 import {
   useApproveStockAdjustment,
-  useCreateStockAdjustment,
   useDeleteStockAdjustment,
   useStockAdjustments,
 } from '../../hooks/useStockAdjustments'
-import { useAllLocations } from '../../hooks/useLocations'
-import { useProductLookup } from '../../hooks/useProducts'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { getErrorMessage } from '../../lib/errorHandler'
+import { formatDateTime } from '../../lib/date'
+import { StockAdjustmentFormModal } from './components/StockAdjustmentFormModal'
 
 const STOCK_ADJUSTMENT_STATUS_LABEL: Record<StockAdjustmentStatus, string> = {
   Draft: 'Nháp',
@@ -51,53 +44,18 @@ const STOCK_ADJUSTMENT_STATUS_COLOR: Record<StockAdjustmentStatus, string> = {
 function StockAdjustments() {
   const { message } = App.useApp()
   const { user } = useAuthContext()
-  const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+  const isAdmin = user?.role === 'Admin'
   const { data: adjustments, isPending } = useStockAdjustments()
-  const { data: products } = useProductLookup()
-  const { data: locations } = useAllLocations()
-  const createMutation = useCreateStockAdjustment()
   const approveMutation = useApproveStockAdjustment()
   const deleteMutation = useDeleteStockAdjustment()
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [createForm] = Form.useForm<CreateStockAdjustmentDto>()
 
   const filtered = (() => {
     const list = adjustments ?? []
     // Hiển thị mới nhất trước
     return [...list].sort((a, b) => dayjs(b.createdDate).valueOf() - dayjs(a.createdDate).valueOf())
   })()
-
-  const productOptions = (products ?? []).map((p) => ({
-    value: p.id,
-    label: `${p.sku} — ${p.name}`,
-  }))
-
-  const locationOptions = (locations ?? []).map((l) => ({
-    value: l.id,
-    label: `${l.code} (${l.warehouseId ? 'kho' : ''} — còn ${l.currentQuantity})`,
-  }))
-
-  const handleCreate = async () => {
-    try {
-      const values = await createForm.validateFields()
-      const details: CreateStockAdjustmentDetailDto[] = (values.details ?? []).map((d) => ({
-        productId: d.productId,
-        locationId: d.locationId,
-        countedQty: Number(d.countedQty),
-      }))
-      const dto: CreateStockAdjustmentDto = {
-        notes: values.notes?.trim() || undefined,
-        details,
-      }
-      await createMutation.mutateAsync(dto)
-      message.success('Đã tạo phiếu điều chỉnh tồn kho.')
-      setCreateOpen(false)
-      createForm.resetFields()
-    } catch (error) {
-      message.error(getErrorMessage(error, 'Tạo phiếu điều chỉnh tồn kho thất bại.'))
-    }
-  }
 
   const handleApprove = (row: StockAdjustmentDto) => {
     Modal.confirm({
@@ -134,11 +92,56 @@ function StockAdjustments() {
       title: 'SKU',
       dataIndex: 'productSku',
       key: 'productSku',
+      width: 130,
       render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
     },
     { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
-    { title: 'Vị trí', dataIndex: 'locationCode', key: 'locationCode', render: (c?: string) => <Tag>{c ?? '—'}</Tag> },
-    { title: 'SL kiểm đếm', dataIndex: 'countedQty', key: 'countedQty', align: 'right' as const },
+    {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      width: 140,
+      render: (name?: string) => name || '—',
+    },
+    {
+      title: 'Vị trí',
+      dataIndex: 'locationCode',
+      key: 'locationCode',
+      width: 120,
+      render: (c?: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{c ?? '—'}</Tag>,
+    },
+    {
+      title: 'Tồn hệ thống',
+      dataIndex: 'systemQty',
+      key: 'systemQty',
+      align: 'right' as const,
+      width: 120,
+      render: (qty: number) => <span style={{ color: '#595959', fontWeight: 600 }}>{qty ?? 0}</span>,
+    },
+    {
+      title: 'SL kiểm thực tế',
+      dataIndex: 'countedQty',
+      key: 'countedQty',
+      align: 'right' as const,
+      width: 130,
+      render: (qty: number) => <b style={{ color: '#1677ff' }}>{qty}</b>,
+    },
+    {
+      title: 'Chênh lệch',
+      dataIndex: 'differenceQty',
+      key: 'differenceQty',
+      align: 'right' as const,
+      width: 120,
+      render: (diff: number) => {
+        if (diff > 0) {
+          return <Tag color="green">+{diff}</Tag>
+        }
+        if (diff < 0) {
+          return <Tag color="red">{diff}</Tag>
+        }
+        return <Tag color="default">0</Tag>
+      },
+    },
   ]
 
   const columns: TableColumnsType<StockAdjustmentDto> = [
@@ -162,6 +165,20 @@ function StockAdjustments() {
       render: (_, row) => row.details.length,
     },
     {
+      title: 'Chênh lệch',
+      key: 'discrepancySummary',
+      render: (_, row) => {
+        const totalDiff = row.details.reduce((sum, d) => sum + (d.differenceQty ?? 0), 0)
+        if (totalDiff > 0) {
+          return <Tag color="green">+{totalDiff}</Tag>
+        }
+        if (totalDiff < 0) {
+          return <Tag color="red">{totalDiff}</Tag>
+        }
+        return <Tag color="default">0</Tag>
+      },
+    },
+    {
       title: 'Ghi chú',
       dataIndex: 'notes',
       key: 'notes',
@@ -171,13 +188,13 @@ function StockAdjustments() {
       title: 'Ngày tạo',
       dataIndex: 'createdDate',
       key: 'createdDate',
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+      render: (date: string) => formatDateTime(date),
     },
     {
       key: 'actions',
       width: 180,
       render: (_, row) =>
-        canManage && row.status === 'Draft' ? (
+        isAdmin && row.status === 'Draft' ? (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <Button
               type="primary"
@@ -217,10 +234,7 @@ function StockAdjustments() {
           type="primary"
           icon={<PlusOutlined />}
           size="large"
-          onClick={() => {
-            createForm.resetFields()
-            setCreateOpen(true)
-          }}
+          onClick={() => setCreateOpen(true)}
         >
           Tạo phiếu điều chỉnh
         </Button>
@@ -249,92 +263,10 @@ function StockAdjustments() {
         />
       </Card>
 
-      <Modal
-        title="Tạo phiếu điều chỉnh tồn kho"
+      <StockAdjustmentFormModal
         open={createOpen}
-        onOk={handleCreate}
-        onCancel={() => setCreateOpen(false)}
-        okText="Tạo phiếu"
-        cancelText="Huỷ"
-        confirmLoading={createMutation.isPending}
-        width={760}
-        destroyOnHidden
-      >
-        <Form<CreateStockAdjustmentDto> form={createForm} layout="vertical" size="large" style={{ marginTop: 24 }}>
-          <Form.Item
-            label="Danh sách dòng điều chỉnh"
-            required
-            help={null}
-          >
-            <Form.List
-              name="details"
-              rules={[{
-                validator: async (_, details: CreateStockAdjustmentDetailDto[] | undefined) => {
-                  if (!details || details.length === 0) {
-                    throw new Error('Vui lòng thêm ít nhất một dòng.')
-                  }
-                },
-              }]}
-            >
-              {(fields, { add, remove }) => (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.8fr 40px', gap: 8, marginBottom: 8 }}>
-                    <Typography.Text type="secondary">Sản phẩm</Typography.Text>
-                    <Typography.Text type="secondary">Vị trí</Typography.Text>
-                    <Typography.Text type="secondary">SL kiểm đếm</Typography.Text>
-                  </div>
-                  {fields.map((field) => (
-                    <div
-                      key={field.key}
-                      style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.8fr 40px', gap: 8, marginBottom: 8, alignItems: 'start' }}
-                    >
-                      <Form.Item
-                        name={[field.name, 'productId']}
-                        rules={[{ required: true, message: 'Chọn sản phẩm.' }]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Select showSearch optionFilterProp="label" placeholder="Sản phẩm" options={productOptions} />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, 'locationId']}
-                        rules={[{ required: true, message: 'Chọn vị trí.' }]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Select showSearch optionFilterProp="label" placeholder="Vị trí" options={locationOptions} />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, 'countedQty']}
-                        rules={[{ required: true, type: 'number', min: 1, message: 'Nhập SL.' }]}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <InputNumber style={{ width: '100%' }} min={1} placeholder="SL" />
-                      </Form.Item>
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => remove(field.name)}
-                        aria-label="Xoá dòng"
-                      />
-                    </div>
-                  ))}
-                  <Button
-                    type="dashed"
-                    block
-                    icon={<PlusOutlined />}
-                    onClick={() => add({ countedQty: 1 } as CreateStockAdjustmentDetailDto)}
-                  >
-                    Thêm dòng
-                  </Button>
-                </>
-              )}
-            </Form.List>
-          </Form.Item>
-          <Form.Item name="notes" label="Ghi chú">
-            <Input.TextArea rows={2} placeholder="Ghi chú (không bắt buộc)" maxLength={500} />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onClose={() => setCreateOpen(false)}
+      />
     </div>
   )
 }

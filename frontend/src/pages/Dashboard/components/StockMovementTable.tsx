@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import type { Dayjs } from 'dayjs'
 import ActorAvatar from './ActorAvatar'
 import { useStockMovements } from '../../../hooks/useStockMovements'
+import { useWarehouses } from '../../../hooks/useWarehouses'
 import { useTableTransition } from './useTableTransition'
 import type { MovementType, StockMovementDto } from '../../../types/stockMovement'
 
@@ -20,19 +21,32 @@ interface StockMovementTableProps {
 }
 
 function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
+  const [warehouseFilter, setWarehouseFilter] = useState<string | undefined>(undefined)
   const [typeFilter, setTypeFilter] = useState<MovementType | undefined>(undefined)
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null)
   const [page, setPage] = useState(1)
+
+  const { data: warehouses } = useWarehouses()
 
   // Range ngày riêng của bảng override period chung của dashboard
   const effectiveFrom = dateRange ? dateRange[0].startOf('day').toISOString() : fromUtc
   const effectiveTo = dateRange ? dateRange[1].endOf('day').toISOString() : toUtc
 
-  const { data, isFetching } = useStockMovements({ page, fromUtc: effectiveFrom, toUtc: effectiveTo })
+  const { data, isFetching } = useStockMovements({
+    page,
+    warehouseId: warehouseFilter,
+    fromUtc: effectiveFrom,
+    toUtc: effectiveTo,
+  })
   const { loading, transitionKey } = useTableTransition(page, isFetching)
 
   const all = data?.items ?? []
   const rows = typeFilter ? all.filter((m) => m.movementType === typeFilter) : all
+
+  const handleWarehouseChange = (next: string | undefined) => {
+    setWarehouseFilter(next)
+    setPage(1)
+  }
 
   const handleTypeChange = (next: MovementType | undefined) => {
     setTypeFilter(next)
@@ -51,6 +65,13 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
       key: 'occurredAtUtc',
       width: 130,
       render: (t: string) => dayjs(t).format('DD/MM/YYYY HH:mm'),
+    },
+    {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      width: 120,
+      render: (name?: string) => name || '—',
     },
     {
       title: 'Loại',
@@ -117,9 +138,20 @@ function StockMovementTable({ fromUtc, toUtc }: StockMovementTableProps) {
             onChange={(dates) => handleDateChange(dates as [Dayjs, Dayjs] | null)}
           />
           <Select
-            placeholder="Loại"
+            placeholder="Kho"
             allowClear
             style={{ width: 140 }}
+            value={warehouseFilter}
+            onChange={handleWarehouseChange}
+            options={(warehouses ?? []).map((w) => ({
+              value: w.id,
+              label: w.name,
+            }))}
+          />
+          <Select
+            placeholder="Loại"
+            allowClear
+            style={{ width: 120 }}
             value={typeFilter}
             onChange={handleTypeChange}
             options={Object.entries(movementMeta).map(([value, meta]) => ({

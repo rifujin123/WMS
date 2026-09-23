@@ -37,6 +37,8 @@ public class SqlStockMovementRepository : IStockMovementRepository
     {
         IQueryable<StockMovement> movements = _db.StockMovements.AsNoTracking();
 
+        if (query.WarehouseId.HasValue)
+            movements = movements.Where(s => s.Location.WarehouseId == query.WarehouseId.Value);
         if (query.ProductId.HasValue)
             movements = movements.Where(s => s.ProductId == query.ProductId.Value);
         if (query.LocationId.HasValue)
@@ -63,6 +65,8 @@ public class SqlStockMovementRepository : IStockMovementRepository
                 ProductName = s.Product.Name,
                 LocationId = s.LocationId,
                 LocationCode = s.Location.Code,
+                WarehouseId = s.Location.WarehouseId,
+                WarehouseName = s.Location.Warehouse != null ? s.Location.Warehouse.Name : null,
                 MovementType = s.MovementType,
                 Qty = s.Qty,
                 Notes = s.Notes,

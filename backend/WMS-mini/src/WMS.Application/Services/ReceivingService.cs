@@ -173,9 +173,7 @@ public class ReceivingService : IReceivingService
         foreach (var detailGroup in receiving.ReceivingDetails.GroupBy(d => d.ProductId))
         {
             var poDetails = poDetailsByProduct[detailGroup.Key];
-            var quantity = detailGroup
-                .Where(d => d.Condition == ProductCondition.Ok)
-                .Sum(d => d.ActualQuantity);
+            var quantity = detailGroup.Sum(d => d.ActualQuantity);
             var remaining = quantity;
 
             foreach (var poDetail in poDetails)

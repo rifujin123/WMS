@@ -1,0 +1,12 @@
+{
+  "name": "wms-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:docker": "powershell -Command \"try { docker compose up } finally { docker compose down }\"",
+    "docker:down": "docker compose down",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint"
+  }
+}

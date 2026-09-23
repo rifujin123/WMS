@@ -4,6 +4,7 @@ import type { RegisterFormValues } from '../../../types/auth'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRegister } from '../../../hooks/useAuth'
 import { useUpdateUser } from '../../../hooks/useUsers'
+import { useWarehouses } from '../../../hooks/useWarehouses'
 import type { UserListItem, UserRole } from '../../../types/user'
 import { getErrorMessage } from '../../../lib/errorHandler'
 
@@ -23,6 +24,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
   const [form] = Form.useForm<RegisterFormValues>()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const { data: warehouses } = useWarehouses()
   const registerMutation = useRegister()
   const updateMutation = useUpdateUser()
   const isEdit = !!user
@@ -34,6 +36,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        warehouseId: user.warehouseId,
       })
     } else {
       form.resetFields()
@@ -47,7 +50,12 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
         updateMutation.mutate(
           {
             id: user.id,
-            dto: { fullName: values.fullName, email: values.email, role: values.role as UserRole },
+            dto: {
+              fullName: values.fullName,
+              email: values.email,
+              role: values.role as UserRole,
+              warehouseId: values.warehouseId || undefined,
+            },
           },
           {
             onSuccess: () => {
@@ -69,6 +77,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
           email: values.email,
           password: values.password,
           role: values.role,
+          warehouseId: values.warehouseId || undefined,
         },
         {
           onSuccess: () => {
@@ -142,6 +151,53 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
           <Input placeholder="vd: nguyenvana@wms.local" />
         </Form.Item>
 
+        <Form.Item
+          name="role"
+          label="Vai trò"
+          initialValue="WarehouseStaff"
+          extra={isEdit ? undefined : 'Mặc định là Nhân viên kho.'}
+        >
+          <Select options={roleOptions} />
+        </Form.Item>
+
+        <Form.Item
+          noStyle
+          shouldUpdate={(prevValues, currentValues) => prevValues.role !== currentValues.role}
+        >
+          {({ getFieldValue }) => {
+            const currentRole = getFieldValue('role')
+            const isStaffOrManager = currentRole === 'WarehouseStaff' || currentRole === 'WarehouseManager'
+            return (
+              <Form.Item
+                name="warehouseId"
+                label="Kho làm việc"
+                rules={
+                  isStaffOrManager
+                    ? [{ required: true, message: 'Vui lòng chọn kho làm việc.' }]
+                    : []
+                }
+                extra={
+                  isStaffOrManager
+                    ? 'Bắt buộc chọn 1 kho trực thuộc cho nhân viên / quản lý kho.'
+                    : 'Tài khoản Admin có quyền quản trị toàn hệ thống.'
+                }
+              >
+                <Select
+                  allowClear={!isStaffOrManager}
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Chọn kho làm việc"
+                  disabled={currentRole === 'Admin'}
+                  options={(warehouses ?? []).map((w) => ({
+                    value: w.id,
+                    label: `${w.code} — ${w.name}`,
+                  }))}
+                />
+              </Form.Item>
+            )
+          }}
+        </Form.Item>
+
         {!isEdit && (
           <Row gutter={16}>
             <Col span={12}>
@@ -178,15 +234,6 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
             </Col>
           </Row>
         )}
-
-        <Form.Item
-          name="role"
-          label="Vai trò"
-          initialValue="WarehouseStaff"
-          extra={isEdit ? undefined : 'Mặc định là Nhân viên kho.'}
-        >
-          <Select options={roleOptions} />
-        </Form.Item>
 
         {!isEdit && (
           <Alert
