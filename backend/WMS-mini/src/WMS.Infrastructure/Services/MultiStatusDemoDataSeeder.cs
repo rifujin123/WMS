@@ -166,6 +166,9 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             return SeedSummary.Disabled();
         }
 
+        // Đảm bảo các Role và 4 tài khoản Demo chuẩn (manager1, manager2, staff1, staff2) luôn được tạo/đồng bộ
+        var usersSeeded = await SeedUsersAsync(cancellationToken);
+
         var hasWarehouses = await _db.Warehouses.AsNoTracking().AnyAsync(cancellationToken);
         if (hasWarehouses)
         {
@@ -174,7 +177,6 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         }
 
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
-        var usersSeeded = await SeedUsersAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
         var (vendors, customers) = await SeedVendorsAndCustomersAsync(cancellationToken);
         await SeedStockAsync(cancellationToken);
