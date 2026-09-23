@@ -13,6 +13,9 @@ export interface PurchaseOrderDto {
   id: string
   poNumber: string
   vendorName?: string
+  warehouseId?: string
+  warehouseName?: string
+  warehouseCode?: string
   status: PurchaseOrderStatus
   approvedDate?: string
   createdDate?: string
@@ -27,5 +30,6 @@ export interface CreatePurchaseOrderDetailDto {
 export interface CreatePurchaseOrderDto {
   poNumber: string
   vendorName?: string
+  warehouseId?: string
   purchaseOrderDetails: CreatePurchaseOrderDetailDto[]
 }

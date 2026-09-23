@@ -66,6 +66,24 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             relationship.DeleteBehavior = DeleteBehavior.NoAction;
         }
 
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Warehouse)
+            .WithMany()
+            .HasForeignKey(u => u.WarehouseId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<PurchaseOrder>()
+            .HasOne(p => p.Warehouse)
+            .WithMany()
+            .HasForeignKey(p => p.WarehouseId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<SaleOrder>()
+            .HasOne(s => s.Warehouse)
+            .WithMany()
+            .HasForeignKey(s => s.WarehouseId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         modelBuilder.Entity<Shipment>()
             .HasOne(s => s.SaleOrder)
             .WithOne(o => o.Shipment)

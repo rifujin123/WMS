@@ -31,6 +31,7 @@ services:
       Cloudinary__ApiKey: ${CLOUDINARY_API_KEY}
       Cloudinary__ApiSecret: ${CLOUDINARY_API_SECRET}
       AiProvider__ApiKey: ${AI_PROVIDER_API_KEY}
+      AiProvider__Model: ${AI_PROVIDER_MODEL:-gemini-3.5-flash-lite}
       ConnectionStrings__DefaultConnection: "Server=db,1433;Database=WMS;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
     depends_on:
       db:

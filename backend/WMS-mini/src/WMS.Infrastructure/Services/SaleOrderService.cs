@@ -13,24 +13,31 @@ public class SaleOrderService : ISaleOrderService
     private readonly IPickingService _pickingService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
 
     public SaleOrderService(
         ISaleOrderRepository repo,
         IProductRepository productRepo,
         IPickingService pickingService,
         IMapper mapper,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser)
     {
         _repo = repo;
         _productRepo = productRepo;
         _pickingService = pickingService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
+        _currentUser = currentUser;
     }
 
     public async Task<List<SaleOrderDto>> GetAllAsync()
     {
         var saleOrders = await _repo.GetAllAsync();
+        if (!_currentUser.IsInRole("Admin") && _currentUser.WarehouseId.HasValue)
+        {
+            saleOrders = saleOrders.Where(s => s.WarehouseId == _currentUser.WarehouseId.Value).ToList();
+        }
         return _mapper.Map<List<SaleOrderDto>>(saleOrders);
     }
 
@@ -46,6 +53,11 @@ public class SaleOrderService : ISaleOrderService
     {
         ValidateBusinessRules(dto);
         await ValidateProductsExistAsync(dto);
+
+        if (!dto.WarehouseId.HasValue && _currentUser.WarehouseId.HasValue)
+        {
+            dto.WarehouseId = _currentUser.WarehouseId.Value;
+        }
 
         var orderNo = dto.OrderNo.Trim();
         if (await _repo.GetByOrderNoAsync(orderNo) != null)

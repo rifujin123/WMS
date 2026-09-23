@@ -11,7 +11,7 @@ interface AssignStaffModalProps {
 
 export function AssignStaffModal({ picking, onClose }: AssignStaffModalProps) {
   const { message } = App.useApp()
-  const { data: warehouseStaff } = useWarehouseStaff()
+  const { data: warehouseStaff } = useWarehouseStaff(picking?.warehouseId)
   const assignMutation = useAssignPicking()
   const [form] = Form.useForm<{ userId: string }>()
 
@@ -39,6 +39,13 @@ export function AssignStaffModal({ picking, onClose }: AssignStaffModalProps) {
     }
   }
 
+  const filteredStaff = (warehouseStaff ?? []).filter((u) => {
+    if (!picking?.warehouseName && !picking?.warehouseId) return true
+    if (!u.warehouseName && !u.warehouseId) return true
+    if (picking?.warehouseId && u.warehouseId) return u.warehouseId === picking.warehouseId
+    return u.warehouseName === picking?.warehouseName
+  })
+
   return (
     <Modal
       title="Phân công nhân viên"
@@ -51,7 +58,16 @@ export function AssignStaffModal({ picking, onClose }: AssignStaffModalProps) {
       destroyOnHidden
     >
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        {picking ? picking.pickingNo : ''}
+        {picking ? (
+          <>
+            <span>{picking.pickingNo}</span>
+            {picking.warehouseName && (
+              <span style={{ marginLeft: 8, fontWeight: 600, color: '#1677ff' }}>
+                • Kho: {picking.warehouseName}
+              </span>
+            )}
+          </>
+        ) : ''}
       </Typography.Paragraph>
       <Form form={form} layout="vertical" size="large">
         <Form.Item
@@ -62,9 +78,12 @@ export function AssignStaffModal({ picking, onClose }: AssignStaffModalProps) {
           <Select
             showSearch
             optionFilterProp="label"
-            placeholder="Chọn nhân viên kho"
+            placeholder={picking?.warehouseName ? `Chọn nhân viên thuộc ${picking.warehouseName}` : 'Chọn nhân viên kho'}
             loading={!warehouseStaff}
-            options={(warehouseStaff ?? []).map((u) => ({ value: u.id, label: u.fullName }))}
+            options={filteredStaff.map((u) => ({
+              value: u.id,
+              label: u.warehouseName ? `${u.fullName} (${u.warehouseName})` : `${u.fullName} (Toàn hệ thống)`,
+            }))}
           />
         </Form.Item>
       </Form>

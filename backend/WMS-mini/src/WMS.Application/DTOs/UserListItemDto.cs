@@ -9,5 +9,8 @@ public class UserListItemDto
     public string? AvatarUrl { get; set; }
     public string Role { get; set; } = string.Empty;
     public string Status { get; set; } = "active";
+    public Guid? WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseCode { get; set; }
     public DateTime CreatedAt { get; set; }
 }

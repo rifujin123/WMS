@@ -64,7 +64,9 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         IQueryable<PutAwayTask> tasks = _db.PutAwayTasks
             .Include(t => t.Product)
             .Include(t => t.FromLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.ToLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.AssignTo)
             .Include(t => t.ReceivingDetail)
             .AsNoTracking();
@@ -80,7 +82,9 @@ public class SqlPutAwayTaskRepository : IPutAwayTaskRepository
         return await _db.PutAwayTasks
             .Include(t => t.Product)
             .Include(t => t.FromLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.ToLocation)
+                .ThenInclude(l => l!.Warehouse)
             .Include(t => t.AssignTo)
             .Include(t => t.ReceivingDetail)
                 .ThenInclude(d => d.Receiving)

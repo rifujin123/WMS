@@ -173,8 +173,8 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             return SeedSummary.AlreadySeededSummary();
         }
 
-        var usersSeeded = await SeedUsersAsync(cancellationToken);
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
+        var usersSeeded = await SeedUsersAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
         var (vendors, customers) = await SeedVendorsAndCustomersAsync(cancellationToken);
         await SeedStockAsync(cancellationToken);
@@ -220,29 +220,32 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         }
         await _db.SaveChangesAsync(cancellationToken);
 
+        var whHcm = await _db.Warehouses.FirstOrDefaultAsync(w => w.Code == "WH-HCM", cancellationToken);
+        var whHn = await _db.Warehouses.FirstOrDefaultAsync(w => w.Code == "WH-HN", cancellationToken);
+
         var hasher = new PasswordHasher<User>();
-        var demoUsers = new (string Username, string FullName, string Email, string Role, string Password)[]
+        var demoUsers = new (string Username, string FullName, string Email, string Role, string Password, Guid? WarehouseId)[]
         {
-            // Primary Accounts (Theo yêu cầu)
-            ("manager",  "Quản lý Kho",       "manager@wms.local",      "WarehouseManager", "Manager@123"),
-            ("staff1",   "Nhân viên Kho 1",   "staff1@wms.local",       "WarehouseStaff",   "Staff1@123"),
-            ("staff2",   "Nhân viên Kho 2",   "staff2@wms.local",       "WarehouseStaff",   "Staff2@123"),
-            // Secondary / Legacy Accounts
-            ("manager1", "Nguyễn Văn An",     "manager1@wms.local",     "WarehouseManager", "Manager@123"),
-            ("manager2", "Trần Thị Bình",     "manager2@wms.local",     "WarehouseManager", "Manager@123"),
-            ("nvhung",   "Nguyễn Văn Hùng",   "nvhung@wms.local",       "WarehouseStaff",   "Staff1@123"),
-            ("nvlan",    "Lê Thị Lan",        "nvlan@wms.local",        "WarehouseStaff",   "Staff2@123"),
-            ("pvnam",    "Phạm Văn Nam",      "pvnam@wms.local",        "WarehouseStaff",   "Staff1@123"),
-            ("nthao",    "Nguyễn Thị Thảo",   "nthao@wms.local",        "WarehouseStaff",   "Staff2@123"),
+            ("manager1", "Quản lý Kho HCM",   "manager1@wms.local", "WarehouseManager", "Manager@123", whHcm?.Id),
+            ("manager2", "Quản lý Kho HN",    "manager2@wms.local", "WarehouseManager", "Manager@123", whHn?.Id),
+            ("staff1",   "Nhân viên Kho HCM", "staff1@wms.local",   "WarehouseStaff",   "Staff1@123",  whHcm?.Id),
+            ("staff2",   "Nhân viên Kho HN",  "staff2@wms.local",   "WarehouseStaff",   "Staff2@123",  whHn?.Id),
         };
 
         var created = 0;
-        foreach (var (username, fullName, email, role, customPassword) in demoUsers)
+        foreach (var (username, fullName, email, role, customPassword, warehouseId) in demoUsers)
         {
             var normalized = username.ToUpperInvariant();
-            var exists = await _db.Users.AsNoTracking()
-                .AnyAsync(u => u.NormalizedUserName == normalized, cancellationToken);
-            if (exists) continue;
+            var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalized, cancellationToken);
+            if (existingUser != null)
+            {
+                if (existingUser.WarehouseId != warehouseId)
+                {
+                    existingUser.WarehouseId = warehouseId;
+                    _db.Users.Update(existingUser);
+                }
+                continue;
+            }
 
             var user = new User
             {
@@ -253,6 +256,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
                 NormalizedEmail = email.ToUpperInvariant(),
                 EmailConfirmed = true,
                 FullName = fullName,
+                WarehouseId = warehouseId,
                 CreatedAt = DateTime.UtcNow,
                 SecurityStamp = Guid.NewGuid().ToString(),
                 PasswordHash = hasher.HashPassword(new User { UserName = username }, customPassword)
@@ -267,8 +271,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             created++;
         }
 
-        if (created > 0)
-            await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
         return created;
     }
@@ -555,13 +558,11 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var vendors = await _db.Vendors.AsNoTracking().ToListAsync(cancellationToken);
         var products = await _db.Products.AsNoTracking().ToListAsync(cancellationToken);
         var users = await _db.Users.AsNoTracking().ToListAsync(cancellationToken);
-        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER")?.Id
-            ?? users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
+        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "ADMIN")?.Id ?? Guid.Empty;
         var manager2Id = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER2")?.Id ?? managerId;
-        var staff1Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF1")?.Id
-            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
-        var staff2Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF2")?.Id
-            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVLAN")?.Id ?? Guid.Empty;
+        var staff1Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF1")?.Id ?? Guid.Empty;
+        var staff2Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF2")?.Id ?? Guid.Empty;
 
         if (vendors.Count < 5 || products.Count < 10)
             return 0;
@@ -573,15 +574,20 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
 
         var now = DateTime.UtcNow;
         var putAwayMovements = new List<(StockMovement Movement, DateTime Occurred)>();
+        var whHcm = await _db.Warehouses.FirstOrDefaultAsync(w => w.Code == "WH-HCM", cancellationToken);
+        var whHn = await _db.Warehouses.FirstOrDefaultAsync(w => w.Code == "WH-HN", cancellationToken);
+        var whHcmId = whHcm?.Id;
+        var whHnId = whHn?.Id;
 
         // -------------------------------------------------------------
-        // PO 1: Pending (Chờ duyệt) — NCC FPT Trading (Có 2 items: IP15PM-256-TT & IP15PM-512-NT)
+        // PO 1: Pending (Chờ duyệt) — NCC FPT Trading (Kho HCM)
         // -------------------------------------------------------------
         var po1 = new PurchaseOrder
         {
             Id = Guid.NewGuid(),
             PoNumber = $"PO-{now.AddDays(-1):yyyyMMdd}-001",
             VendorName = vendors[1].Name,
+            WarehouseId = whHcmId,
             Status = PurchaseOrderStatus.Pending,
             ApprovedById = null,
             ApprovedDate = null,
@@ -609,7 +615,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             null, nameof(PurchaseOrderStatus.Pending), "Created", staff1Id, now.AddDays(-1)));
 
         // -------------------------------------------------------------
-        // PO 2: Approved (Đã duyệt) — NCC Apple Reseller
+        // PO 2: Approved (Đã duyệt) — NCC Apple Reseller (Kho HCM)
         // Có 1 Phiếu nhận hàng trạng thái Draft (Đang kiểm đếm hàng thực tế)
         // -------------------------------------------------------------
         var po2 = new PurchaseOrder
@@ -617,6 +623,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             Id = Guid.NewGuid(),
             PoNumber = $"PO-{now.AddDays(-3):yyyyMMdd}-002",
             VendorName = vendors[3].Name,
+            WarehouseId = whHcmId,
             Status = PurchaseOrderStatus.Approved,
             ApprovedById = managerId,
             ApprovedDate = now.AddDays(-2),
@@ -682,6 +689,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
 
         // -------------------------------------------------------------
         // PO 3: Received (Đã nhận hàng) — NCC Samsung Electronics
+        // PO 3: Received (Đã nhận hàng) — NCC Samsung Electronics (Kho HN)
         // Receiving Confirmed, sinh 2 PutAway Tasks: 1 Open (chưa gán) & 1 Assigned (đã giao)
         // -------------------------------------------------------------
         var po3 = new PurchaseOrder
@@ -689,6 +697,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             Id = Guid.NewGuid(),
             PoNumber = $"PO-{now.AddDays(-7):yyyyMMdd}-003",
             VendorName = vendors[2].Name,
+            WarehouseId = whHnId,
             Status = PurchaseOrderStatus.Received,
             ApprovedById = manager2Id,
             ApprovedDate = now.AddDays(-6),
@@ -793,13 +802,14 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             nameof(PutAwayTaskStatus.Open), nameof(PutAwayTaskStatus.Assigned), "StatusChanged", manager2Id, now.AddHours(-6)));
 
         // -------------------------------------------------------------
-        // PO 4: Received (Đang cất hàng InProgress) — NCC Thế Giới Di Động
+        // PO 4: Received (Đang cất hàng InProgress) — NCC Thế Giới Di Động (Kho HCM)
         // -------------------------------------------------------------
         var po4 = new PurchaseOrder
         {
             Id = Guid.NewGuid(),
             PoNumber = $"PO-{now.AddDays(-12):yyyyMMdd}-004",
             VendorName = vendors[0].Name,
+            WarehouseId = whHcmId,
             Status = PurchaseOrderStatus.Received,
             ApprovedById = managerId,
             ApprovedDate = now.AddDays(-11),
@@ -874,21 +884,65 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             nameof(PutAwayTaskStatus.Assigned), nameof(PutAwayTaskStatus.InProgress), "StatusChanged", staff2Id, now.AddHours(-1)));
 
         // -------------------------------------------------------------
+        // PO DEMO AI OCR: Approved (Kho HCM) — NCC Thế Giới Di Động (Khớp với mock PDF)
+        // -------------------------------------------------------------
+        var poDemoOcr = new PurchaseOrder
+        {
+            Id = Guid.NewGuid(),
+            PoNumber = "PO-2026-DEMO-OCR",
+            VendorName = "Công ty TNHH Thế Giới Di Động",
+            WarehouseId = whHcmId,
+            Status = PurchaseOrderStatus.Approved,
+            ApprovedById = managerId,
+            ApprovedDate = now.AddHours(-2),
+            CreatedDate = now.AddDays(-1),
+            PurchaseOrderDetails = new List<PurchaseOrderDetail>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products[0].Id, // IP15PM-256-TT
+                    OrderedQuantity = 10,
+                    ReceivedQuantity = 0
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products.First(p => p.Sku == "AP-AP2-W").Id, // AirPods Pro 2
+                    OrderedQuantity = 20,
+                    ReceivedQuantity = 0
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = products.First(p => p.Sku == "ANK-65G-D").Id, // Sạc GaN Anker 65W
+                    OrderedQuantity = 30,
+                    ReceivedQuantity = 0
+                }
+            }
+        };
+        foreach (var d in poDemoOcr.PurchaseOrderDetails) d.PurchaseOrder = poDemoOcr;
+        _db.PurchaseOrders.Add(poDemoOcr);
+        _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), poDemoOcr.Id,
+            nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged", managerId, now.AddHours(-2)));
+
+        // -------------------------------------------------------------
         // PO 5 & PO 6: Closed (Đã hoàn tất toàn bộ PutAway Completed)
         // -------------------------------------------------------------
         var closedChains = new[]
         {
-            (PoNo: $"PO-{now.AddDays(-28):yyyyMMdd}-005", Vendor: vendors[4], ProdIdxs: new[] { 5, 6 }, QtyPer: 8, Day: 28),
-            (PoNo: $"PO-{now.AddDays(-20):yyyyMMdd}-006", Vendor: vendors[0], ProdIdxs: new[] { 7, 8 }, QtyPer: 6, Day: 20),
+            (PoNo: $"PO-{now.AddDays(-28):yyyyMMdd}-005", Vendor: vendors[4], ProdIdxs: new[] { 5, 6 }, QtyPer: 8, Day: 28, WhId: whHcmId),
+            (PoNo: $"PO-{now.AddDays(-20):yyyyMMdd}-006", Vendor: vendors[0], ProdIdxs: new[] { 7, 8 }, QtyPer: 6, Day: 20, WhId: whHnId),
         };
 
-        foreach (var (poNo, vendor, prodIdxs, qtyPer, day) in closedChains)
+        foreach (var (poNo, vendor, prodIdxs, qtyPer, day, whId) in closedChains)
         {
             var poClosed = new PurchaseOrder
             {
                 Id = Guid.NewGuid(),
                 PoNumber = poNo,
                 VendorName = vendor.Name,
+                WarehouseId = whId,
                 Status = PurchaseOrderStatus.Closed,
                 ApprovedById = managerId,
                 ApprovedDate = now.AddDays(-day),
@@ -1037,12 +1091,10 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var products = await _db.Products.AsNoTracking().ToListAsync(cancellationToken);
         var warehouses = await _db.Warehouses.AsNoTracking().ToListAsync(cancellationToken);
         var users = await _db.Users.AsNoTracking().ToListAsync(cancellationToken);
-        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER")?.Id
-            ?? users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id ?? Guid.Empty;
-        var staff1Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF1")?.Id
-            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVHUNG")?.Id ?? Guid.Empty;
-        var staff2Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF2")?.Id
-            ?? users.FirstOrDefault(u => u.NormalizedUserName == "NVLAN")?.Id ?? Guid.Empty;
+        var managerId = users.FirstOrDefault(u => u.NormalizedUserName == "MANAGER1")?.Id
+            ?? users.FirstOrDefault(u => u.NormalizedUserName == "ADMIN")?.Id ?? Guid.Empty;
+        var staff1Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF1")?.Id ?? Guid.Empty;
+        var staff2Id = users.FirstOrDefault(u => u.NormalizedUserName == "STAFF2")?.Id ?? Guid.Empty;
         var hungStaffId = staff1Id;
         var lanStaffId = staff2Id;
         var namStaffId = staff1Id;
@@ -1064,13 +1116,14 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         var warehouseHn = warehouses.Count > 1 ? warehouses[1] : warehouses[0];
 
         // -------------------------------------------------------------
-        // SO 1: New (Mới) — Khách Minh Anh (chưa phân bổ, chưa lấy hàng)
+        // SO 1: New (Mới) — Khách Minh Anh (chưa phân bổ, chưa lấy hàng) — Kho HCM
         // -------------------------------------------------------------
         var soNew = new SaleOrder
         {
             Id = Guid.NewGuid(),
             OrderNo = $"SO-{now.AddHours(-6):yyyyMMdd}-001",
             CustomerName = customers[0].Name,
+            WarehouseId = warehouseHcm.Id,
             OrderDate = now.AddHours(-6),
             Status = SaleOrderStatus.New,
             SaleOrderDetails = new List<SaleOrderDetail>
@@ -1099,7 +1152,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             null, nameof(SaleOrderStatus.New), "Created", hungStaffId, now.AddHours(-6)));
 
         // -------------------------------------------------------------
-        // SO 2: Allocated (Đã phân bổ) — Khách Hoàng Gia
+        // SO 2: Allocated (Đã phân bổ) — Khách Hoàng Gia — Kho HCM
         // Sinh Picking: Open (chưa giao)
         // -------------------------------------------------------------
         var soAllocated = new SaleOrder
@@ -1107,6 +1160,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             Id = Guid.NewGuid(),
             OrderNo = $"SO-{now.AddDays(-1):yyyyMMdd}-002",
             CustomerName = customers[1].Name,
+            WarehouseId = warehouseHcm.Id,
             OrderDate = now.AddDays(-1),
             Status = SaleOrderStatus.Allocated,
             SaleOrderDetails = new List<SaleOrderDetail>
@@ -1168,7 +1222,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             null, nameof(PickingStatus.Open), "Created", manager1Id, now.AddHours(-18)));
 
         // -------------------------------------------------------------
-        // SO 3: Picking (Đã giao việc) — Khách Dệt may Việt Thắng
+        // SO 3: Picking (Đã giao việc) — Khách Dệt may Việt Thắng — Kho HCM
         // Sinh Picking: Assigned (đã phân công nvhung)
         // -------------------------------------------------------------
         var soPickingAssigned = new SaleOrder
@@ -1176,6 +1230,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             Id = Guid.NewGuid(),
             OrderNo = $"SO-{now.AddDays(-2):yyyyMMdd}-003",
             CustomerName = customers[2].Name,
+            WarehouseId = warehouseHcm.Id,
             OrderDate = now.AddDays(-2),
             Status = SaleOrderStatus.Picking,
             SaleOrderDetails = new List<SaleOrderDetail>
@@ -1227,7 +1282,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             nameof(PickingStatus.Open), nameof(PickingStatus.Assigned), "StatusChanged", manager1Id, now.AddDays(-2).AddHours(2)));
 
         // -------------------------------------------------------------
-        // SO 4: Picking (Đang lấy hàng InProgress) — Khách Nam Long
+        // SO 4: Picking (Đang lấy hàng InProgress) — Khách Nam Long — Kho HN
         // Sinh Picking: InProgress (nthao đang đi gom hàng tại kệ)
         // -------------------------------------------------------------
         var soPickingInProgress = new SaleOrder
@@ -1235,6 +1290,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             Id = Guid.NewGuid(),
             OrderNo = $"SO-{now.AddDays(-3):yyyyMMdd}-004",
             CustomerName = customers[3].Name,
+            WarehouseId = warehouseHn.Id,
             OrderDate = now.AddDays(-3),
             Status = SaleOrderStatus.Picking,
             SaleOrderDetails = new List<SaleOrderDetail>
@@ -1273,7 +1329,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         {
             Id = Guid.NewGuid(),
             PickingNo = $"PK-{now.AddDays(-3):yyyyMMdd}-003",
-            WarehouseId = warehouseHcm.Id,
+            WarehouseId = warehouseHn.Id,
             Status = PickingStatus.InProgress,
             AssignedToId = thaoStaffId,
             AssignedById = manager1Id,
@@ -1314,7 +1370,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             nameof(PickingStatus.Assigned), nameof(PickingStatus.InProgress), "StatusChanged", thaoStaffId, now.AddHours(-2)));
 
         // -------------------------------------------------------------
-        // SO 5: Packed (Đã đóng gói) — Khách Giáo dục Vina
+        // SO 5: Packed (Đã đóng gói) — Khách Giáo dục Vina — Kho HCM
         // Picking Completed -> trừ tồn Onhand + sinh Out movement
         // -------------------------------------------------------------
         var soPacked = new SaleOrder
@@ -1322,6 +1378,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             Id = Guid.NewGuid(),
             OrderNo = $"SO-{now.AddDays(-5):yyyyMMdd}-005",
             CustomerName = customers[4].Name,
+            WarehouseId = warehouseHcm.Id,
             OrderDate = now.AddDays(-5),
             Status = SaleOrderStatus.Packed,
             PackedById = lanStaffId,
@@ -1403,17 +1460,18 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
         // -------------------------------------------------------------
         var shippedSpecs = new[]
         {
-            (OrderNo: $"SO-{now.AddDays(-8):yyyyMMdd}-006", Cust: customers[5], ProdIdx: 17, Qty: 4, Carrier: "Giao Hàng Tiết Kiệm (GHTK)", Tracking: "GHTK-HCM-98217348", Day: 8),
-            (OrderNo: $"SO-{now.AddDays(-14):yyyyMMdd}-007", Cust: customers[6], ProdIdx: 18, Qty: 2, Carrier: "Viettel Post", Tracking: "VTP-HN-44120938", Day: 14)
+            (OrderNo: $"SO-{now.AddDays(-8):yyyyMMdd}-006", Cust: customers[5], ProdIdx: 17, Qty: 4, Carrier: "Giao Hàng Tiết Kiệm (GHTK)", Tracking: "GHTK-HCM-98217348", Day: 8, Wh: warehouseHcm),
+            (OrderNo: $"SO-{now.AddDays(-14):yyyyMMdd}-007", Cust: customers[6], ProdIdx: 18, Qty: 2, Carrier: "Viettel Post", Tracking: "VTP-HN-44120938", Day: 14, Wh: warehouseHn)
         };
 
-        foreach (var (orderNo, cust, prodIdx, qty, carrier, tracking, day) in shippedSpecs)
+        foreach (var (orderNo, cust, prodIdx, qty, carrier, tracking, day, wh) in shippedSpecs)
         {
             var soShipped = new SaleOrder
             {
                 Id = Guid.NewGuid(),
                 OrderNo = orderNo,
                 CustomerName = cust.Name,
+                WarehouseId = wh.Id,
                 OrderDate = now.AddDays(-day),
                 Status = SaleOrderStatus.Shipped,
                 PackedById = namStaffId,
@@ -1446,7 +1504,7 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             {
                 Id = Guid.NewGuid(),
                 PickingNo = $"PK-{now.AddDays(-day):yyyyMMdd}-{orderNo.Substring(orderNo.Length - 3)}",
-                WarehouseId = warehouseHn.Id,
+                WarehouseId = wh.Id,
                 Status = PickingStatus.Completed,
                 AssignedToId = namStaffId,
                 AssignedById = manager1Id,

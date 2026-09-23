@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
@@ -14,6 +15,7 @@ public class PutAwayService : IPutAwayService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ILocationRepository _locationRepo;
+    private readonly UserManager<User> _userManager;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
@@ -25,6 +27,7 @@ public class PutAwayService : IPutAwayService
         IStockRepository stockRepo, 
         IStockMovementRepository movementRepo, 
         ILocationRepository locationRepo, 
+        UserManager<User> userManager,
         IUnitOfWork unitOfWork, 
         ICurrentUserService currentUser, 
         IMapper mapper)
@@ -35,6 +38,7 @@ public class PutAwayService : IPutAwayService
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _locationRepo = locationRepo;
+        _userManager = userManager;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
@@ -114,6 +118,13 @@ public class PutAwayService : IPutAwayService
         if (task == null) return null;
         if (task.Status != PutAwayTaskStatus.Open)
             throw new InvalidOperationException($"Không thể phân công task ở trạng thái '{task.Status}'. Chỉ có thể phân công khi task ở trạng thái 'Mở' (Open).");
+
+        var user = await _userManager.FindByIdAsync(assignedToId.ToString()) ?? throw new InvalidOperationException("Không tìm thấy nhân viên được phân công.");
+        var taskWarehouseId = task.ToLocation?.WarehouseId ?? task.FromLocation?.WarehouseId;
+        if (taskWarehouseId.HasValue && user.WarehouseId.HasValue && user.WarehouseId.Value != taskWarehouseId.Value)
+        {
+            throw new InvalidOperationException("Nhân viên không thuộc kho này, vui lòng chọn nhân viên khác.");
+        }
 
         task.AssignToId = assignedToId;
         task.AssignedById = _currentUser.UserId;

@@ -9,5 +9,8 @@ public class SaleOrderDto
     public string? CustomerName { get; set; }
     public DateTime OrderDate { get; set; }
     public SaleOrderStatus Status { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseCode { get; set; }
     public List<SaleOrderDetailDto> SaleOrderDetails { get; set; } = new();
 }

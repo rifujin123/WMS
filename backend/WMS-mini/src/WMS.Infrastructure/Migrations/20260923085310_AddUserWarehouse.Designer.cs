@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WMS.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using WMS.Infrastructure.Data;
 namespace WMS.Infrastructure.Migrations
 {
     [DbContext(typeof(WmsDbContext))]
-    partial class WmsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260923085310_AddUserWarehouse")]
+    partial class AddUserWarehouse
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -707,9 +710,6 @@ namespace WMS.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid?>("WarehouseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedById");
@@ -724,8 +724,6 @@ namespace WMS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("UpdatedById");
-
-                    b.HasIndex("WarehouseId");
 
                     b.ToTable("PurchaseOrders");
                 });
@@ -1175,9 +1173,6 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("WarehouseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
@@ -1190,8 +1185,6 @@ namespace WMS.Infrastructure.Migrations
                     b.HasIndex("PackedById");
 
                     b.HasIndex("UpdatedById");
-
-                    b.HasIndex("WarehouseId");
 
                     b.ToTable("SaleOrders");
                 });
@@ -2133,11 +2126,6 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
-                        .WithMany()
-                        .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("ApprovedBy");
 
                     b.Navigation("ClosedBy");
@@ -2147,8 +2135,6 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("DeletedBy");
 
                     b.Navigation("UpdatedBy");
-
-                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrderDetail", b =>
@@ -2453,11 +2439,6 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
-                        .WithMany()
-                        .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CreatedBy");
 
                     b.Navigation("DeletedBy");
@@ -2465,8 +2446,6 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("PackedBy");
 
                     b.Navigation("UpdatedBy");
-
-                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>

@@ -135,6 +135,12 @@ function SaleOrders() {
       render: (customerName?: string) => customerName ?? '—',
     },
     {
+      title: 'Kho',
+      dataIndex: 'warehouseName',
+      key: 'warehouseName',
+      render: (wh?: string) => wh ? <Tag color="geekblue">{wh}</Tag> : <Tag>Toàn hệ thống</Tag>,
+    },
+    {
       title: 'Số mặt hàng',
       key: 'itemCount',
       render: (_, row) => row.saleOrderDetails.length,

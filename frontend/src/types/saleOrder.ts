@@ -15,6 +15,9 @@ export interface SaleOrderDto {
   id: string
   orderNo: string
   customerName?: string
+  warehouseId?: string
+  warehouseName?: string
+  warehouseCode?: string
   orderDate: string
   status: SaleOrderStatus
   saleOrderDetails: SaleOrderDetailDto[]

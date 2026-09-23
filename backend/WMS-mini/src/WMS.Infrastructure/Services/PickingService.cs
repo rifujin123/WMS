@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
@@ -13,6 +14,7 @@ public class PickingService : IPickingService
     private readonly IStockRepository _stockRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly IWarehouseRepository _warehouseRepo;
+    private readonly UserManager<User> _userManager;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
@@ -23,6 +25,7 @@ public class PickingService : IPickingService
         IStockRepository stockRepo, 
         IStockMovementRepository movementRepo, 
         IWarehouseRepository warehouseRepo, 
+        UserManager<User> userManager,
         IUnitOfWork unitOfWork, 
         ICurrentUserService currentUser, 
         IMapper mapper)
@@ -32,6 +35,7 @@ public class PickingService : IPickingService
         _stockRepo = stockRepo;
         _movementRepo = movementRepo;
         _warehouseRepo = warehouseRepo;
+        _userManager = userManager;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
@@ -102,6 +106,12 @@ public class PickingService : IPickingService
         var picking = await _repo.GetByIdAsync(id);
         if (picking == null) return null;
         if (picking.Status != PickingStatus.Open) throw new InvalidOperationException($"Không thể phân công phiếu lấy ở trạng thái '{picking.Status}'. Phiếu phải ở trạng thái 'Mở' (Open).");
+
+        var user = await _userManager.FindByIdAsync(assignedToId.ToString()) ?? throw new InvalidOperationException("Không tìm thấy nhân viên được phân công.");
+        if (user.WarehouseId.HasValue && user.WarehouseId.Value != picking.WarehouseId)
+        {
+            throw new InvalidOperationException("Nhân viên không thuộc kho này, vui lòng chọn nhân viên khác.");
+        }
 
         picking.AssignedToId = assignedToId;
         picking.AssignedById = _currentUser.UserId;

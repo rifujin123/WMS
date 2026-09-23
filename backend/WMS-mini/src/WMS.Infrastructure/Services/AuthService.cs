@@ -48,7 +48,8 @@ public class AuthService : IAuthService
             UserName = dto.Username,
             Email = dto.Email,
             FullName = dto.FullName,
-            AvatarUrl = dto.AvatarUrl
+            AvatarUrl = dto.AvatarUrl,
+            WarehouseId = dto.WarehouseId
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
@@ -58,6 +59,11 @@ public class AuthService : IAuthService
         var role = string.IsNullOrWhiteSpace(dto.Role) ? "WarehouseStaff" : dto.Role;
         if (role != "Admin" && role != "WarehouseManager" && role != "WarehouseStaff")
             throw new Exception($"Invalid role '{role}'.");
+
+        if ((role == "WarehouseStaff" || role == "WarehouseManager") && !dto.WarehouseId.HasValue)
+        {
+            throw new InvalidOperationException("Nhân viên kho và Quản lý kho bắt buộc phải được gán vào một kho cụ thể.");
+        }
 
         await _userManager.AddToRoleAsync(user, role);
     }
@@ -76,6 +82,11 @@ public class AuthService : IAuthService
         };
 
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        if (user.WarehouseId.HasValue)
+        {
+            claims.Add(new Claim("warehouseId", user.WarehouseId.Value.ToString()));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],

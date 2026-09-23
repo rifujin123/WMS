@@ -18,6 +18,7 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
     public async Task<List<PurchaseOrder>> GetAllAsync()
     {
         return await _db.PurchaseOrders
+            .Include(p => p.Warehouse)
             .Include(p => p.PurchaseOrderDetails)
             .ThenInclude(d => d.Product)
             .OrderByDescending(p => p.CreatedDate)
@@ -35,6 +36,8 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
             orders = orders.Where(po => po.PoNumber.Contains(search) || (po.VendorName != null && po.VendorName.Contains(search)));
         if (query.Status.HasValue)
             orders = orders.Where(po => po.Status == query.Status.Value);
+        if (query.WarehouseId.HasValue)
+            orders = orders.Where(po => po.WarehouseId == query.WarehouseId.Value);
 
         var totalCount = await orders.CountAsync(cancellationToken);
         var page = query.Page;
@@ -50,6 +53,9 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
                 PoNumber = po.PoNumber,
                 VendorName = po.VendorName,
                 Status = po.Status,
+                WarehouseId = po.WarehouseId,
+                WarehouseName = po.Warehouse != null ? po.Warehouse.Name : null,
+                WarehouseCode = po.Warehouse != null ? po.Warehouse.Code : null,
                 ApprovedDate = po.ApprovedDate,
                 CreatedDate = po.CreatedDate,
                 PurchaseOrderDetails = po.PurchaseOrderDetails.Select(d => new PurchaseOrderDetailDto
@@ -70,6 +76,7 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
     public async Task<PurchaseOrder?> GetByIdAsync(Guid id)
     {
         return await _db.PurchaseOrders
+            .Include(po => po.Warehouse)
             .Include(po => po.PurchaseOrderDetails)
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(po => po.Id == id);

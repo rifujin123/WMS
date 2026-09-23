@@ -12,6 +12,7 @@ export interface RegisterDto {
   email: string
   password: string
   role: string
+  warehouseId?: string
 }
 
 export interface AuthResponse {

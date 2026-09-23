@@ -28,7 +28,7 @@ public class UserService : IUserService
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var users = _userManager.Users.AsNoTracking().AsQueryable();
+        var users = _userManager.Users.Include(u => u.Warehouse).AsNoTracking().AsQueryable();
         var search = query.Search?.Trim();
         var role = query.Role?.Trim();
         var status = query.Status?.Trim().ToLowerInvariant();
@@ -87,6 +87,9 @@ public class UserService : IUserService
                 AvatarUrl = user.AvatarUrl,
                 Role = roles.FirstOrDefault() ?? string.Empty,
                 Status = isLocked ? "locked" : "active",
+                WarehouseId = user.WarehouseId,
+                WarehouseName = user.Warehouse?.Name,
+                WarehouseCode = user.Warehouse?.Code,
                 CreatedAt = user.CreatedAt,
             };
         }).ToList();
@@ -94,9 +97,9 @@ public class UserService : IUserService
         return PagedResult<UserListItemDto>.Create(items, query.Page, pageSize, totalCount);
     }
 
-    public async Task<List<UserListItemDto>> GetAllAsync(string? role = null, string? search = null, string? status = null)
+    public async Task<List<UserListItemDto>> GetAllAsync(string? role = null, string? search = null, string? status = null, Guid? warehouseId = null)
     {
-        var users = _userManager.Users.OrderByDescending(u => u.CreatedAt).ToList();
+        var users = _userManager.Users.Include(u => u.Warehouse).OrderByDescending(u => u.CreatedAt).ToList();
 
         // 1 query lấy toàn bộ vai trò, tránh N+1 khi gọi GetRolesAsync trong vòng lặp
         var roleNames = await _db.UserRoles
@@ -115,6 +118,7 @@ public class UserService : IUserService
         {
             var roles = rolesByUserId.TryGetValue(user.Id, out var userRoles) ? userRoles : new List<string>();
             if (!string.IsNullOrWhiteSpace(role) && !roles.Contains(role)) continue;
+            if (warehouseId.HasValue && user.WarehouseId != warehouseId.Value) continue;
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -136,6 +140,9 @@ public class UserService : IUserService
                 AvatarUrl = user.AvatarUrl,
                 Role = roles.FirstOrDefault() ?? string.Empty,
                 Status = currentStatus,
+                WarehouseId = user.WarehouseId,
+                WarehouseName = user.Warehouse?.Name,
+                WarehouseCode = user.Warehouse?.Code,
                 CreatedAt = user.CreatedAt,
             });
         }
@@ -145,7 +152,7 @@ public class UserService : IUserService
 
     public async Task<UserProfileDto?> GetProfileAsync(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
+        var user = await _userManager.Users.Include(u => u.Warehouse).FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return null;
 
         var profile = _mapper.Map<UserProfileDto>(user);
@@ -203,9 +210,22 @@ public class UserService : IUserService
         var user = await _userManager.FindByIdAsync(id.ToString());
         if (user == null) return false;
 
+        var targetRole = dto.Role;
+        if (string.IsNullOrWhiteSpace(targetRole))
+        {
+            var existingRoles = await _userManager.GetRolesAsync(user);
+            targetRole = existingRoles.FirstOrDefault();
+        }
+
+        if ((targetRole == "WarehouseStaff" || targetRole == "WarehouseManager") && !dto.WarehouseId.HasValue)
+        {
+            throw new InvalidOperationException("Nhân viên kho và Quản lý kho bắt buộc phải được gán vào một kho cụ thể.");
+        }
+
         user.FullName = dto.FullName;
         if (!string.IsNullOrWhiteSpace(dto.Email))
             user.Email = dto.Email;
+        user.WarehouseId = dto.WarehouseId;
 
         var updateResult = await _userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)

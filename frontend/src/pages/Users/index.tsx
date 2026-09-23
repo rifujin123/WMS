@@ -131,6 +131,18 @@ function Users() {
       ),
     },
     {
+      title: 'Kho làm việc',
+      key: 'warehouse',
+      render: (_, row) =>
+        row.warehouseName ? (
+          <Tag color="cyan">{row.warehouseName}</Tag>
+        ) : row.role === 'Admin' ? (
+          <Tag color="blue">Toàn hệ thống</Tag>
+        ) : (
+          <Tag color="red">Chưa gán kho</Tag>
+        ),
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',

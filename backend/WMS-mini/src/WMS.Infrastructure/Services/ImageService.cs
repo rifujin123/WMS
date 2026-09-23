@@ -15,6 +15,21 @@ public class ImageService : IImageService
 
     public async Task<string> UploadAsync(Stream fileStream, string fileName, string publicId, int width, int height)
     {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        if (ext == ".pdf")
+        {
+            var rawParams = new RawUploadParams
+            {
+                File = new FileDescription(fileName, fileStream),
+                PublicId = publicId,
+                Overwrite = true
+            };
+            var rawResult = await _cloudinary.UploadAsync(rawParams);
+            if (rawResult.Error != null)
+                throw new Exception(rawResult.Error.Message);
+            return rawResult.SecureUrl.ToString();
+        }
+
         var uploadParams = new ImageUploadParams
         {
             File = new FileDescription(fileName, fileStream),

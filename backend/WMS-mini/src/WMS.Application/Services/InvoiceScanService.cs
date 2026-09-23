@@ -31,45 +31,46 @@ public class InvoiceScanService : IInvoiceScanService
         string fileName,
         CancellationToken cancellationToken = default)
     {
-        // (a) Copy ảnh vào MemoryStream — đọc được nhiều lần
+        // (a) Copy dữ liệu vào byte array để có thể đọc đồng thời từ nhiều stream
         using var memory = new MemoryStream();
         await imageStream.CopyToAsync(memory, cancellationToken);
+        var bytes = memory.ToArray();
 
-        // (b) AI trích xuất, retry 1 lần khi lỗi/timeout
-        memory.Position = 0;
-        InvoiceExtractionResult extraction;
-        try
+        // (b) Chạy song song 2 tác vụ ngoài I/O độc lập: (1) AI OCR Extraction, (2) Cloudinary Upload
+        var aiTask = Task.Run(async () =>
         {
-            extraction = await _aiProvider.ExtractInvoiceAsync(memory, fileName, cancellationToken);
-        }
-        catch
+            using var aiStream = new MemoryStream(bytes);
+            return await _aiProvider.ExtractInvoiceAsync(aiStream, fileName, cancellationToken);
+        }, cancellationToken);
+
+        var uploadTask = Task.Run(async () =>
         {
-            memory.Position = 0;
-            extraction = await _aiProvider.ExtractInvoiceAsync(memory, fileName, cancellationToken);
-        }
+            using var uploadStream = new MemoryStream(bytes);
+            return await _imageService.UploadAsync(
+                uploadStream,
+                fileName,
+                $"wms/receivings/invoice-{Guid.NewGuid():N}",
+                1200,
+                1200);
+        }, cancellationToken);
 
-        // (c) Upload ảnh lên Cloudinary
-        memory.Position = 0;
-        var imageUrl = await _imageService.UploadAsync(
-            memory,
-            fileName,
-            $"wms/receivings/invoice-{Guid.NewGuid():N}",
-            1200,
-            1200);
-
-        // (d) Kiểm tra PO tồn tại + lấy danh sách sản phẩm
+        // (c) Đọc DbContext tuần tự trên thread chính để đảm bảo an toàn luồng
         var po = await _poRepo.GetByIdAsync(purchaseOrderId)
             ?? throw new InvalidOperationException("PurchaseOrder not found.");
-
         var allProducts = await _productRepo.GetAllAsync();
 
-        // (e) Map sản phẩm
+        await Task.WhenAll(aiTask, uploadTask);
+
+        var extraction = await aiTask;
+        var imageUrl = await uploadTask;
+
+        // (c) So khớp sản phẩm thông minh với Purchase Order
         var products = _mappingService.MapLines(
             extraction.LineItems,
             po.PurchaseOrderDetails.ToList(),
             allProducts);
 
-        // (f) Trả kết quả
+        // (d) Trả kết quả hoàn chỉnh
         return new InvoiceScanResultDto
         {
             InvoiceNumber = extraction.InvoiceNumber,

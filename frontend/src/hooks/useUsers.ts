@@ -21,8 +21,8 @@ export function useUsersPage(params: UserListParams) {
   })
 }
 
-export function useWarehouseStaff() {
-  return useQuery({ queryKey: ['warehouseStaff'], queryFn: () => getWarehouseStaff() })
+export function useWarehouseStaff(warehouseId?: string) {
+  return useQuery({ queryKey: ['warehouseStaff', warehouseId], queryFn: () => getWarehouseStaff(warehouseId) })
 }
 
 export function useUpdateUser() {

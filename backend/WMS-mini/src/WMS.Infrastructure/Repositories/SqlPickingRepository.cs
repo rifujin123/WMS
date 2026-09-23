@@ -56,6 +56,10 @@ public class SqlPickingRepository : IPickingRepository
 
     public async Task DeleteAsync(Picking picking)
     {
+        if (picking.PickingDetails != null && picking.PickingDetails.Any())
+        {
+            _db.PickingDetails.RemoveRange(picking.PickingDetails);
+        }
         _db.Pickings.Remove(picking);
     }
 

@@ -21,6 +21,8 @@ public class MappingProfile : Profile
         CreateMap<UpdateVendorDto, Vendor>();
 
         CreateMap<User, UserProfileDto>()
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null))
+            .ForMember(d => d.WarehouseCode, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Code : null))
             .ForMember(d => d.Roles, o => o.Ignore());
 
         CreateMap<Product, ProductDto>().ReverseMap();
@@ -35,7 +37,10 @@ public class MappingProfile : Profile
         CreateMap<CreateLocationDto, Location>();
         CreateMap<UpdateLocationDto, Location>();
 
-        CreateMap<PurchaseOrder, PurchaseOrderDto>().ReverseMap();
+        CreateMap<PurchaseOrder, PurchaseOrderDto>()
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null))
+            .ForMember(d => d.WarehouseCode, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Code : null))
+            .ReverseMap();
         CreateMap<CreatePurchaseOrderDto, PurchaseOrder>();
         CreateMap<PurchaseOrderDetail, PurchaseOrderDetailDto>().ReverseMap();
         CreateMap<CreatePurchaseOrderDetailDto, PurchaseOrderDetail>();
@@ -58,6 +63,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.FromLocationCode, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.Code : null))
             .ForMember(d => d.ToLocationCode, o => o.MapFrom(s => s.ToLocation != null ? s.ToLocation.Code : null))
+            .ForMember(d => d.WarehouseId, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.WarehouseId : (s.ToLocation != null ? s.ToLocation.WarehouseId : (Guid?)null)))
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.FromLocation != null ? s.FromLocation.Warehouse.Name : (s.ToLocation != null ? s.ToLocation.Warehouse.Name : null)))
             .ForMember(d => d.AssignToName, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.FullName : null))
             .ForMember(d => d.AssignToAvatarUrl, o => o.MapFrom(s => s.AssignTo != null ? s.AssignTo.AvatarUrl : null));
@@ -92,7 +98,9 @@ public class MappingProfile : Profile
             .ForMember(d => d.LocationCode, o => o.MapFrom(s => s.Location.Code))
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Location.Warehouse != null ? s.Location.Warehouse.Name : string.Empty));
 
-        CreateMap<SaleOrder, SaleOrderDto>();
+        CreateMap<SaleOrder, SaleOrderDto>()
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null))
+            .ForMember(d => d.WarehouseCode, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Code : null));
         CreateMap<CreateSaleOrderDto, SaleOrder>();
         CreateMap<CreateSaleOrderDetailDto, SaleOrderDetail>();
         CreateMap<SaleOrderDetail, SaleOrderDetailDto>()
