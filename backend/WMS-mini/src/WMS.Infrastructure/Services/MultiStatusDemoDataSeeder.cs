@@ -212,11 +212,9 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
 
     private async Task ClearAllDataAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Executing full database wipe (disabling FK constraints, deleting all rows from all tables, re-enabling FK constraints)...");
+        _logger.LogInformation("Executing full database wipe in child-to-parent foreign key order...");
 
         const string wipeSql = @"
-            EXEC sp_MSforeachtable ""ALTER TABLE ? NOCHECK CONSTRAINT all"";
-
             DELETE FROM [dbo].[AuditLogs];
             DELETE FROM [dbo].[StatusHistories];
             DELETE FROM [dbo].[AssociationRules];
@@ -241,16 +239,14 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             DELETE FROM [dbo].[Categories];
             DELETE FROM [dbo].[Vendors];
             DELETE FROM [dbo].[Customers];
-            DELETE FROM [dbo].[Warehouses];
             DELETE FROM [dbo].[AspNetUserRoles];
             DELETE FROM [dbo].[AspNetRoleClaims];
             DELETE FROM [dbo].[AspNetUserClaims];
             DELETE FROM [dbo].[AspNetUserLogins];
             DELETE FROM [dbo].[AspNetUserTokens];
-            DELETE FROM [dbo].[AspNetRoles];
             DELETE FROM [dbo].[AspNetUsers];
-
-            EXEC sp_MSforeachtable ""ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all"";
+            DELETE FROM [dbo].[AspNetRoles];
+            DELETE FROM [dbo].[Warehouses];
         ";
 
         await _db.Database.ExecuteSqlRawAsync(wipeSql, cancellationToken);
