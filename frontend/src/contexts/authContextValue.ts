@@ -6,6 +6,8 @@ export interface AuthUser {
   fullName: string
   role: string
   avatarUrl?: string
+  tenantId?: string
+  hasExpiryManagement?: boolean
 }
 
 export interface AuthContextValue {

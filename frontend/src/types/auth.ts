@@ -32,3 +32,8 @@ export interface LoginFormValues extends LoginDto {
 export interface RegisterFormValues extends RegisterDto {
   confirmPassword: string
 }
+
+export interface VerifyEmailDto {
+  token: string
+  email: string
+}

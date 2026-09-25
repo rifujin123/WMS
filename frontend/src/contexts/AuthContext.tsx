@@ -33,6 +33,17 @@ function getRoleFromToken(token: string): string | undefined {
     return isValidRole(role) ? role : undefined
 }
 
+function getTenantMetaFromToken(token: string): { tenantId?: string; hasExpiryManagement?: boolean } {
+    const payload = decodeJwtPayload(token)
+    if (!payload) return {}
+
+    const tenantId = (payload.tenant_id ?? payload.TenantId ?? payload.tenantId) as string | undefined
+    const rawExpiry = payload.has_expiry_management ?? payload.hasExpiryManagement
+    const hasExpiryManagement = rawExpiry === true || rawExpiry === 'true'
+
+    return { tenantId, hasExpiryManagement }
+}
+
 function getInitialUser(): AuthUser | null{
     const token = localStorage.getItem(TOKEN_KEY)
     const saved = localStorage.getItem(USER_KEY)
@@ -54,8 +65,14 @@ function getInitialUser(): AuthUser | null{
             return null
         }
 
-        // Refresh role từ token mỗi lần khởi động.
-        return { ...savedUser, role }
+        // Refresh role & tenant metadata từ token mỗi lần khởi động.
+        const { tenantId, hasExpiryManagement } = getTenantMetaFromToken(token)
+        return {
+            ...savedUser,
+            role,
+            tenantId: tenantId ?? savedUser.tenantId,
+            hasExpiryManagement: hasExpiryManagement ?? savedUser.hasExpiryManagement,
+        }
     } catch {
         localStorage.removeItem(TOKEN_KEY)
         localStorage.removeItem(USER_KEY)
@@ -75,12 +92,15 @@ export function AuthProvider({children}:{children: ReactNode}){
             return
         }
 
+        const { tenantId, hasExpiryManagement } = getTenantMetaFromToken(res.accessToken)
         const nextUser: AuthUser = {
             username: res.username,
             email: res.email,
             fullName: res.fullName,
             role,
             avatarUrl: res.avatarUrl,
+            tenantId,
+            hasExpiryManagement,
         }
         localStorage.setItem(TOKEN_KEY, res.accessToken)
         localStorage.setItem(USER_KEY, JSON.stringify(nextUser))

@@ -9,6 +9,7 @@ import PublicOnlyRoute from './PublicOnlyRoute'
 // Lazy load từng trang — mỗi route thành chunk riêng, giảm bundle chính.
 const Landing = lazy(() => import('../pages/Landing'))
 const RegisterTenant = lazy(() => import('../pages/RegisterTenant'))
+const VerifyEmail = lazy(() => import('../pages/VerifyEmail'))
 const Dashboard = lazy(() => import('../pages/Dashboard'))
 const Login = lazy(() => import('../pages/Login'))
 const Products = lazy(() => import('../pages/Products'))
@@ -62,6 +63,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageFallback />}>
             <RegisterTenant />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/verify-email',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <VerifyEmail />
           </Suspense>
         ),
       },
