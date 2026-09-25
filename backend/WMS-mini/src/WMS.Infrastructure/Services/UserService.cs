@@ -222,6 +222,15 @@ public class UserService : IUserService
             throw new InvalidOperationException("Nhân viên kho và Quản lý kho bắt buộc phải được gán vào một kho cụ thể.");
         }
 
+        if (dto.WarehouseId.HasValue)
+        {
+            var warehouseExists = await _db.Warehouses.AnyAsync(w => w.Id == dto.WarehouseId.Value);
+            if (!warehouseExists)
+            {
+                throw new InvalidOperationException("Kho được chọn không tồn tại hoặc không thuộc quyền quản lý của doanh nghiệp bạn.");
+            }
+        }
+
         user.FullName = dto.FullName;
         if (!string.IsNullOrWhiteSpace(dto.Email))
             user.Email = dto.Email;

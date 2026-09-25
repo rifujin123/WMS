@@ -15,4 +15,9 @@ public class CreateReceivingDetailDto
     public int ActualQuantity { get; set; }
 
     public ProductCondition Condition { get; set; } = ProductCondition.Ok;
+
+    [MaxLength(50)]
+    public string? LotNumber { get; set; }
+
+    public DateTime? ExpiryDate { get; set; }
 }

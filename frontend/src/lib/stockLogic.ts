@@ -19,6 +19,8 @@ export interface StockLocationRow {
   onhandQty: number
   reservedQty: number
   availableQty: number
+  lotNumber?: string
+  expiryDate?: string
 }
 
 /** Gộp các dòng tồn (sản phẩm × vị trí) thành danh sách theo sản phẩm. */
@@ -88,6 +90,8 @@ export function getLocationDetailsForProduct(
       onhandQty: s.onhandQty,
       reservedQty: s.reservedQty,
       availableQty: s.onhandQty - s.reservedQty,
+      lotNumber: s.lotNumber,
+      expiryDate: s.expiryDate,
     }))
     .sort((a, b) => a.locationCode.localeCompare(b.locationCode))
 }

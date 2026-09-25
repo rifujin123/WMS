@@ -11,4 +11,6 @@ export interface StockDto {
   onhandQty: number
   reservedQty: number
   availableQty?: number
+  lotNumber?: string
+  expiryDate?: string
 }

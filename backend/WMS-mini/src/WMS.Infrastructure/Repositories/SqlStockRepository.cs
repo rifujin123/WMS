@@ -90,23 +90,51 @@ public class SqlStockRepository : IStockRepository
 
     public async Task<List<Stock>> GetAvailableByProductAndWarehouseAsync(Guid productId, Guid warehouseId)
     {
-        return await _db.Stocks
+        var tenantId = _db.CurrentTenantId;
+        var hasExpiry = false;
+        if (tenantId.HasValue)
+        {
+            hasExpiry = await _db.Tenants
+                .IgnoreQueryFilters()
+                .Where(t => t.Id == tenantId.Value)
+                .Select(t => t.HasExpiryManagement)
+                .FirstOrDefaultAsync();
+        }
+
+        var query = _db.Stocks
             .Include(s => s.Location)
             .Where(s => s.ProductId == productId
                 && s.Location.WarehouseId == warehouseId
-                && s.OnhandQty - s.ReservedQty > 0)
-            .OrderBy(s => s.Location.Code)
-            .ThenBy(s => s.LocationId)
-            .ThenBy(s => s.Id)
+                && s.OnhandQty - s.ReservedQty > 0);
+
+        if (hasExpiry)
+        {
+            // FEFO: Hết hạn trước xuất trước. Loại trừ các lô đã hết hạn.
+            var now = DateTime.UtcNow;
+            return await query
+                .Where(s => s.ExpiryDate == null || s.ExpiryDate > now)
+                .OrderBy(s => s.ExpiryDate == null ? 1 : 0)
+                .ThenBy(s => s.ExpiryDate)
+                .ThenBy(s => s.Location.Code)
+                .ToListAsync();
+        }
+
+        // FIFO: Nhập trước xuất trước theo ngày tạo
+        return await query
+            .OrderBy(s => s.CreatedDate)
+            .ThenBy(s => s.Location.Code)
             .ToListAsync();
     }
 
-    public async Task<Stock?> GetByProductAndLocationAsync(Guid productId, Guid locationId)
+    public async Task<Stock?> GetByProductAndLocationAsync(Guid productId, Guid locationId, string? lotNumber = null, DateTime? expiryDate = null)
     {
         return await _db.Stocks
             .Include(s => s.Product)
             .Include(s => s.Location)
-            .FirstOrDefaultAsync(s => s.ProductId == productId && s.LocationId == locationId);
+            .FirstOrDefaultAsync(s => s.ProductId == productId
+                && s.LocationId == locationId
+                && s.LotNumber == lotNumber
+                && s.ExpiryDate == expiryDate);
     }
 
     public async Task AddAsync(Stock stock)

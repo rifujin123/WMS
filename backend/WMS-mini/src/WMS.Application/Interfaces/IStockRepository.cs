@@ -10,7 +10,7 @@ public interface IStockRepository
     Task<Stock?> GetByIdAsync(Guid id);
     Task<List<Stock>> GetByProductAsync(Guid productId);
     Task<List<Stock>> GetAvailableByProductAndWarehouseAsync(Guid productId, Guid warehouseId);
-    Task<Stock?> GetByProductAndLocationAsync(Guid productId, Guid locationId);
+    Task<Stock?> GetByProductAndLocationAsync(Guid productId, Guid locationId, string? lotNumber = null, DateTime? expiryDate = null);
     Task<List<Stock>> GetByLocationAsync(Guid locationId);
     Task AddAsync(Stock stock);
     Task UpdateAsync(Stock stock);

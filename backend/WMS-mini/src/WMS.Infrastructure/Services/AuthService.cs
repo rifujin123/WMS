@@ -17,12 +17,18 @@ public class AuthService : IAuthService
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
     private readonly WmsDbContext _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AuthService(UserManager<User> userManager, IConfiguration configuration, WmsDbContext db)
+    public AuthService(
+        UserManager<User> userManager,
+        IConfiguration configuration,
+        WmsDbContext db,
+        ICurrentUserService currentUserService)
     {
         _userManager = userManager;
         _configuration = configuration;
         _db = db;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -59,13 +65,30 @@ public class AuthService : IAuthService
 
     public async Task RegisterAsync(RegisterDto dto)
     {
+        var tenantId = _currentUserService.TenantId;
+        if (!tenantId.HasValue)
+        {
+            throw new InvalidOperationException("Không thể xác định doanh nghiệp của người dùng hiện tại.");
+        }
+
+        if (dto.WarehouseId.HasValue)
+        {
+            var warehouseExists = await _db.Warehouses.AnyAsync(w => w.Id == dto.WarehouseId.Value);
+            if (!warehouseExists)
+            {
+                throw new InvalidOperationException("Kho được chọn không tồn tại hoặc không thuộc quyền quản lý của doanh nghiệp bạn.");
+            }
+        }
+
         var user = new User
         {
-            UserName = dto.Username,
-            Email = dto.Email,
-            FullName = dto.FullName,
+            UserName = dto.Username.Trim(),
+            Email = dto.Email.Trim(),
+            FullName = dto.FullName.Trim(),
             AvatarUrl = dto.AvatarUrl,
-            WarehouseId = dto.WarehouseId
+            WarehouseId = dto.WarehouseId,
+            TenantId = tenantId.Value,
+            CreatedAt = DateTime.UtcNow
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);

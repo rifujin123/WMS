@@ -12,6 +12,8 @@ export interface PickingDetailDto {
   locationCode?: string
   qtyToPick: number
   qtyPicked: number
+  lotNumber?: string
+  expiryDate?: string
   status: PickingDetailStatus
 }
 

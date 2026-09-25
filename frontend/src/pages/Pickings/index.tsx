@@ -134,6 +134,8 @@ function Pickings() {
     })
   }
 
+  const hasExpiry = user?.hasExpiryManagement === true
+
   const detailColumns: TableColumnsType<PickingDetailDto> = [
     {
       title: 'SKU',
@@ -155,6 +157,32 @@ function Pickings() {
       key: 'locationCode',
       render: (code?: string) => (code ? <Tag color="blue">{code}</Tag> : '—'),
     },
+    ...(hasExpiry
+      ? [
+          {
+            title: 'Lô',
+            dataIndex: 'lotNumber',
+            key: 'lotNumber',
+            render: (lot?: string) => (lot ? <Tag color="blue" style={{ fontFamily: 'monospace' }}>{lot}</Tag> : '—'),
+          },
+          {
+            title: 'Hạn dùng',
+            dataIndex: 'expiryDate',
+            key: 'expiryDate',
+            render: (dateStr?: string) => {
+              if (!dateStr) return '—'
+              const exp = dayjs(dateStr)
+              const now = dayjs()
+              const isExpired = exp.isBefore(now, 'day')
+              const isNearExpiry = !isExpired && exp.diff(now, 'day') <= 30
+              const label = exp.format('DD/MM/YYYY')
+              if (isExpired) return <Tag color="red">{label} (Hết hạn)</Tag>
+              if (isNearExpiry) return <Tag color="orange">{label} (Cận hạn)</Tag>
+              return <Tag color="green">{label}</Tag>
+            },
+          },
+        ]
+      : []),
     {
       title: 'SL cần lấy',
       dataIndex: 'qtyToPick',

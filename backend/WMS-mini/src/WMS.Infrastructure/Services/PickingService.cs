@@ -77,7 +77,18 @@ public class PickingService : IPickingService
                     await _stockRepo.UpdateAsync(stock);
                     sod.AllocatedQty += qtyToAllocate;
                     remaining -= qtyToAllocate;
-                    picking.PickingDetails.Add(new PickingDetail { SaleOrderDetailId = sod.Id, ProductId = sod.ProductId, LocationId = stock.LocationId, QtyToPick = qtyToAllocate, QtyPicked = 0, Status = PickingDetailStatus.Pending, CreatedDate = now });
+                    picking.PickingDetails.Add(new PickingDetail
+                    {
+                        SaleOrderDetailId = sod.Id,
+                        ProductId = sod.ProductId,
+                        LocationId = stock.LocationId,
+                        LotNumber = stock.LotNumber,
+                        ExpiryDate = stock.ExpiryDate,
+                        QtyToPick = qtyToAllocate,
+                        QtyPicked = 0,
+                        Status = PickingDetailStatus.Pending,
+                        CreatedDate = now
+                    });
                     if (remaining == 0) break;
                 }
                 if (remaining > 0)

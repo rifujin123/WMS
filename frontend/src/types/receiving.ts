@@ -10,6 +10,8 @@ export interface ReceivingDetailDto {
   expectedQuantity: number
   actualQuantity: number
   condition: ProductCondition
+  lotNumber?: string
+  expiryDate?: string
 }
 
 export interface ReceivingDto {
@@ -32,6 +34,8 @@ export interface CreateReceivingDetailDto {
   expectedQuantity: number
   actualQuantity: number
   condition: ProductCondition
+  lotNumber?: string
+  expiryDate?: string
 }
 
 export interface CreateReceivingDto {

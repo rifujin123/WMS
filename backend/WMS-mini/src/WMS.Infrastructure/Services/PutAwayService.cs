@@ -178,10 +178,18 @@ public class PutAwayService : IPutAwayService
             if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
                 throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Yêu cầu cất: {task.Quantity}.");
 
-            var stock = await _stockRepo.GetByProductAndLocationAsync(task.ProductId, task.ToLocationId.Value);
+            var stock = await _stockRepo.GetByProductAndLocationAsync(task.ProductId, task.ToLocationId.Value, detail.LotNumber, detail.ExpiryDate);
             if (stock == null)
             {
-                await _stockRepo.AddAsync(new Stock { ProductId = task.ProductId, LocationId = task.ToLocationId.Value, OnhandQty = task.Quantity, ReservedQty = 0 });
+                await _stockRepo.AddAsync(new Stock
+                {
+                    ProductId = task.ProductId,
+                    LocationId = task.ToLocationId.Value,
+                    LotNumber = detail.LotNumber,
+                    ExpiryDate = detail.ExpiryDate,
+                    OnhandQty = task.Quantity,
+                    ReservedQty = 0
+                });
             }
             else
             {

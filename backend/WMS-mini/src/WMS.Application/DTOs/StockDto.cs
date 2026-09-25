@@ -13,4 +13,6 @@ public class StockDto
     public int OnhandQty { get; set; }
     public int ReservedQty { get; set; }
     public int AvailableQty => OnhandQty - ReservedQty;
+    public string? LotNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
 }

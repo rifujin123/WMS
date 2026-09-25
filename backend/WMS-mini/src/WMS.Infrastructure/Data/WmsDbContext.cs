@@ -158,6 +158,9 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(p => new { p.TenantId, p.PickingNo })
             .IsUnique();
 
+        modelBuilder.Entity<User>()
+            .HasQueryFilter(u => CurrentTenantId == null || u.TenantId == CurrentTenantId);
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes()
             .Where(entityType => typeof(BaseAuditableEntity).IsAssignableFrom(entityType.ClrType)))
         {

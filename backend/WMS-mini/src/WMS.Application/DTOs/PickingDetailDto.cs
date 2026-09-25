@@ -14,5 +14,7 @@ public class PickingDetailDto
     public string? LocationCode { get; set; }
     public int QtyToPick { get; set; }
     public int QtyPicked { get; set; }
+    public string? LotNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
     public PickingDetailStatus Status { get; set; }
 }
