@@ -7,6 +7,8 @@ import ProtectedRoute from './ProtectedRoute'
 import PublicOnlyRoute from './PublicOnlyRoute'
 
 // Lazy load từng trang — mỗi route thành chunk riêng, giảm bundle chính.
+const Landing = lazy(() => import('../pages/Landing'))
+const RegisterTenant = lazy(() => import('../pages/RegisterTenant'))
 const Dashboard = lazy(() => import('../pages/Dashboard'))
 const Login = lazy(() => import('../pages/Login'))
 const Products = lazy(() => import('../pages/Products'))
@@ -37,6 +39,14 @@ function PageFallback() {
 
 export const router = createBrowserRouter([
   {
+    path: '/',
+    element: (
+      <Suspense fallback={<PageFallback />}>
+        <Landing />
+      </Suspense>
+    ),
+  },
+  {
     element: <PublicOnlyRoute />,
     children: [
       {
@@ -47,13 +57,19 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      {
+        path: '/register-tenant',
+        element: (
+          <Suspense fallback={<PageFallback />}>
+            <RegisterTenant />
+          </Suspense>
+        ),
+      },
     ],
   },
   {
-    path: '/',
     element: <AppLayout />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
       {
         element: <ProtectedRoute />,
         children: [
