@@ -265,7 +265,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 switch (initialState)
                 {
                     case EntityState.Added:
-                        auditable.CreatedDate = now;
+                        if (auditable.CreatedDate == default)
+                        {
+                            auditable.CreatedDate = now;
+                        }
                         auditable.CreatedById = actorId;
                         auditable.IsDeleted = false;
                         if (auditable.TenantId == Guid.Empty)

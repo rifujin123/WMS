@@ -10,22 +10,20 @@ const { Paragraph } = Typography
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
+  const token = searchParams.get('token')
+  const email = searchParams.get('email')
+  const hasParams = Boolean(token && email)
+
+  const [loading, setLoading] = useState(hasParams)
   const [status, setStatus] = useState<'success' | 'error' | 'invalid'>('invalid')
   const [errorMessage, setErrorMessage] = useState('')
 
-  const token = searchParams.get('token')
-  const email = searchParams.get('email')
-
   useEffect(() => {
     if (!token || !email) {
-      setLoading(false)
-      setStatus('invalid')
       return
     }
 
     let isMounted = true
-    setLoading(true)
 
     verifyEmail({ token, email })
       .then(() => {
