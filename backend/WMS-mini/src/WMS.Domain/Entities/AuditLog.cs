@@ -18,8 +18,26 @@ public class AuditLog
         string? changedFieldsJson = null,
         string? correlationId = null,
         string? requestPath = null)
+        : this(id, Guid.Empty, entityType, entityId, action, actorUserId, occurredAtUtc, oldValuesJson, newValuesJson, changedFieldsJson, correlationId, requestPath)
+    {
+    }
+
+    public AuditLog(
+        Guid id,
+        Guid tenantId,
+        string entityType,
+        Guid entityId,
+        string action,
+        Guid? actorUserId,
+        DateTime occurredAtUtc,
+        string? oldValuesJson = null,
+        string? newValuesJson = null,
+        string? changedFieldsJson = null,
+        string? correlationId = null,
+        string? requestPath = null)
     {
         Id = id;
+        TenantId = tenantId;
         EntityType = entityType;
         EntityId = entityId;
         Action = action;
@@ -33,6 +51,9 @@ public class AuditLog
     }
 
     public Guid Id { get; private set; }
+
+    public Guid TenantId { get; private set; }
+    public Tenant? Tenant { get; private set; }
 
     [MaxLength(200)]
     public string EntityType { get; private set; } = string.Empty;

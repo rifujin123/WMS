@@ -20,5 +20,10 @@ public class ReceivingDetail : BaseAuditableEntity
     public int ActualQuantity { get; set; }
     public ProductCondition Condition { get; set; }
 
+    [MaxLength(50)]
+    public string? LotNumber { get; set; }
+
+    public DateTime? ExpiryDate { get; set; }
+
     public ICollection<PutAwayTask> PutAwayTasks { get; set; } = new List<PutAwayTask>();
 }

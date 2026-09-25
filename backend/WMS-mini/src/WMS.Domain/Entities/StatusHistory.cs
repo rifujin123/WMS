@@ -17,8 +17,25 @@ public class StatusHistory
         DateTime occurredAtUtc,
         string? notes = null,
         string? metadataJson = null)
+        : this(id, Guid.Empty, entityType, entityId, fromStatus, toStatus, action, actorUserId, occurredAtUtc, notes, metadataJson)
+    {
+    }
+
+    public StatusHistory(
+        Guid id,
+        Guid tenantId,
+        string entityType,
+        Guid entityId,
+        string? fromStatus,
+        string toStatus,
+        string action,
+        Guid? actorUserId,
+        DateTime occurredAtUtc,
+        string? notes = null,
+        string? metadataJson = null)
     {
         Id = id;
+        TenantId = tenantId;
         EntityType = entityType;
         EntityId = entityId;
         FromStatus = fromStatus;
@@ -31,6 +48,9 @@ public class StatusHistory
     }
 
     public Guid Id { get; private set; }
+
+    public Guid TenantId { get; private set; }
+    public Tenant? Tenant { get; private set; }
 
     [MaxLength(200)]
     public string EntityType { get; private set; } = string.Empty;

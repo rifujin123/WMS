@@ -27,6 +27,19 @@ public class CurrentUserService : ICurrentUserService
 
     public string? UserName => _httpContextAccessor.HttpContext?.User.Identity?.Name;
 
+    public Guid? TenantId
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            var tenantId = user?.FindFirstValue("tenant_id")
+                ?? user?.FindFirstValue("tenantId")
+                ?? user?.FindFirstValue("TenantId");
+
+            return Guid.TryParse(tenantId, out var parsedId) ? parsedId : null;
+        }
+    }
+
     public Guid? WarehouseId
     {
         get

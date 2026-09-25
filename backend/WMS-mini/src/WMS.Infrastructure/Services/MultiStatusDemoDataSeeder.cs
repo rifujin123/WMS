@@ -179,6 +179,8 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             return SeedSummary.AlreadySeededSummary();
         }
 
+        await EnsureDemoTenantAsync(cancellationToken);
+
         var (warehouses, locations) = await SeedWarehousesAsync(cancellationToken);
         var usersSeeded = await SeedUsersAsync(cancellationToken);
         var (categories, products) = await SeedCategoriesAndProductsAsync(cancellationToken);
@@ -247,10 +249,34 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             DELETE FROM [dbo].[AspNetUsers];
             DELETE FROM [dbo].[AspNetRoles];
             DELETE FROM [dbo].[Warehouses];
+            DELETE FROM [dbo].[Tenants];
         ";
 
         await _db.Database.ExecuteSqlRawAsync(wipeSql, cancellationToken);
         _logger.LogInformation("All database tables wiped cleanly for a 100% fresh seed.");
+    }
+
+    private async Task EnsureDemoTenantAsync(CancellationToken cancellationToken)
+    {
+        var tenant = await _db.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == WmsDbContext.DefaultTenantId, cancellationToken);
+        if (tenant == null)
+        {
+            tenant = new Tenant
+            {
+                Id = WmsDbContext.DefaultTenantId,
+                Name = "Công ty TNHH Demo Logistics",
+                Code = "demo-corp",
+                Address = "12 Nguyễn Văn Linh, Quận 7, TP.HCM",
+                ContactEmail = "admin@demo.com",
+                ContactPhone = "0901234567",
+                HasExpiryManagement = false,
+                IsActive = true,
+                CreatedDate = DateTime.UtcNow,
+                VerifiedDate = DateTime.UtcNow
+            };
+            _db.Tenants.Add(tenant);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private async Task<int> SeedUsersAsync(CancellationToken cancellationToken)

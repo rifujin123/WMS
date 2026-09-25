@@ -17,4 +17,9 @@ public class Stock : BaseAuditableEntity
 
     public int OnhandQty { get; set; }
     public int ReservedQty { get; set; }
+
+    [MaxLength(50)]
+    public string? LotNumber { get; set; }
+
+    public DateTime? ExpiryDate { get; set; }
 }

@@ -18,7 +18,11 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         "ConcurrencyStamp", "NormalizedUserName", "NormalizedEmail", "RefreshToken"
     };
 
+    public static readonly Guid DefaultTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     private readonly ICurrentUserService? _currentUserService;
+
+    public Guid? CurrentTenantId => _currentUserService?.TenantId;
 
     public WmsDbContext(DbContextOptions<WmsDbContext> options) : base(options)
     {
@@ -29,6 +33,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         _currentUserService = currentUserService;
     }
 
+    public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Category> Categories => Set<Category>();
@@ -66,6 +71,16 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             relationship.DeleteBehavior = DeleteBehavior.NoAction;
         }
 
+        modelBuilder.Entity<Tenant>()
+            .HasIndex(t => t.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Tenant)
+            .WithMany()
+            .HasForeignKey(u => u.TenantId)
+            .OnDelete(DeleteBehavior.NoAction);
+
         modelBuilder.Entity<User>()
             .HasOne(u => u.Warehouse)
             .WithMany()
@@ -95,27 +110,27 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .IsUnique();
 
         modelBuilder.Entity<Stock>()
-            .HasIndex(s => new { s.ProductId, s.LocationId })
+            .HasIndex(s => new { s.TenantId, s.ProductId, s.LocationId, s.LotNumber, s.ExpiryDate })
             .IsUnique();
 
         modelBuilder.Entity<Warehouse>()
-            .HasIndex(w => w.Code)
+            .HasIndex(w => new { w.TenantId, w.Code })
             .IsUnique();
 
         modelBuilder.Entity<Product>()
-            .HasIndex(p => p.Sku)
+            .HasIndex(p => new { p.TenantId, p.Sku })
             .IsUnique();
 
         modelBuilder.Entity<Customer>()
-            .HasIndex(c => c.Name)
+            .HasIndex(c => new { c.TenantId, c.Name })
             .IsUnique();
 
         modelBuilder.Entity<Vendor>()
-            .HasIndex(v => v.Name)
+            .HasIndex(v => new { v.TenantId, v.Name })
             .IsUnique();
 
         modelBuilder.Entity<PurchaseOrder>()
-            .HasIndex(p => p.PoNumber)
+            .HasIndex(p => new { p.TenantId, p.PoNumber })
             .IsUnique();
 
         modelBuilder.Entity<PurchaseOrderDetail>()
@@ -123,24 +138,24 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .IsRowVersion();
 
         modelBuilder.Entity<SaleOrder>()
-            .HasIndex(s => s.OrderNo)
+            .HasIndex(s => new { s.TenantId, s.OrderNo })
             .IsUnique();
 
         modelBuilder.Entity<Receiving>()
-            .HasIndex(r => r.ReceivingNo)
+            .HasIndex(r => new { r.TenantId, r.ReceivingNo })
             .IsUnique();
 
         modelBuilder.Entity<Receiving>()
-            .HasIndex(r => r.PurchaseOrderId)
+            .HasIndex(r => new { r.TenantId, r.PurchaseOrderId })
             .IsUnique()
             .HasFilter("[Status] = 1");
 
         modelBuilder.Entity<StockAdjustment>()
-            .HasIndex(a => a.AdjustmentNo)
+            .HasIndex(a => new { a.TenantId, a.AdjustmentNo })
             .IsUnique();
 
         modelBuilder.Entity<Picking>()
-            .HasIndex(p => p.PickingNo)
+            .HasIndex(p => new { p.TenantId, p.PickingNo })
             .IsUnique();
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes()
@@ -148,8 +163,20 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         {
             var parameter = Expression.Parameter(entityType.ClrType, "entity");
             var isDeleted = Expression.Property(parameter, nameof(BaseAuditableEntity.IsDeleted));
+            var notDeleted = Expression.Not(isDeleted);
+
+            var tenantIdProp = Expression.Property(parameter, nameof(BaseAuditableEntity.TenantId));
+            var currentTenantIdExpr = Expression.Property(Expression.Constant(this), nameof(CurrentTenantId));
+            var currentTenantIdIsNull = Expression.Equal(currentTenantIdExpr, Expression.Constant(null, typeof(Guid?)));
+
+            var tenantIdConverted = Expression.Convert(tenantIdProp, typeof(Guid?));
+            var tenantIdMatches = Expression.Equal(tenantIdConverted, currentTenantIdExpr);
+
+            var tenantFilter = Expression.OrElse(currentTenantIdIsNull, tenantIdMatches);
+            var combinedFilter = Expression.AndAlso(notDeleted, tenantFilter);
+
             modelBuilder.Entity(entityType.ClrType)
-                .HasQueryFilter(Expression.Lambda(Expression.Not(isDeleted), parameter));
+                .HasQueryFilter(Expression.Lambda(combinedFilter, parameter));
         }
 
         modelBuilder.Entity<AuditLog>(entity =>
@@ -158,8 +185,13 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .WithMany()
                 .HasForeignKey(a => a.ActorUserId)
                 .OnDelete(DeleteBehavior.NoAction);
-            entity.HasIndex(a => new { a.EntityType, a.EntityId, a.OccurredAtUtc });
-            entity.HasIndex(a => new { a.ActorUserId, a.OccurredAtUtc });
+            entity.HasOne(a => a.Tenant)
+                .WithMany()
+                .HasForeignKey(a => a.TenantId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(a => new { a.TenantId, a.EntityType, a.EntityId, a.OccurredAtUtc });
+            entity.HasIndex(a => new { a.TenantId, a.ActorUserId, a.OccurredAtUtc });
+            entity.HasQueryFilter(a => CurrentTenantId == null || a.TenantId == CurrentTenantId);
         });
 
         modelBuilder.Entity<StatusHistory>(entity =>
@@ -168,8 +200,13 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .WithMany()
                 .HasForeignKey(s => s.ActorUserId)
                 .OnDelete(DeleteBehavior.NoAction);
-            entity.HasIndex(s => new { s.EntityType, s.EntityId, s.OccurredAtUtc });
-            entity.HasIndex(s => new { s.ActorUserId, s.OccurredAtUtc });
+            entity.HasOne(s => s.Tenant)
+                .WithMany()
+                .HasForeignKey(s => s.TenantId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(s => new { s.TenantId, s.EntityType, s.EntityId, s.OccurredAtUtc });
+            entity.HasIndex(s => new { s.TenantId, s.ActorUserId, s.OccurredAtUtc });
+            entity.HasQueryFilter(s => CurrentTenantId == null || s.TenantId == CurrentTenantId);
         });
     }
 
@@ -228,6 +265,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                         auditable.CreatedDate = now;
                         auditable.CreatedById = actorId;
                         auditable.IsDeleted = false;
+                        if (auditable.TenantId == Guid.Empty)
+                        {
+                            auditable.TenantId = _currentUserService?.TenantId ?? DefaultTenantId;
+                        }
                         break;
                     case EntityState.Modified:
                         auditable.UpdatedDate = now;
@@ -242,6 +283,35 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 }
             }
 
+            if (entry.Entity is User userEntity && initialState == EntityState.Added)
+            {
+                if (userEntity.TenantId == Guid.Empty)
+                {
+                    userEntity.TenantId = _currentUserService?.TenantId ?? DefaultTenantId;
+                }
+            }
+
+            if (entry.Entity is StatusHistory statusHistoryEntity && initialState == EntityState.Added)
+            {
+                if (statusHistoryEntity.TenantId == Guid.Empty)
+                {
+                    entry.Property(nameof(StatusHistory.TenantId)).CurrentValue = _currentUserService?.TenantId ?? DefaultTenantId;
+                }
+            }
+
+            if (entry.Entity is AuditLog auditLogEntity && initialState == EntityState.Added)
+            {
+                if (auditLogEntity.TenantId == Guid.Empty)
+                {
+                    entry.Property(nameof(AuditLog.TenantId)).CurrentValue = _currentUserService?.TenantId ?? DefaultTenantId;
+                }
+            }
+
+            var entityTenantId = (entry.Entity as BaseAuditableEntity)?.TenantId
+                ?? (entry.Entity as User)?.TenantId
+                ?? _currentUserService?.TenantId
+                ?? DefaultTenantId;
+
             var action = initialState switch
             {
                 EntityState.Added => "Created",
@@ -253,7 +323,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             if (action is not null)
             {
                 auditLogs.Add(new AuditLog(
-                    Guid.NewGuid(), entry.Metadata.ClrType.Name, entityId, action, actorId, now,
+                    Guid.NewGuid(), entityTenantId, entry.Metadata.ClrType.Name, entityId, action, actorId, now,
                     originalValues, SerializeValues(entry, true), JsonSerializer.Serialize(changedFields)));
             }
 
@@ -265,6 +335,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 {
                     statusHistories.Add(new StatusHistory(
                         Guid.NewGuid(),
+                        entityTenantId,
                         entry.Metadata.ClrType.Name,
                         entityId,
                         SerializeStatus(statusProperty.OriginalValue),
