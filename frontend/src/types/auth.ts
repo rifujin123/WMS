@@ -37,3 +37,14 @@ export interface VerifyEmailDto {
   token: string
   email: string
 }
+
+export interface RegisterTenantDto {
+  companyName: string
+  companyCode: string
+  contactPhone?: string
+  address?: string
+  hasExpiryManagement: boolean
+  adminFullName: string
+  adminEmail: string
+  password: string
+}

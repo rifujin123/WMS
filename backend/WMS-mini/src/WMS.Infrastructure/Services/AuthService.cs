@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -7,6 +8,7 @@ using System.Text;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
 
@@ -14,21 +16,35 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly WmsDbContext _db;
 
-    public AuthService(UserManager<User> userManager, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IConfiguration configuration, WmsDbContext db)
     {
         _userManager = userManager;
         _configuration = configuration;
+        _db = db;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
-        var user = await _userManager.FindByNameAsync(dto.Username);
+        var input = dto.Username?.Trim() ?? string.Empty;
+        var user = await _userManager.FindByNameAsync(input)
+            ?? await _userManager.FindByEmailAsync(input);
+
         if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
-            throw new UnauthorizedAccessException("Invalid username or password.");
+            throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
+
+        var tenant = await _db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == user.TenantId);
+
+        if (tenant != null && !tenant.IsActive)
+        {
+            throw new UnauthorizedAccessException("Tài khoản doanh nghiệp chưa được kích hoạt. Vui lòng xác thực email trước khi đăng nhập.");
+        }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var token = GenerateJwtToken(user, roles);
+        var token = GenerateJwtToken(user, roles, tenant);
 
         return new AuthResponseDto
         {
@@ -68,7 +84,7 @@ public class AuthService : IAuthService
         await _userManager.AddToRoleAsync(user, role);
     }
 
-    private string GenerateJwtToken(User user, IList<string> roles)
+    private string GenerateJwtToken(User user, IList<string> roles, Tenant? tenant)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -79,7 +95,14 @@ public class AuthService : IAuthService
             new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("tenant_id", user.TenantId.ToString())
         };
+
+        if (tenant != null)
+        {
+            claims.Add(new Claim("has_expiry_management", tenant.HasExpiryManagement.ToString().ToLowerInvariant()));
+            claims.Add(new Claim("tenant_code", tenant.Code));
+        }
 
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 

@@ -11,6 +11,7 @@ import {
   Result,
   Row,
   Col,
+  message,
 } from 'antd'
 import {
   BankOutlined,
@@ -27,6 +28,7 @@ import {
 } from '@ant-design/icons'
 import Logo from '../../components/Logo'
 import { themeConfig, ui } from '../../theme/tokens'
+import { registerTenant } from '../../services/auth'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -67,14 +69,29 @@ export default function RegisterTenantPage() {
     }
   }
 
-  const handleSubmit = (values: RegisterTenantFormValues) => {
+  const handleSubmit = async (values: RegisterTenantFormValues) => {
     setLoading(true)
-    // Giả lập gửi request đăng ký cho đến khi có Backend API Story 2
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      await registerTenant({
+        companyName: values.companyName,
+        companyCode: values.companyCode,
+        contactPhone: values.contactPhone,
+        address: values.address,
+        hasExpiryManagement: values.hasExpiryManagement,
+        adminFullName: values.adminFullName,
+        adminEmail: values.adminEmail,
+        password: values.password,
+      })
       setRegisteredEmail(values.adminEmail)
       setIsSubmitted(true)
-    }, 800)
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Đăng ký doanh nghiệp thất bại. Vui lòng kiểm tra lại thông tin.'
+      message.error(errorMsg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (isSubmitted) {
