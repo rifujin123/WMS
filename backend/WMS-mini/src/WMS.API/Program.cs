@@ -156,6 +156,7 @@ cloudinary.Api.Secure = true; // trả về https:// URL
 builder.Services.AddSingleton(cloudinary);
 
 // Services
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

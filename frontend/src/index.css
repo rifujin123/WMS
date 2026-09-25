@@ -52,9 +52,45 @@ body {
   transition: transform 0.15s;
 }
 
+/* Card hover nhấc nhẹ tạo chiều sâu cho Landing Page */
+.wms-card-hover {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+.wms-card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px -8px rgba(11, 20, 32, 0.12);
+  border-color: #38BDF8 !important;
+}
+
+/* Pulse status dot */
+@keyframes wms-pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+.wms-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ADE80;
+  animation: wms-pulse-dot 2s infinite;
+  display: inline-block;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wms-rise,
-  .wms-table-in {
+  .wms-table-in,
+  .wms-pulse-dot {
     animation: none;
   }
 

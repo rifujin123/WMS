@@ -2,12 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Typography, Button, Row, Col, Card } from 'antd'
 import {
   RocketOutlined,
-  ScanOutlined,
-  AppstoreOutlined,
-  CalendarOutlined,
-  SafetyCertificateOutlined,
   ArrowRightOutlined,
-  CheckCircleFilled,
   LoginOutlined,
 } from '@ant-design/icons'
 import Logo from '../../components/Logo'
@@ -128,7 +123,7 @@ export default function LandingPage() {
             position: 'absolute',
             inset: 0,
             background:
-              'linear-gradient(90deg, rgba(11,20,32,0.85) 0%, rgba(11,20,32,0.72) 55%, rgba(11,20,32,0.50) 100%)',
+              'radial-gradient(ellipse at center, rgba(11,20,32,0.76) 0%, rgba(11,20,32,0.90) 100%)',
           }}
         />
 
@@ -136,85 +131,173 @@ export default function LandingPage() {
           style={{
             position: 'relative',
             zIndex: 1,
-            maxWidth: 1200,
+            maxWidth: 900,
             margin: '0 auto',
-            padding: '90px 24px',
+            padding: '100px 24px',
+            textAlign: 'center',
             width: '100%',
           }}
         >
-          <div style={{ maxWidth: 700 }}>
-            <Title
-              level={1}
+          {/* Subtle announcement pill */}
+          <div style={{ marginBottom: 24 }}>
+            <span
               style={{
-                fontSize: 'clamp(32px, 4.4vw, 50px)',
-                lineHeight: 1.15,
-                fontWeight: 700,
-                color: '#FFFFFF',
-                marginBottom: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 16px',
+                borderRadius: 24,
+                background: 'rgba(255, 255, 255, 0.10)',
+                border: '1px solid rgba(255, 255, 255, 0.22)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                color: '#E0F2FE',
+                fontSize: 13,
+                fontWeight: 500,
+                letterSpacing: 0.3,
               }}
             >
-              Tối ưu vận hành kho toàn diện cho doanh nghiệp
-            </Title>
+              <span className="wms-pulse-dot" />
+              Nền tảng số hóa quản trị kho vận thế hệ mới
+            </span>
+          </div>
 
-            <Paragraph
+          <Title
+            level={1}
+            style={{
+              fontSize: 'clamp(36px, 5.2vw, 56px)',
+              lineHeight: 1.15,
+              fontWeight: 700,
+              color: '#FFFFFF',
+              marginBottom: 20,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Tối ưu vận hành kho toàn diện cho doanh nghiệp
+          </Title>
+
+          <Paragraph
+            style={{
+              fontSize: 'clamp(16px, 1.8vw, 18px)',
+              color: 'rgba(255, 255, 255, 0.88)',
+              lineHeight: 1.7,
+              marginBottom: 40,
+              maxWidth: 700,
+              marginInline: 'auto',
+            }}
+          >
+            Tự động hóa luồng nhập kho, lưu trữ, kiểm kê và xuất kho theo thời gian thực.
+            Lựa chọn linh hoạt giữa <strong>Kho công nghiệp (FIFO)</strong> hoặc{' '}
+            <strong>Kho hạn dùng (FEFO)</strong> theo đặc thù từng doanh nghiệp.
+          </Paragraph>
+
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 16,
+              justifyContent: 'center',
+              marginBottom: 52,
+            }}
+          >
+            <Button
+              type="primary"
+              size="large"
+              icon={<RocketOutlined />}
+              onClick={() => navigate('/register-tenant')}
               style={{
+                height: 50,
+                paddingInline: 34,
                 fontSize: 16,
-                color: 'rgba(255, 255, 255, 0.90)',
-                lineHeight: 1.65,
-                marginBottom: 32,
+                fontWeight: 600,
+                borderRadius: 8,
               }}
             >
-              Tự động hóa luồng nhập kho, lưu trữ, kiểm kê và xuất kho theo thời gian thực.
-              Hỗ trợ tùy chọn <strong>Mô hình kho công nghiệp (FIFO)</strong> hoặc{' '}
-              <strong>Mô hình kho hạn dùng (FEFO)</strong> linh hoạt theo đặc thù ngành hàng.
-            </Paragraph>
+              Bắt đầu dùng thử miễn phí
+            </Button>
+            <Button
+              size="large"
+              onClick={() => scrollToSection('models')}
+              style={{
+                height: 50,
+                paddingInline: 28,
+                fontSize: 15,
+                borderRadius: 8,
+                color: '#FFFFFF',
+                background: 'rgba(255, 255, 255, 0.10)',
+                borderColor: 'rgba(255, 255, 255, 0.35)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              Tìm hiểu mô hình kho
+            </Button>
+          </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 40 }}>
-              <Button
-                type="primary"
-                size="large"
-                icon={<RocketOutlined />}
-                onClick={() => navigate('/register-tenant')}
-                style={{
-                  height: 48,
-                  paddingInline: 28,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  borderRadius: 8,
-                }}
-              >
-                Bắt đầu dùng thử miễn phí
-              </Button>
-              <Button
-                size="large"
-                onClick={() => scrollToSection('models')}
-                style={{
-                  height: 48,
-                  paddingInline: 24,
-                  fontSize: 15,
-                  borderRadius: 8,
-                  color: '#FFFFFF',
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  borderColor: 'rgba(255, 255, 255, 0.4)',
-                }}
-              >
-                Tìm hiểu mô hình kho
-              </Button>
+          {/* 3 Value Props Capsules */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 18px',
+                borderRadius: 20,
+                background: 'rgba(11, 20, 32, 0.60)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <span className="wms-pulse-dot" />
+              <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: 500 }}>
+                Dữ liệu cô lập độc lập 100%
+              </Text>
             </div>
 
-            <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircleFilled style={{ color: '#4ADE80', fontSize: 16 }} />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: 500 }}>Bảo mật dữ liệu riêng biệt</Text>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircleFilled style={{ color: '#4ADE80', fontSize: 16 }} />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: 500 }}>Không phí triển khai ban đầu</Text>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircleFilled style={{ color: '#4ADE80', fontSize: 16 }} />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: 500 }}>Hỗ trợ chống trôi date (FEFO)</Text>
-              </div>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 18px',
+                borderRadius: 20,
+                background: 'rgba(11, 20, 32, 0.60)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <span className="wms-pulse-dot" />
+              <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: 500 }}>
+                Không phí triển khai ban đầu
+              </Text>
+            </div>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 18px',
+                borderRadius: 20,
+                background: 'rgba(11, 20, 32, 0.60)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <span className="wms-pulse-dot" />
+              <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: 500 }}>
+                Hỗ trợ xuất kho chống trôi date (FEFO)
+              </Text>
             </div>
           </div>
         </div>
@@ -254,29 +337,30 @@ export default function LandingPage() {
           <Row gutter={[32, 32]}>
             <Col xs={24} md={12}>
               <Card
-                hoverable
+                className="wms-card-hover"
                 style={{
                   height: '100%',
                   borderRadius: 14,
                   borderColor: '#E2E8F0',
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+                  cursor: 'pointer',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <div
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 10,
+                      padding: '4px 10px',
+                      borderRadius: 6,
                       background: '#F0F5FF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      border: '1px solid #BAE0FF',
                       color: primaryColor,
-                      fontSize: 20,
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
                     }}
                   >
-                    <AppstoreOutlined />
+                    FIFO
                   </div>
                   <div>
                     <Title level={4} style={{ margin: 0, color: '#0B1420' }}>
@@ -303,30 +387,31 @@ export default function LandingPage() {
 
             <Col xs={24} md={12}>
               <Card
-                hoverable
+                className="wms-card-hover"
                 style={{
                   height: '100%',
                   borderRadius: 14,
                   borderColor: '#BAE0FF',
                   background: '#FBFDFF',
                   boxShadow: '0 4px 12px rgba(22, 119, 255, 0.06)',
+                  cursor: 'pointer',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <div
                     style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 10,
-                      background: '#E6F4FF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: primaryColor,
-                      fontSize: 20,
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      background: '#FFFBEB',
+                      border: '1px solid #FDE68A',
+                      color: '#D97706',
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
                     }}
                   >
-                    <CalendarOutlined />
+                    FEFO
                   </div>
                   <div>
                     <Title level={4} style={{ margin: 0, color: '#0B1420' }}>
@@ -385,9 +470,29 @@ export default function LandingPage() {
 
         <Row gutter={[24, 24]}>
           <Col xs={24} sm={12} lg={6}>
-            <Card style={{ height: '100%', borderRadius: 12, borderColor: '#E2E8F0' }}>
-              <div style={{ fontSize: 24, color: primaryColor, marginBottom: 12 }}>
-                <ScanOutlined />
+            <Card
+              className="wms-card-hover"
+              style={{
+                height: '100%',
+                borderRadius: 12,
+                borderColor: '#E2E8F0',
+                cursor: 'pointer',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  background: '#E6F4FF',
+                  color: primaryColor,
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  marginBottom: 14,
+                }}
+              >
+                AI_OCR
               </div>
               <Title level={5} style={{ color: '#0B1420', marginBottom: 8 }}>
                 Quét Hóa Đơn Bằng AI
@@ -399,9 +504,29 @@ export default function LandingPage() {
           </Col>
 
           <Col xs={24} sm={12} lg={6}>
-            <Card style={{ height: '100%', borderRadius: 12, borderColor: '#E2E8F0' }}>
-              <div style={{ fontSize: 24, color: '#16A34A', marginBottom: 12 }}>
-                <AppstoreOutlined />
+            <Card
+              className="wms-card-hover"
+              style={{
+                height: '100%',
+                borderRadius: 12,
+                borderColor: '#E2E8F0',
+                cursor: 'pointer',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  background: '#F0FDF4',
+                  color: '#16A34A',
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  marginBottom: 14,
+                }}
+              >
+                MATRIX_LOC
               </div>
               <Title level={5} style={{ color: '#0B1420', marginBottom: 8 }}>
                 Sơ Đồ Vị Trí Kệ Kho
@@ -413,9 +538,29 @@ export default function LandingPage() {
           </Col>
 
           <Col xs={24} sm={12} lg={6}>
-            <Card style={{ height: '100%', borderRadius: 12, borderColor: '#E2E8F0' }}>
-              <div style={{ fontSize: 24, color: '#D97706', marginBottom: 12 }}>
-                <CalendarOutlined />
+            <Card
+              className="wms-card-hover"
+              style={{
+                height: '100%',
+                borderRadius: 12,
+                borderColor: '#E2E8F0',
+                cursor: 'pointer',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  background: '#FFFBEB',
+                  color: '#D97706',
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  marginBottom: 14,
+                }}
+              >
+                LIFECYCLE
               </div>
               <Title level={5} style={{ color: '#0B1420', marginBottom: 8 }}>
                 Kiểm Soát Vòng Đời Đơn
@@ -427,9 +572,29 @@ export default function LandingPage() {
           </Col>
 
           <Col xs={24} sm={12} lg={6}>
-            <Card style={{ height: '100%', borderRadius: 12, borderColor: '#E2E8F0' }}>
-              <div style={{ fontSize: 24, color: '#7C3AED', marginBottom: 12 }}>
-                <SafetyCertificateOutlined />
+            <Card
+              className="wms-card-hover"
+              style={{
+                height: '100%',
+                borderRadius: 12,
+                borderColor: '#E2E8F0',
+                cursor: 'pointer',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  background: '#FAF5FF',
+                  color: '#7C3AED',
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  marginBottom: 14,
+                }}
+              >
+                RBAC_ROLES
               </div>
               <Title level={5} style={{ color: '#0B1420', marginBottom: 8 }}>
                 Phân Quyền Chặt Chẽ
