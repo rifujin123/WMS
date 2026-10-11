@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { CalendarOutlined, CameraOutlined, UploadOutlined } from '@ant-design/icons'
-import { App, Avatar, Button, Card, Divider, Spin, Tag, Typography, Upload } from 'antd'
+import { Avatar, Button, Card, Divider, Spin, Tag, Typography, Upload } from 'antd'
 import dayjs from 'dayjs'
 import type { UserProfile } from '../../../types/user'
 import { useAuthContext } from '../../../contexts/useAuthContext'
 import { useUploadAvatar } from '../../../hooks/useUserProfile'
 import { DEFAULT_AVATAR_URL } from '../../../lib/avatar'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 const MAX_SIZE = 2 * 1024 * 1024
 const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -28,7 +28,6 @@ interface AvatarCardProps {
 }
 
 function AvatarCard({ profile }: AvatarCardProps) {
-  const { message } = App.useApp()
   const { updateUser } = useAuthContext()
   const uploadMutation = useUploadAvatar()
   const [preview, setPreview] = useState<string | undefined>(undefined)
@@ -38,11 +37,11 @@ function AvatarCard({ profile }: AvatarCardProps) {
 
   const handleBeforeUpload = (file: File) => {
     if (file.size > MAX_SIZE) {
-      message.error('Ảnh phải nhỏ hơn 2MB.')
+      toast.error('Ảnh phải nhỏ hơn 2MB.')
       return false
     }
     if (!ACCEPT_TYPES.includes(file.type)) {
-      message.error('Chỉ nhận ảnh JPG, PNG hoặc WEBP.')
+      toast.error('Chỉ nhận ảnh JPG, PNG hoặc WEBP.')
       return false
     }
 
@@ -51,11 +50,11 @@ function AvatarCard({ profile }: AvatarCardProps) {
     uploadMutation.mutate(file, {
       onSuccess: (data) => {
         updateUser({ avatarUrl: data.avatarUrl })
-        message.success('Cập nhật ảnh đại diện thành công.')
+        toast.success('Cập nhật ảnh đại diện thành công.')
       },
       onError: (err) => {
         setPreview(undefined)
-        message.error(getErrorMessage(err, 'Tải ảnh lên thất bại. Vui lòng thử lại.'))
+        toast.error(err, 'Tải ảnh lên thất bại. Vui lòng thử lại.')
       },
     })
     return false

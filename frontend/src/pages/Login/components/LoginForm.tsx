@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import {
   Alert,
-  App,
   Button,
   Checkbox,
   Form,
@@ -15,12 +14,17 @@ import Logo from '../../../components/Logo'
 import type { LoginFormValues } from '../../../types/auth'
 import { useLogin } from '../../../hooks/useAuth'
 import { ui } from '../../../theme/tokens'
+import { toast } from '../../../lib/toast'
 
-function LoginForm() {
+interface LoginFormProps {
+  logoUrl?: string
+  companyName?: string
+}
+
+function LoginForm({ logoUrl, companyName }: LoginFormProps = {}) {
   const screens = Grid.useBreakpoint()
   const isDesktop = screens.lg ?? true
   const navigate = useNavigate()
-  const { message } = App.useApp()
   const loginMutation = useLogin()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -29,13 +33,10 @@ function LoginForm() {
   // bằng replace sẽ xóa router state nên không thể truyền cờ qua navigate state
   useEffect(() => {
     if (sessionStorage.getItem('loggedOut')) {
-      message.success({
-        content: 'Bạn đã đăng xuất thành công.',
-        style: { fontSize: 17, padding: '16px 24px' },
-      })
+      toast.success('Bạn đã đăng xuất thành công.')
       sessionStorage.removeItem('loggedOut')
     }
-  }, [message])
+  }, [])
 
   const onFinish = (values: LoginFormValues) => {
     loginMutation.mutate(
@@ -66,7 +67,13 @@ function LoginForm() {
       >
         {!isDesktop && (
           <div style={{ marginBottom: 32 }}>
-            <Logo size={32} withWordmark wordmarkColor="#141A21" />
+            <Logo
+              size={32}
+              withWordmark
+              wordmarkColor="#141A21"
+              customLogoUrl={logoUrl}
+              companyName={companyName}
+            />
           </div>
         )}
 

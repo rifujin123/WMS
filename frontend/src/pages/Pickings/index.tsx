@@ -7,7 +7,6 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Avatar,
   Button,
   Card,
@@ -38,13 +37,12 @@ import { useSaleOrders } from '../../hooks/useSaleOrders'
 import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL } from '../../lib/statusMaps'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 import { CreatePickingModal } from './components/CreatePickingModal'
 import { AssignStaffModal } from './components/AssignStaffModal'
 
 function Pickings() {
-  const { message } = App.useApp()
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
   const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
@@ -91,8 +89,8 @@ function Pickings() {
       cancelText: 'Huỷ',
       onOk: () =>
         startMutation.mutate(row.id, {
-          onSuccess: () => message.success('Phiếu đang được xử lý.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Bắt đầu phiếu thất bại.')),
+          onSuccess: () => toast.success('Phiếu đang được xử lý.'),
+          onError: (err: Error) => toast.error(err, 'Bắt đầu phiếu thất bại.'),
         }),
     })
   }
@@ -112,8 +110,8 @@ function Pickings() {
             },
           },
           {
-            onSuccess: () => message.success('Đã hoàn thành phiếu lấy hàng.'),
-            onError: (err: Error) => message.error(getErrorMessage(err, 'Hoàn thành thất bại.')),
+            onSuccess: () => toast.success('Đã hoàn thành phiếu lấy hàng.'),
+            onError: (err: Error) => toast.error(err, 'Hoàn thành thất bại.'),
           },
         ),
     })
@@ -128,8 +126,8 @@ function Pickings() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá phiếu lấy hàng.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá phiếu thất bại.')),
+          onSuccess: () => toast.success('Đã xoá phiếu lấy hàng.'),
+          onError: (err: Error) => toast.error(err, 'Xoá phiếu thất bại.'),
         }),
     })
   }

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -15,14 +14,13 @@ import type { TableColumnsType } from 'antd'
 import VendorFormModal from './components/VendorFormModal'
 import type { VendorDto } from '../../types/vendor'
 import { useVendors, useDeleteVendor } from '../../hooks/useVendors'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 
 function Vendors() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<VendorDto | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const { message } = App.useApp()
   const vendorParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -39,8 +37,8 @@ function Vendors() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá nhà cung cấp.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá nhà cung cấp thất bại.')),
+          onSuccess: () => toast.success('Đã xoá nhà cung cấp.'),
+          onError: (err: Error) => toast.error(err, 'Xoá nhà cung cấp thất bại.'),
         }),
     })
   }
@@ -74,7 +72,12 @@ function Vendors() {
             <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
           </Tooltip>
           <Tooltip title="Xoá">
-            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(row)} />
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(row)}
+            />
           </Tooltip>
         </div>
       ),
@@ -98,7 +101,7 @@ function Vendors() {
             Nhà cung cấp
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Danh mục nhà cung cấp dùng cho đơn đặt hàng.
+            Quản lý thông tin nhà cung cấp.
           </Typography.Text>
         </div>
         <Button
@@ -114,35 +117,41 @@ function Vendors() {
         </Button>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <Card style={{ marginBottom: 16 }}>
         <Input
+          placeholder="Tìm theo tên nhà cung cấp, số điện thoại, email..."
+          prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
           allowClear
-          prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
-          placeholder="Tìm theo tên, điện thoại hoặc email"
-          style={{ width: 280 }}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
             setPage(1)
           }}
+          style={{ maxWidth: 360 }}
         />
-      </div>
+      </Card>
 
-      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+      <Card>
         <Table<VendorDto>
           rowKey="id"
           columns={columns}
           dataSource={vendors?.items ?? []}
           loading={isPending}
           pagination={{
-            current: vendors?.page ?? page,
-            pageSize: vendors?.pageSize ?? 10,
+            current: page,
             total: vendors?.totalCount ?? 0,
+            pageSize: vendors?.pageSize ?? 10,
             showSizeChanger: false,
+            onChange: (p) => setPage(p),
           }}
-          onChange={(pagination) => setPage(pagination.current ?? 1)}
-          scroll={{ x: 720 }}
-          locale={{ emptyText: <Empty image={null} description="Chưa có nhà cung cấp nào" /> }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chưa có nhà cung cấp nào."
+              />
+            ),
+          }}
         />
       </Card>
 

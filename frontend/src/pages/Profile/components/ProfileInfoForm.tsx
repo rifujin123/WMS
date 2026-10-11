@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons'
-import { App, Button, Card, Col, Divider, Form, Input, Row } from 'antd'
+import { Button, Card, Col, Divider, Form, Input, Row } from 'antd'
 import type { UserProfile } from '../../../types/user'
 import { useAuthContext } from '../../../contexts/useAuthContext'
 import { useUpdateProfile } from '../../../hooks/useUserProfile'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface ProfileInfoFormProps {
   profile: UserProfile
@@ -16,7 +16,6 @@ interface FormValues {
 }
 
 function ProfileInfoForm({ profile }: ProfileInfoFormProps) {
-  const { message } = App.useApp()
   const { updateUser } = useAuthContext()
   const updateMutation = useUpdateProfile()
   const [form] = Form.useForm<FormValues>()
@@ -27,10 +26,10 @@ function ProfileInfoForm({ profile }: ProfileInfoFormProps) {
       onSuccess: () => {
         updateUser({ fullName: values.fullName })
         setDirty(false)
-        message.success('Cập nhật thông tin thành công.')
+        toast.success('Cập nhật thông tin thành công.')
       },
       onError: (err) => {
-        message.error(getErrorMessage(err, 'Cập nhật thông tin thất bại.'))
+        toast.error(err, 'Cập nhật thông tin thất bại.')
       },
     })
   }

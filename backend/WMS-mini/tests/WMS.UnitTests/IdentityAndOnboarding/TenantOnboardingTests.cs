@@ -42,8 +42,9 @@ public class TenantOnboardingTests
             var mockUserManager = CreateMockUserManager();
             var mockEmailService = new Mock<IEmailService>();
             var mockLogger = new Mock<ILogger<TenantService>>();
+            var mockHttpFactory = new Mock<IHttpClientFactory>();
 
-            var service = new TenantService(dbTest, mockUserManager.Object, mockEmailService.Object, mockLogger.Object);
+            var service = new TenantService(dbTest, mockUserManager.Object, mockEmailService.Object, mockHttpFactory.Object, mockLogger.Object);
 
             var dto = new RegisterTenantDto
             {
@@ -73,8 +74,9 @@ public class TenantOnboardingTests
 
         var mockEmailService = new Mock<IEmailService>();
         var mockLogger = new Mock<ILogger<TenantService>>();
+        var mockHttpFactory = new Mock<IHttpClientFactory>();
 
-        var service = new TenantService(dbTest, mockUserManager.Object, mockEmailService.Object, mockLogger.Object);
+        var service = new TenantService(dbTest, mockUserManager.Object, mockEmailService.Object, mockHttpFactory.Object, mockLogger.Object);
 
         var dto = new RegisterTenantDto
         {
@@ -120,8 +122,9 @@ public class TenantOnboardingTests
 
             var mockEmailService = new Mock<IEmailService>();
             var mockLogger = new Mock<ILogger<TenantService>>();
+            var mockHttpFactory = new Mock<IHttpClientFactory>();
 
-            var service = new TenantService(dbTest, mockUserManager.Object, mockEmailService.Object, mockLogger.Object);
+            var service = new TenantService(dbTest, mockUserManager.Object, mockEmailService.Object, mockHttpFactory.Object, mockLogger.Object);
 
             // Act
             await service.VerifyEmailAsync(new VerifyEmailDto { Email = adminEmail, Token = "valid-token" });

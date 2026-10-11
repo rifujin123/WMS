@@ -1,8 +1,8 @@
-import { App, Col, Form, Input, Modal, Row } from 'antd'
+import { Col, Form, Input, Modal, Row } from 'antd'
 import { useEffect } from 'react'
 import type { VendorDto } from '../../../types/vendor'
 import { useCreateVendor, useUpdateVendor } from '../../../hooks/useVendors'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface VendorFormModalProps {
   open: boolean
@@ -12,7 +12,6 @@ interface VendorFormModalProps {
 
 function VendorFormModal({ open, vendor, onClose }: VendorFormModalProps) {
   const [form] = Form.useForm<Partial<VendorDto>>()
-  const { message } = App.useApp()
   const createMutation = useCreateVendor()
   const updateMutation = useUpdateVendor()
   const isEdit = vendor !== null
@@ -44,11 +43,11 @@ function VendorFormModal({ open, vendor, onClose }: VendorFormModalProps) {
         address: values.address?.trim() || undefined,
       }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật nhà cung cấp.' : 'Đã thêm nhà cung cấp.')
+        toast.success(isEdit ? 'Đã cập nhật nhà cung cấp.' : 'Đã thêm nhà cung cấp.')
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật nhà cung cấp thất bại.' : 'Thêm nhà cung cấp thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật nhà cung cấp thất bại.' : 'Thêm nhà cung cấp thất bại.')
       if (isEdit && vendor) {
         updateMutation.mutate({ id: vendor.id, dto }, { onSuccess, onError })
       } else {

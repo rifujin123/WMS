@@ -5,7 +5,6 @@ import {
   PlusOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -27,7 +26,7 @@ import {
   useStockAdjustments,
 } from '../../hooks/useStockAdjustments'
 import { useAuthContext } from '../../contexts/useAuthContext'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 import { StockAdjustmentFormModal } from './components/StockAdjustmentFormModal'
 
@@ -42,7 +41,6 @@ const STOCK_ADJUSTMENT_STATUS_COLOR: Record<StockAdjustmentStatus, string> = {
 }
 
 function StockAdjustments() {
-  const { message } = App.useApp()
   const { user } = useAuthContext()
   const isAdmin = user?.role === 'Admin'
   const { data: adjustments, isPending } = useStockAdjustments()
@@ -66,8 +64,8 @@ function StockAdjustments() {
       cancelText: 'Huỷ',
       onOk: () =>
         approveMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã duyệt phiếu điều chỉnh.'),
-          onError: (error: Error) => message.error(getErrorMessage(error, 'Duyệt phiếu điều chỉnh thất bại.')),
+          onSuccess: () => toast.success('Đã duyệt phiếu điều chỉnh.'),
+          onError: (error: Error) => toast.error(error, 'Duyệt phiếu điều chỉnh thất bại.'),
         }),
     })
   }
@@ -81,8 +79,8 @@ function StockAdjustments() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá phiếu điều chỉnh.'),
-          onError: (error: Error) => message.error(getErrorMessage(error, 'Xoá phiếu điều chỉnh thất bại.')),
+          onSuccess: () => toast.success('Đã xoá phiếu điều chỉnh.'),
+          onError: (error: Error) => toast.error(error, 'Xoá phiếu điều chỉnh thất bại.'),
         }),
     })
   }

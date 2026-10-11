@@ -1,9 +1,9 @@
-import { App, Form, Modal, Select } from 'antd'
+import { Form, Modal, Select } from 'antd'
 import type { CreatePickingDto } from '../../../types/picking'
 import { useCreatePicking } from '../../../hooks/usePickings'
 import { useSaleOrders } from '../../../hooks/useSaleOrders'
 import { useWarehouses } from '../../../hooks/useWarehouses'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface CreatePickingModalProps {
   open: boolean
@@ -11,7 +11,6 @@ interface CreatePickingModalProps {
 }
 
 export function CreatePickingModal({ open, onClose }: CreatePickingModalProps) {
-  const { message } = App.useApp()
   const { data: saleOrders } = useSaleOrders()
   const { data: warehouses } = useWarehouses()
   const createMutation = useCreatePicking()
@@ -31,11 +30,11 @@ export function CreatePickingModal({ open, onClose }: CreatePickingModalProps) {
       const values = await form.validateFields()
       createMutation.mutate(values, {
         onSuccess: () => {
-          message.success('Đã tạo phiếu lấy hàng.')
+          toast.success('Đã tạo phiếu lấy hàng.')
           handleClose()
         },
         onError: (err: Error) =>
-          message.error(getErrorMessage(err, 'Tạo phiếu lấy thất bại.')),
+          toast.error(err, 'Tạo phiếu lấy thất bại.'),
       })
     } catch {
       return

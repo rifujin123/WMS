@@ -7,7 +7,6 @@ import {
   PlusOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -29,11 +28,10 @@ import {
   useDeleteReceiving,
   useReceivingsPage,
 } from '../../hooks/useReceivings'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 
 function Receivings() {
-  const { message } = App.useApp()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ReceivingDto | null>(null)
   const [viewingReceiving, setViewingReceiving] = useState<ReceivingDto | null>(null)
@@ -57,9 +55,9 @@ function Receivings() {
       onOk: async () => {
         try {
           await confirmMutation.mutateAsync(row.id)
-          message.success('Đã xác nhận phiếu nhận.')
+          toast.success('Đã xác nhận phiếu nhận.')
         } catch (error) {
-          message.error(getErrorMessage(error, 'Xác nhận phiếu nhận thất bại.'))
+          toast.error(error, 'Xác nhận phiếu nhận thất bại.')
         }
       },
     })
@@ -75,9 +73,9 @@ function Receivings() {
       onOk: async () => {
         try {
           await deleteMutation.mutateAsync(row.id)
-          message.success('Đã xoá phiếu nhận.')
+          toast.success('Đã xoá phiếu nhận.')
         } catch (error) {
-          message.error(getErrorMessage(error, 'Xoá phiếu nhận thất bại.'))
+          toast.error(error, 'Xoá phiếu nhận thất bại.')
         }
       },
     })

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -16,14 +15,13 @@ import { useNavigate } from 'react-router-dom'
 import WarehouseFormModal from './components/WarehouseFormModal'
 import type { WarehouseDto } from '../../types/warehouse'
 import { useDeleteWarehouse, useWarehousesPage } from '../../hooks/useWarehouses'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 
 function Warehouses() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<WarehouseDto | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const { message } = App.useApp()
   const navigate = useNavigate()
   const warehouseParams = {
     page,
@@ -41,8 +39,8 @@ function Warehouses() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá kho.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá kho thất bại.')),
+          onSuccess: () => toast.success('Đã xoá kho.'),
+          onError: (err: Error) => toast.error(err, 'Xoá kho thất bại.'),
         }),
     })
   }

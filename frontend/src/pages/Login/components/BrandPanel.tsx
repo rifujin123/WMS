@@ -1,7 +1,17 @@
 import Logo from '../../../components/Logo'
 import { ui } from '../../../theme/tokens'
 
-function BrandPanel() {
+interface BrandPanelProps {
+  backgroundUrl?: string
+  logoUrl?: string
+  companyName?: string
+}
+
+function BrandPanel({ backgroundUrl, logoUrl, companyName }: BrandPanelProps) {
+  const bgImage =
+    backgroundUrl ||
+    'https://als.com.vn/api/file-management/file-descriptor/view/d4ef661d-c299-de44-de61-3a07957c88d4'
+
   return (
     <div
       className="wms-rise"
@@ -14,7 +24,7 @@ function BrandPanel() {
       }}
     >
       <img
-        src="https://als.com.vn/api/file-management/file-descriptor/view/d4ef661d-c299-de44-de61-3a07957c88d4"
+        src={bgImage}
         alt="Kho hàng"
         style={{
           position: 'absolute',
@@ -45,7 +55,12 @@ function BrandPanel() {
           padding: 48,
         }}
       >
-        <Logo size={36} withWordmark />
+        <Logo
+          size={36}
+          withWordmark
+          customLogoUrl={logoUrl}
+          companyName={companyName}
+        />
 
         <div
           style={{
@@ -65,7 +80,7 @@ function BrandPanel() {
               maxWidth: 380,
             }}
           >
-            Quản lý kho, một nơi duy nhất.
+            {companyName ? `${companyName} — Quản lý kho thông minh.` : 'Quản lý kho, một nơi duy nhất.'}
           </h1>
           <p
             style={{

@@ -1,4 +1,4 @@
-import { Alert, App, Col, Form, Input, Modal, Row, Select } from 'antd'
+import { Alert, Col, Form, Input, Modal, Row, Select } from 'antd'
 import { useEffect } from 'react'
 import type { RegisterFormValues } from '../../../types/auth'
 import { useQueryClient } from '@tanstack/react-query'
@@ -6,7 +6,7 @@ import { useRegister } from '../../../hooks/useAuth'
 import { useUpdateUser } from '../../../hooks/useUsers'
 import { useWarehouses } from '../../../hooks/useWarehouses'
 import type { UserListItem, UserRole } from '../../../types/user'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 const roleOptions = [
   { value: 'WarehouseStaff', label: 'Nhân viên kho' },
@@ -22,7 +22,6 @@ interface UserFormModalProps {
 
 function UserFormModal({ open, user, onClose }: UserFormModalProps) {
   const [form] = Form.useForm<RegisterFormValues>()
-  const { message } = App.useApp()
   const queryClient = useQueryClient()
   const { data: warehouses } = useWarehouses()
   const registerMutation = useRegister()
@@ -59,11 +58,11 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
           },
           {
             onSuccess: () => {
-              message.success('Đã cập nhật người dùng.')
+              toast.success('Đã cập nhật người dùng.')
               onClose()
             },
             onError: (err) => {
-              message.error(getErrorMessage(err, 'Cập nhật người dùng thất bại.'))
+              toast.error(err, 'Cập nhật người dùng thất bại.')
             },
           },
         )
@@ -83,11 +82,11 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
           onSuccess: () => {
             form.resetFields()
             queryClient.invalidateQueries({ queryKey: ['users'] })
-            message.success('Đã tạo tài khoản.')
+            toast.success('Đã tạo tài khoản.')
             onClose()
           },
           onError: (err) => {
-            message.error(getErrorMessage(err, 'Tạo tài khoản thất bại.'))
+            toast.error(err, 'Tạo tài khoản thất bại.')
           },
         },
       )

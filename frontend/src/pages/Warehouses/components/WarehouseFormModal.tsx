@@ -1,8 +1,8 @@
-import { App, Form, Input, Modal } from 'antd'
+import { Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import type { CreateWarehouseDto, UpdateWarehouseDto, WarehouseDto } from '../../../types/warehouse'
 import { useCreateWarehouse, useUpdateWarehouse } from '../../../hooks/useWarehouses'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface WarehouseFormModalProps {
   open: boolean
@@ -12,7 +12,6 @@ interface WarehouseFormModalProps {
 
 function WarehouseFormModal({ open, warehouse, onClose }: WarehouseFormModalProps) {
   const [form] = Form.useForm<CreateWarehouseDto>()
-  const { message } = App.useApp()
   const createMutation = useCreateWarehouse()
   const updateMutation = useUpdateWarehouse()
   const isEdit = warehouse !== null
@@ -31,11 +30,11 @@ function WarehouseFormModal({ open, warehouse, onClose }: WarehouseFormModalProp
     try {
       const values = await form.validateFields()
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật kho.' : 'Đã tạo kho.')
+        toast.success(isEdit ? 'Đã cập nhật kho.' : 'Đã tạo kho.')
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật kho thất bại.' : 'Tạo kho thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật kho thất bại.' : 'Tạo kho thất bại.')
 
       if (isEdit && warehouse) {
         const dto: UpdateWarehouseDto = {

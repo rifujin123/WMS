@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { App, Empty, Modal, Select, Typography } from 'antd'
+import { Empty, Modal, Select, Typography } from 'antd'
 import WarehouseLocationGrid from '../../../components/WarehouseLocationGrid'
 import type { PutAwayTaskDto } from '../../../types/putAwayTask'
 import { useUpdatePutAwayTask } from '../../../hooks/usePutAwayTasks'
 import { useWarehouses } from '../../../hooks/useWarehouses'
 import { useLocationsByWarehouse } from '../../../hooks/useLocations'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface SetLocationModalProps {
   task: PutAwayTaskDto | null
@@ -13,7 +13,6 @@ interface SetLocationModalProps {
 }
 
 export function SetLocationModal({ task, onClose }: SetLocationModalProps) {
-  const { message } = App.useApp()
   const { data: warehouses } = useWarehouses()
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(undefined)
   const [selectedLocId, setSelectedLocId] = useState<string | undefined>(undefined)
@@ -29,7 +28,7 @@ export function SetLocationModal({ task, onClose }: SetLocationModalProps) {
   const handleSetLocation = () => {
     if (!task) return
     if (!selectedLocId) {
-      message.warning('Vui lòng chọn vị trí trong sơ đồ kho.')
+      toast.warning('Vui lòng chọn vị trí trong sơ đồ kho.')
       return
     }
     updateMutation.mutate(
@@ -44,10 +43,10 @@ export function SetLocationModal({ task, onClose }: SetLocationModalProps) {
       },
       {
         onSuccess: () => {
-          message.success('Đã đặt vị trí đích.')
+          toast.success('Đã đặt vị trí đích.')
           handleClose()
         },
-        onError: (err: Error) => message.error(getErrorMessage(err, 'Đặt vị trí thất bại.')),
+        onError: (err: Error) => toast.error(err, 'Đặt vị trí thất bại.'),
       },
     )
   }

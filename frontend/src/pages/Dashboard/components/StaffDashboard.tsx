@@ -1,5 +1,5 @@
 import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons'
-import { App, Button, Card, Empty, Modal, Space, Table, Tag, Tooltip, Typography } from 'antd'
+import { Button, Card, Empty, Modal, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProfile } from '../../../hooks/useUserProfile'
@@ -12,7 +12,7 @@ import { usePickings } from '../../../hooks/usePickings'
 import { PICKING_STATUS_COLOR, PICKING_STATUS_LABEL, PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../../lib/statusMaps'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../../types/putAwayTask'
 import type { PickingDto, PickingStatus } from '../../../types/picking'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 const OPEN_STATUSES = ['Open', 'Assigned', 'InProgress']
 
@@ -53,7 +53,6 @@ const pickingColumns: TableColumnsType<PickingDto> = [
 
 function StaffDashboard() {
   const queryClient = useQueryClient()
-  const { message } = App.useApp()
   const { data: profile } = useProfile()
   const { data: putAwayTasks, isPending: putAwayPending } = usePutAwayTasks()
   const { data: pickings, isPending: pickingsPending } = usePickings(undefined, { refetchInterval: 30000 })
@@ -73,8 +72,8 @@ function StaffDashboard() {
       cancelText: 'Huỷ',
       onOk: () =>
         startMutation.mutate(task.id, {
-          onSuccess: () => message.success('Task đang được xử lý.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Bắt đầu task thất bại.')),
+          onSuccess: () => toast.success('Task đang được xử lý.'),
+          onError: (err: Error) => toast.error(err, 'Bắt đầu task thất bại.'),
         }),
     })
   }
@@ -88,12 +87,12 @@ function StaffDashboard() {
       onOk: () =>
         completeMutation.mutate(task.id, {
           onSuccess: () => {
-            message.success('Đã nhập kho.')
+            toast.success('Đã nhập kho.')
             // Cộng tồn → làm mới luôn số liệu tồn kho trên các dashboard khác (nếu đang mở)
             queryClient.invalidateQueries({ queryKey: ['stocks'] })
             queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
           },
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Hoàn thành task thất bại.')),
+          onError: (err: Error) => toast.error(err, 'Hoàn thành task thất bại.'),
         }),
     })
   }

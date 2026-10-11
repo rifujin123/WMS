@@ -1,8 +1,8 @@
-import { App, Form, Input, Modal } from 'antd'
+import { Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import type { CategoryDto } from '../../../types/category'
 import { useCreateCategory, useUpdateCategory } from '../../../hooks/useCategories'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface CategoryFormModalProps {
   open: boolean
@@ -12,7 +12,6 @@ interface CategoryFormModalProps {
 
 function CategoryFormModal({ open, category, onClose }: CategoryFormModalProps) {
   const [form] = Form.useForm<{ name: string }>()
-  const { message } = App.useApp()
   const createMutation = useCreateCategory()
   const updateMutation = useUpdateCategory()
   const isEdit = category !== null
@@ -29,11 +28,11 @@ function CategoryFormModal({ open, category, onClose }: CategoryFormModalProps) 
       const values = await form.validateFields()
       const dto = { name: values.name.trim() }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật danh mục.' : 'Đã tạo danh mục.')
+        toast.success(isEdit ? 'Đã cập nhật danh mục.' : 'Đã tạo danh mục.')
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật danh mục thất bại.' : 'Tạo danh mục thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật danh mục thất bại.' : 'Tạo danh mục thất bại.')
       if (isEdit && category) {
         updateMutation.mutate({ id: category.id, dto }, { onSuccess, onError })
       } else {

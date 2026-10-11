@@ -41,6 +41,8 @@ public class ProductMappingService : IProductMappingService
                     Sku = exact.Sku,
                     Name = exact.Name,
                     Quantity = line.Quantity,
+                    UnitPrice = line.UnitPrice,
+                    TotalAmount = line.TotalAmount,
                     Suggestions = new List<ProductSuggestionDto>(),
                 });
                 continue;
@@ -73,6 +75,8 @@ public class ProductMappingService : IProductMappingService
                 Sku = line.Sku,
                 Name = line.Name,
                 Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                TotalAmount = line.TotalAmount,
                 Suggestions = suggestions,
             });
         }

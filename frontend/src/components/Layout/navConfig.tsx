@@ -18,6 +18,7 @@ import {
   TagsOutlined,
   TeamOutlined,
   UserOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { hasRole } from '../../router/routeRoles'
@@ -127,6 +128,12 @@ export const navConfig: NavConfigItem[] = [
     children: [
       { key: '/users', icon: <UserOutlined />, label: 'Người dùng', allowedRoles: ['Admin'] },
     ],
+  },
+  {
+    key: '/settings',
+    icon: <SettingOutlined />,
+    label: 'Cài đặt doanh nghiệp',
+    allowedRoles: ['Admin'],
   },
 ]
 

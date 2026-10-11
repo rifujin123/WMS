@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons'
-import { App, Button, Card, Empty, Modal, Pagination, Skeleton, Tag, Typography } from 'antd'
+import { Button, Card, Empty, Modal, Pagination, Skeleton, Tag, Typography } from 'antd'
 import { useNavigate, useParams } from 'react-router-dom'
 import WarehouseLocationGrid from '../../../components/WarehouseLocationGrid'
 import LocationFormModal from './components/LocationFormModal'
@@ -8,7 +8,7 @@ import LocationDetailDrawer from './components/LocationDetailDrawer'
 import type { LocationDto } from '../../../types/location'
 import { useWarehouse } from '../../../hooks/useWarehouses'
 import { useDeleteLocation, useLocationsByWarehouse, useLocationsPage } from '../../../hooks/useLocations'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 function WarehouseLocations() {
   const { id: warehouseId } = useParams<{ id: string }>()
@@ -22,7 +22,6 @@ function WarehouseLocations() {
 
 function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
   const navigate = useNavigate()
-  const { message } = App.useApp()
   const { data: warehouse, isPending: warehousePending } = useWarehouse(warehouseId)
   const [locationPage, setLocationPage] = useState(1)
   const { data: locationsPage, isPending: locationsPending } = useLocationsPage({
@@ -48,10 +47,10 @@ function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
       onOk: () =>
         deleteMutation.mutate(row.id, {
           onSuccess: () => {
-            message.success('Đã xoá vị trí.')
+            toast.success('Đã xoá vị trí.')
             setDrawerLocation(null)
           },
-          onError: (err: unknown) => message.error(getErrorMessage(err, 'Xoá vị trí thất bại.')),
+          onError: (err: unknown) => toast.error(err, 'Xoá vị trí thất bại.'),
         }),
     })
   }
@@ -76,26 +75,29 @@ function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
           marginBottom: 20,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate('/warehouses')}
-            aria-label="Quay lại danh sách kho"
-            style={{ marginTop: 4 }}
           />
           <div>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              Vị trí kho
-            </Typography.Title>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-              <Tag color="blue" style={{ fontFamily: 'monospace' }}>
-                {warehouse?.code}
-              </Tag>
-              <Typography.Text strong>{warehouse?.name}</Typography.Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Typography.Title level={4} style={{ margin: 0 }}>
+                {warehouse?.name ?? 'Sơ đồ kho'}
+              </Typography.Title>
+              {warehouse?.code && (
+                <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+                  {warehouse.code}
+                </Tag>
+              )}
             </div>
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              {warehouse?.address ?? 'Sơ đồ vị trí trong kho'}
+            </Typography.Text>
           </div>
         </div>
+
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -109,39 +111,73 @@ function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
         </Button>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        {locationsPending ? (
-          <Card variant="borderless">
-            <Skeleton active paragraph={{ rows: 4 }} />
-          </Card>
-        ) : locations.length > 0 ? (
-          <>
-            <WarehouseLocationGrid
-              locations={locations}
-              onLocationClick={setDrawerLocation}
-              selectedLocationId={drawerLocation?.id}
-            />
+      <Card variant="borderless" style={{ marginBottom: 16 }}>
+        <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+          Sơ đồ mặt bằng kho
+        </Typography.Text>
+        <WarehouseLocationGrid
+          locations={allLocations ?? locations}
+          onLocationClick={(loc) => setDrawerLocation(loc)}
+        />
+      </Card>
+
+      <Card variant="borderless">
+        <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+          Danh sách vị trí ({locationsPage?.totalCount ?? 0})
+        </Typography.Text>
+        <Skeleton loading={locationsPending} active paragraph={{ rows: 4 }}>
+          {locations.length === 0 ? (
+            <Empty image={null} description="Kho này chưa có vị trí nào" />
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {locations.map((loc) => (
+                <Card
+                  key={loc.id}
+                  size="small"
+                  hoverable
+                  onClick={() => setDrawerLocation(loc)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Tag color="blue" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                      {loc.code}
+                    </Tag>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {loc.currentQuantity}/{loc.maxQuantity}
+                    </Typography.Text>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 12, color: '#8C99A6' }}>
+                    Dãy {loc.aisle} • Kệ {loc.rack} • Tầng {loc.level}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Skeleton>
+
+        {(locationsPage?.totalCount ?? 0) > 10 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
             <Pagination
-              style={{ marginTop: 16, textAlign: 'right' }}
-              current={locationsPage?.page ?? locationPage}
+              current={locationPage}
               pageSize={locationsPage?.pageSize ?? 10}
               total={locationsPage?.totalCount ?? 0}
               showSizeChanger={false}
-              onChange={setLocationPage}
+              onChange={(p) => setLocationPage(p)}
             />
-          </>
-        ) : (
-          <Card variant="borderless">
-            <Empty image={null} description="Chưa có vị trí nào trong kho này" />
-          </Card>
+          </div>
         )}
-      </div>
+      </Card>
 
       <LocationFormModal
         open={modalOpen}
-        warehouseId={warehouseId!}
+        warehouseId={warehouseId}
         location={editingLocation}
-        locations={allLocations ?? []}
         onClose={() => {
           setModalOpen(false)
           setEditingLocation(null)
@@ -156,7 +192,7 @@ function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
           setEditingLocation(loc)
           setModalOpen(true)
         }}
-        onDelete={handleDelete}
+        onDelete={(loc) => handleDelete(loc)}
       />
     </div>
   )

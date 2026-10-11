@@ -1,10 +1,12 @@
-using System.Text;
+using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using WMS.Application.Configuration;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
+using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
 
@@ -12,11 +14,13 @@ public class AiProvider : IAiProvider
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AiProviderOptions _options;
+    private readonly WmsDbContext _db;
 
-    public AiProvider(IHttpClientFactory httpClientFactory, IOptions<AiProviderOptions> options)
+    public AiProvider(IHttpClientFactory httpClientFactory, IOptions<AiProviderOptions> options, WmsDbContext db)
     {
         _httpClientFactory = httpClientFactory;
         _options = options.Value;
+        _db = db;
     }
 
     public async Task<InvoiceExtractionResult> ExtractInvoiceAsync(
@@ -24,19 +28,46 @@ public class AiProvider : IAiProvider
         string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        var tenantId = _db.CurrentTenantId;
+        string? apiKey = null;
+        string? tenantModel = null;
+
+        if (tenantId.HasValue)
         {
-            throw new InvalidOperationException("API Key của AI Provider chưa được cấu hình. Vui lòng kiểm tra lại cấu hình hệ thống.");
+            var tenant = await _db.Tenants
+                .IgnoreQueryFilters()
+                .Where(t => t.Id == tenantId.Value)
+                .Select(t => new { t.AiApiKey, t.AiModel })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            apiKey = tenant?.AiApiKey;
+            tenantModel = tenant?.AiModel;
         }
 
-        var baseUrl = string.IsNullOrWhiteSpace(_options.BaseUrl)
-            ? "https://generativelanguage.googleapis.com"
-            : _options.BaseUrl;
+        // Fallback sang config hệ thống nếu tenant chưa cấu hình riêng
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            apiKey = _options.ApiKey;
+        }
 
-        // 1. Đọc ảnh thành base64 + xác định MIME type từ phần mở rộng file
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new InvalidOperationException("Doanh nghiệp của bạn chưa cấu hình Google Gemini API Key. Vui lòng liên hệ Quản trị viên vào mục Cài đặt để thiết lập khóa API trước khi quét hóa đơn.");
+        }
+
+        var modelToUse = !string.IsNullOrWhiteSpace(tenantModel)
+            ? tenantModel
+            : (string.IsNullOrWhiteSpace(_options.Model) ? "gemini-1.5-flash" : _options.Model);
+
+        // Copy stream vào byte array
         using var memory = new MemoryStream();
         await imageStream.CopyToAsync(memory, cancellationToken);
         var bytes = memory.ToArray();
+
+        var client = _httpClientFactory.CreateClient("AiProvider");
+
+        using var form = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(bytes);
         var mime = Path.GetExtension(fileName).ToLowerInvariant() switch
         {
             ".png" => "image/png",
@@ -45,139 +76,95 @@ public class AiProvider : IAiProvider
             ".heif" => "image/heif",
             ".pdf" => "application/pdf",
             ".jpg" or ".jpeg" => "image/jpeg",
-            _ => "image/jpeg",
+            _ => "application/octet-stream",
         };
-        var base64 = Convert.ToBase64String(bytes);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+        form.Add(fileContent, "file", fileName);
 
-        // 2. Dựng body request theo chuẩn Google Gemini REST API (generateContent)
-        var body = new JsonObject
+        if (!string.IsNullOrWhiteSpace(apiKey))
         {
-            ["contents"] = new JsonArray
-            {
-                new JsonObject
-                {
-                    ["role"] = "user",
-                    ["parts"] = new JsonArray
-                    {
-                        new JsonObject
-                        {
-                            ["text"] = "Hãy trích xuất thông tin chi tiết từ hóa đơn này."
-                        },
-                        new JsonObject
-                        {
-                            ["inlineData"] = new JsonObject
-                            {
-                                ["mimeType"] = mime,
-                                ["data"] = base64
-                            }
-                        }
-                    }
-                }
-            },
-            ["systemInstruction"] = new JsonObject
-            {
-                ["parts"] = new JsonArray
-                {
-                    new JsonObject
-                    {
-                        ["text"] = SystemPrompt
-                    }
-                }
-            },
-            ["generationConfig"] = new JsonObject
-            {
-                ["responseMimeType"] = "application/json",
-                ["temperature"] = 0.1
-            }
-        };
-
-        // 3. Gửi POST tới endpoint /v1beta/models/{model}:generateContent kèm cơ chế fallback tự động
-        var primaryModel = string.IsNullOrWhiteSpace(_options.Model) ? "gemini-3.5-flash-lite" : _options.Model;
-        var candidateModels = new[] { primaryModel, "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash" }
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var client = _httpClientFactory.CreateClient("AiProvider");
-        string? responseJson = null;
-        string? lastError = null;
-
-        foreach (var modelName in candidateModels)
-        {
-            for (var attempt = 1; attempt <= 2; attempt++)
-            {
-                using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1beta/models/{modelName}:generateContent")
-                {
-                    Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
-                };
-
-                if (!request.Headers.Contains("x-goog-api-key"))
-                {
-                    request.Headers.Add("x-goog-api-key", _options.ApiKey);
-                }
-
-                using var response = await client.SendAsync(request, cancellationToken);
-                if (response.IsSuccessStatusCode)
-                {
-                    responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-                    break;
-                }
-
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                lastError = $"Gemini API ({modelName}) trả về lỗi ({(int)response.StatusCode} {response.ReasonPhrase}): {errorBody}";
-
-                if ((int)response.StatusCode == 503 && attempt == 1)
-                {
-                    await Task.Delay(1000, cancellationToken);
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            if (responseJson != null) break;
+            form.Add(new StringContent(apiKey), "api_key");
         }
 
-        if (responseJson == null)
+        if (!string.IsNullOrWhiteSpace(modelToUse))
         {
-            throw new HttpRequestException(lastError ?? "Không thể kết nối đến Gemini API.");
+            form.Add(new StringContent(modelToUse), "model");
         }
 
-        // 4. Đọc chuỗi JSON từ candidates[0].content.parts[0].text
-        var root = JsonNode.Parse(responseJson)
-            ?? throw new InvalidOperationException("Gemini provider trả về response rỗng.");
-
-        var content = root["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.GetValue<string>()
-            ?? throw new InvalidOperationException("Gemini provider không trả về nội dung trích xuất.");
-
-        // 5. Chuẩn hóa chuỗi JSON (loại bỏ markdown fence nếu có)
-        var cleanJson = content.Trim();
-        if (cleanJson.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+        HttpResponseMessage response;
+        try
         {
-            cleanJson = cleanJson[7..];
+            response = await client.PostAsync("/api/v1/invoices/extract", form, cancellationToken);
         }
-        else if (cleanJson.StartsWith("```", StringComparison.OrdinalIgnoreCase))
+        catch (HttpRequestException ex)
         {
-            cleanJson = cleanJson[3..];
+            var serviceUrl = _options.ServiceUrl;
+            throw new HttpRequestException($"Không thể kết nối đến Dịch vụ AI (Python Service). Vui lòng đảm bảo dịch vụ đang chạy tại {serviceUrl}.", ex);
         }
-        if (cleanJson.EndsWith("```", StringComparison.OrdinalIgnoreCase))
-        {
-            cleanJson = cleanJson[..^3];
-        }
-        cleanJson = cleanJson.Trim();
 
-        // 6. Parse JSON thành DTO InvoiceExtractionResult
-        var result = JsonSerializer.Deserialize<InvoiceExtractionResult>(cleanJson, new JsonSerializerOptions
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Dịch vụ AI (Python Service) trả về mã lỗi [{(int)response.StatusCode}]: {errorBody}");
+        }
+
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        var pyResult = JsonSerializer.Deserialize<PythonInvoiceExtractResponse>(responseJson, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
-        }) ?? throw new InvalidOperationException("Không thể parse dữ liệu hóa đơn từ Gemini.");
+        }) ?? throw new InvalidOperationException("Không thể phân tích dữ liệu trả về từ Dịch vụ AI.");
 
-        return result;
+        return new InvoiceExtractionResult
+        {
+            InvoiceNumber = pyResult.InvoiceNumber,
+            VendorName = pyResult.VendorName,
+            InvoiceDate = pyResult.InvoiceDate,
+            ConfidenceScore = pyResult.ConfidenceScore,
+            LineItems = pyResult.LineItems.Select(item => new InvoiceLineItemDto
+            {
+                Sku = item.Sku,
+                Name = item.Name,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                TotalAmount = item.TotalAmount,
+            }).ToList(),
+        };
     }
 
-    private const string SystemPrompt =
-        "Bạn là trợ lý trích xuất hóa đơn. Trả về CHỈ JSON hợp lệ, không kèm giải thích, " +
-        "đúng schema: {\"invoiceNumber\":\"\",\"vendorName\":\"\",\"invoiceDate\":\"yyyy-MM-ddTHH:mm:ss\" " +
-        "hoặc null,\"lineItems\":[{\"sku\":\"\",\"name\":\"\",\"quantity\":0}]}. " +
-        "sku là mã sản phẩm nếu có trên hóa đơn, ngược lại để rỗng.";
+    private class PythonInvoiceLineItem
+    {
+        [JsonPropertyName("sku")]
+        public string Sku { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("quantity")]
+        public int Quantity { get; set; }
+
+        [JsonPropertyName("unit_price")]
+        public decimal? UnitPrice { get; set; }
+
+        [JsonPropertyName("total_amount")]
+        public decimal? TotalAmount { get; set; }
+    }
+
+    private class PythonInvoiceExtractResponse
+    {
+        [JsonPropertyName("invoice_number")]
+        public string InvoiceNumber { get; set; } = string.Empty;
+
+        [JsonPropertyName("vendor_name")]
+        public string VendorName { get; set; } = string.Empty;
+
+        [JsonPropertyName("invoice_date")]
+        public DateTime? InvoiceDate { get; set; }
+
+        [JsonPropertyName("line_items")]
+        public List<PythonInvoiceLineItem> LineItems { get; set; } = new();
+
+        [JsonPropertyName("confidence_score")]
+        public double ConfidenceScore { get; set; } = 1.0;
+    }
 }

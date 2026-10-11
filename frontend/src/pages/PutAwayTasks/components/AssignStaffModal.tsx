@@ -1,8 +1,8 @@
-import { App, Form, Modal, Select, Typography } from 'antd'
+import { Form, Modal, Select, Typography } from 'antd'
 import type { PutAwayTaskDto } from '../../../types/putAwayTask'
 import { useAssignPutAwayTask } from '../../../hooks/usePutAwayTasks'
 import { useWarehouseStaff } from '../../../hooks/useUsers'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface AssignStaffModalProps {
   task: PutAwayTaskDto | null
@@ -10,7 +10,6 @@ interface AssignStaffModalProps {
 }
 
 export function AssignStaffModal({ task, onClose }: AssignStaffModalProps) {
-  const { message } = App.useApp()
   const { data: warehouseStaff } = useWarehouseStaff(task?.warehouseId)
   const assignMutation = useAssignPutAwayTask()
   const [form] = Form.useForm<{ userId: string }>()
@@ -28,10 +27,10 @@ export function AssignStaffModal({ task, onClose }: AssignStaffModalProps) {
         { id: task.id, dto: { userId: values.userId } },
         {
           onSuccess: () => {
-            message.success('Đã phân công cho nhân viên.')
+            toast.success('Đã phân công cho nhân viên.')
             handleClose()
           },
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Phân công thất bại.')),
+          onError: (err: Error) => toast.error(err, 'Phân công thất bại.'),
         },
       )
     } catch {

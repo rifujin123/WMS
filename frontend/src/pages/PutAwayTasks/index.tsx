@@ -6,7 +6,6 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Avatar,
   Button,
   Card,
@@ -30,12 +29,11 @@ import {
 import { useProfile } from '../../hooks/useUserProfile'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PUT_AWAY_STATUS_COLOR, PUT_AWAY_STATUS_LABEL } from '../../lib/statusMaps'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 import { SetLocationModal } from './components/SetLocationModal'
 import { AssignStaffModal } from './components/AssignStaffModal'
 
 function PutAwayTasks() {
-  const { message } = App.useApp()
   const { user } = useAuthContext()
   const isStaff = user?.role === 'WarehouseStaff'
   const { data: profile } = useProfile()
@@ -64,8 +62,8 @@ function PutAwayTasks() {
       cancelText: 'Huỷ',
       onOk: () =>
         startMutation.mutate(task.id, {
-          onSuccess: () => message.success('Task đang được xử lý.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Bắt đầu task thất bại.')),
+          onSuccess: () => toast.success('Task đang được xử lý.'),
+          onError: (err: Error) => toast.error(err, 'Bắt đầu task thất bại.'),
         }),
     })
   }
@@ -78,8 +76,8 @@ function PutAwayTasks() {
       cancelText: 'Huỷ',
       onOk: () =>
         completeMutation.mutate(task.id, {
-          onSuccess: () => message.success('Đã nhập kho.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Hoàn thành task thất bại.')),
+          onSuccess: () => toast.success('Đã nhập kho.'),
+          onError: (err: Error) => toast.error(err, 'Hoàn thành task thất bại.'),
         }),
     })
   }
@@ -93,8 +91,8 @@ function PutAwayTasks() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(task.id, {
-          onSuccess: () => message.success('Đã xoá task.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá task thất bại.')),
+          onSuccess: () => toast.success('Đã xoá task.'),
+          onError: (err: Error) => toast.error(err, 'Xoá task thất bại.'),
         }),
     })
   }

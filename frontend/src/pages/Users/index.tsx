@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
-  App,
   Avatar,
   Button,
   Card,
@@ -21,7 +20,7 @@ import ResetPasswordModal from './components/ResetPasswordModal'
 import { useSetUserLock, useUsersPage } from '../../hooks/useUsers'
 import type { UserListItem } from '../../types/user'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 
 const roleLabel: Record<UserListItem['role'], string> = {
   Admin: 'Admin',
@@ -61,7 +60,6 @@ function Users() {
 
   const { data: users, isPending, isError } = useUsersPage(filters)
   const lockMutation = useSetUserLock()
-  const { message } = App.useApp()
 
   const handleToggleLock = (row: UserListItem) => {
     const locked = row.status !== 'locked'
@@ -75,8 +73,8 @@ function Users() {
         lockMutation.mutate(
           { id: row.id, locked },
           {
-            onSuccess: () => message.success(locked ? 'Đã khoá tài khoản.' : 'Đã mở khoá tài khoản.'),
-            onError: (err: Error) => message.error(getErrorMessage(err, 'Thao tác thất bại.')),
+            onSuccess: () => toast.success(locked ? 'Đã khoá tài khoản.' : 'Đã mở khoá tài khoản.'),
+            onError: (err: Error) => toast.error(err, 'Thao tác thất bại.'),
           },
         ),
     })

@@ -1,3 +1,6 @@
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,17 +16,20 @@ public class TenantService : ITenantService
     private readonly WmsDbContext _db;
     private readonly UserManager<User> _userManager;
     private readonly IEmailService _emailService;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<TenantService> _logger;
 
     public TenantService(
         WmsDbContext db,
         UserManager<User> userManager,
         IEmailService emailService,
+        IHttpClientFactory httpClientFactory,
         ILogger<TenantService> logger)
     {
         _db = db;
         _userManager = userManager;
         _emailService = emailService;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -129,5 +135,205 @@ public class TenantService : ITenantService
             await _db.SaveChangesAsync();
             _logger.LogInformation("Tenant '{TenantCode}' ({TenantId}) đã được kích hoạt thành công qua xác thực email.", tenant.Code, tenant.Id);
         }
+    }
+
+    public async Task<TenantConfigDto> GetCurrentTenantConfigAsync()
+    {
+        var tenantId = _db.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            throw new UnauthorizedAccessException("Không thể xác định không gian doanh nghiệp hiện tại.");
+        }
+
+        var tenant = await _db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId.Value);
+
+        if (tenant == null)
+        {
+            throw new InvalidOperationException("Không tìm thấy thông tin doanh nghiệp.");
+        }
+
+        string? maskedKey = null;
+        var hasAiKey = !string.IsNullOrWhiteSpace(tenant.AiApiKey);
+        if (hasAiKey)
+        {
+            var key = tenant.AiApiKey!;
+            maskedKey = key.Length > 8
+                ? $"{key.Substring(0, 6)}...****"
+                : "****";
+        }
+
+        return new TenantConfigDto
+        {
+            CompanyName = tenant.Name,
+            CompanyCode = tenant.Code,
+            Address = tenant.Address,
+            ContactPhone = tenant.ContactPhone,
+            ContactEmail = tenant.ContactEmail,
+            HasExpiryManagement = tenant.HasExpiryManagement,
+            LogoUrl = tenant.LogoUrl,
+            LoginBackgroundUrl = tenant.LoginBackgroundUrl,
+            FooterText = tenant.FooterText,
+            HasAiKeyConfigured = hasAiKey,
+            MaskedAiApiKey = maskedKey,
+            AiModel = tenant.AiModel ?? "gemini-1.5-flash"
+        };
+    }
+
+    public async Task UpdateTenantConfigAsync(UpdateTenantConfigDto dto)
+    {
+        var tenantId = _db.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            throw new UnauthorizedAccessException("Không thể xác định không gian doanh nghiệp hiện tại.");
+        }
+
+        var tenant = await _db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId.Value);
+
+        if (tenant == null)
+        {
+            throw new InvalidOperationException("Không tìm thấy thông tin doanh nghiệp.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.CompanyName))
+            tenant.Name = dto.CompanyName.Trim();
+
+        if (dto.Address != null)
+            tenant.Address = dto.Address.Trim();
+
+        if (dto.ContactPhone != null)
+            tenant.ContactPhone = dto.ContactPhone.Trim();
+
+        if (dto.LogoUrl != null)
+            tenant.LogoUrl = dto.LogoUrl.Trim();
+
+        if (dto.LoginBackgroundUrl != null)
+            tenant.LoginBackgroundUrl = dto.LoginBackgroundUrl.Trim();
+
+        if (dto.FooterText != null)
+            tenant.FooterText = dto.FooterText.Trim();
+
+        // Chỉ cập nhật AiApiKey khi người dùng nhập giá trị mới thực sự (không phải chuỗi che mờ)
+        if (!string.IsNullOrWhiteSpace(dto.AiApiKey) && !dto.AiApiKey.Contains("****"))
+        {
+            tenant.AiApiKey = dto.AiApiKey.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.AiModel))
+        {
+            tenant.AiModel = dto.AiModel.Trim();
+        }
+
+        await _db.SaveChangesAsync();
+        _logger.LogInformation("Đã cập nhật cấu hình cho tenant '{TenantCode}' ({TenantId}).", tenant.Code, tenant.Id);
+    }
+
+    public async Task<TestAiKeyResultDto> TestAiKeyAsync(TestAiKeyDto dto)
+    {
+        var tenantId = _db.CurrentTenantId;
+        string? candidateKey = dto.ApiKey?.Trim();
+
+        // Nếu để trống hoặc giữ chuỗi masked thì lấy key đã lưu của Tenant
+        if (string.IsNullOrWhiteSpace(candidateKey) || candidateKey.Contains("****"))
+        {
+            if (!tenantId.HasValue)
+            {
+                return new TestAiKeyResultDto
+                {
+                    Success = false,
+                    Message = "Vui lòng nhập API Key để kiểm tra."
+                };
+            }
+
+            candidateKey = await _db.Tenants
+                .IgnoreQueryFilters()
+                .Where(t => t.Id == tenantId.Value)
+                .Select(t => t.AiApiKey)
+                .FirstOrDefaultAsync();
+        }
+
+        if (string.IsNullOrWhiteSpace(candidateKey))
+        {
+            return new TestAiKeyResultDto
+            {
+                Success = false,
+                Message = "Chưa có Google Gemini API Key để kiểm tra. Vui lòng nhập khóa API."
+            };
+        }
+
+        var model = !string.IsNullOrWhiteSpace(dto.Model) ? dto.Model.Trim() : "gemini-1.5-flash";
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(15);
+
+            var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={candidateKey}";
+            var requestBody = new
+            {
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new[] { new { text = "ping" } }
+                    }
+                }
+            };
+
+            var response = await client.PostAsJsonAsync(endpoint, requestBody);
+            if (response.IsSuccessStatusCode)
+            {
+                return new TestAiKeyResultDto
+                {
+                    Success = true,
+                    Message = $"Kết nối thành công! Khóa API Google Gemini hoạt động ổn định với mô hình '{model}'."
+                };
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Kiểm tra Gemini API Key thất bại (HTTP {StatusCode}): {ErrorBody}", response.StatusCode, errorBody);
+
+            return new TestAiKeyResultDto
+            {
+                Success = false,
+                Message = $"Google API từ chối kết nối (Mã lỗi: {(int)response.StatusCode}). Vui lòng kiểm tra lại khóa API hoặc quyền truy cập.",
+                Details = errorBody
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi ngoại lệ khi kiểm tra Google Gemini API Key: {Message}", ex.Message);
+            return new TestAiKeyResultDto
+            {
+                Success = false,
+                Message = $"Không thể kết nối đến máy chủ Google: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<PublicTenantBrandingDto?> GetPublicBrandingAsync(string tenantCode)
+    {
+        if (string.IsNullOrWhiteSpace(tenantCode))
+            return null;
+
+        var cleanCode = tenantCode.Trim().ToLowerInvariant();
+        var tenant = await _db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Code == cleanCode && t.IsActive);
+
+        if (tenant == null)
+            return null;
+
+        return new PublicTenantBrandingDto
+        {
+            CompanyName = tenant.Name,
+            CompanyCode = tenant.Code,
+            LogoUrl = tenant.LogoUrl,
+            LoginBackgroundUrl = tenant.LoginBackgroundUrl,
+            FooterText = tenant.FooterText
+        };
     }
 }

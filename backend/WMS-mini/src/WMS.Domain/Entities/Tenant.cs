@@ -25,6 +25,23 @@ public class Tenant
 
     public bool IsActive { get; set; } = false;
 
+    // Tùy biến thương hiệu (White-label Branding)
+    [MaxLength(500)]
+    public string? LogoUrl { get; set; }
+
+    [MaxLength(500)]
+    public string? LoginBackgroundUrl { get; set; }
+
+    [MaxLength(200)]
+    public string? FooterText { get; set; }
+
+    // Tích hợp AI Bring-Your-Own-Key (BYOK)
+    [MaxLength(255)]
+    public string? AiApiKey { get; set; }
+
+    [MaxLength(100)]
+    public string? AiModel { get; set; } = "gemini-1.5-flash";
+
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     public DateTime? VerifiedDate { get; set; }

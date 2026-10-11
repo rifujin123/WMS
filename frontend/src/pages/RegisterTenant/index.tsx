@@ -11,7 +11,6 @@ import {
   Result,
   Row,
   Col,
-  message,
 } from 'antd'
 import {
   BankOutlined,
@@ -29,6 +28,7 @@ import {
 import Logo from '../../components/Logo'
 import { themeConfig, ui } from '../../theme/tokens'
 import { registerTenant } from '../../services/auth'
+import { toast } from '../../lib/toast'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -85,10 +85,7 @@ export default function RegisterTenantPage() {
       setRegisteredEmail(values.adminEmail)
       setIsSubmitted(true)
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Đăng ký doanh nghiệp thất bại. Vui lòng kiểm tra lại thông tin.'
-      message.error(errorMsg)
+      toast.error(err, 'Đăng ký doanh nghiệp thất bại. Vui lòng kiểm tra lại thông tin.')
     } finally {
       setLoading(false)
     }

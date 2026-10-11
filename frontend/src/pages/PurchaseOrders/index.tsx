@@ -8,7 +8,6 @@ import {
   SearchOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -31,7 +30,7 @@ import {
 } from '../../hooks/usePurchaseOrders'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 
 function PurchaseOrders() {
@@ -41,7 +40,6 @@ function PurchaseOrders() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
-  const { message } = App.useApp()
   const { user } = useAuthContext()
   const canApprove = user?.role === 'Admin' || user?.role === 'WarehouseManager'
   const purchaseOrderParams = {
@@ -61,8 +59,8 @@ function PurchaseOrders() {
       cancelText: 'Huỷ',
       onOk: () =>
         approveMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã duyệt đơn hàng.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Duyệt đơn hàng thất bại.')),
+          onSuccess: () => toast.success('Đã duyệt đơn hàng.'),
+          onError: (err: Error) => toast.error(err, 'Duyệt đơn hàng thất bại.'),
         }),
     })
   }
@@ -76,8 +74,8 @@ function PurchaseOrders() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá đơn hàng.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá đơn hàng thất bại.')),
+          onSuccess: () => toast.success('Đã xoá đơn hàng.'),
+          onError: (err: Error) => toast.error(err, 'Xoá đơn hàng thất bại.'),
         }),
     })
   }

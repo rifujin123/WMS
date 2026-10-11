@@ -28,6 +28,7 @@ const Stocks = lazy(() => import('../pages/Stocks'))
 const StockAdjustments = lazy(() => import('../pages/StockAdjustments'))
 const SaleOrders = lazy(() => import('../pages/SaleOrders'))
 const Pickings = lazy(() => import('../pages/Pickings'))
+const Settings = lazy(() => import('../pages/Settings'))
 const Forbidden = lazy(() => import('../pages/Forbidden'))
 
 function PageFallback() {
@@ -98,6 +99,7 @@ export const router = createBrowserRouter([
               },
               { path: 'customers', element: <Suspense fallback={<PageFallback />}><Customers /></Suspense> },
               { path: 'vendors', element: <Suspense fallback={<PageFallback />}><Vendors /></Suspense> },
+              { path: 'settings', element: <Suspense fallback={<PageFallback />}><Settings /></Suspense> },
             ],
           },
           {

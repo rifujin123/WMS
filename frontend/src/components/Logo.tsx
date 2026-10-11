@@ -2,15 +2,46 @@ interface LogoProps {
   size?: number
   withWordmark?: boolean
   wordmarkColor?: string
+  customLogoUrl?: string
+  companyName?: string
 }
 
-// Logo WMS: tile Ant Blue bo góc 8px, glyph trắng 3 thanh dọc tạo chữ W
-// (ý tưởng kệ kho / xếp kiện). Dùng ở BrandPanel, Sider, LoginForm, favicon.
+// Logo WMS: hỗ trợ tùy biến logo riêng của Tenant hoặc fallback về logo chuẩn WMS.
 function Logo({
   size = 32,
   withWordmark = false,
   wordmarkColor = '#fff',
+  customLogoUrl,
+  companyName,
 }: LogoProps) {
+  if (customLogoUrl) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: '100%' }}>
+        <img
+          src={customLogoUrl}
+          alt={companyName || 'Logo'}
+          style={{ height: size, maxWidth: withWordmark ? 120 : size, objectFit: 'contain' }}
+        />
+        {withWordmark && (
+          <span
+            style={{
+              color: wordmarkColor,
+              fontSize: size * 0.52,
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 140,
+            }}
+          >
+            {companyName || 'WMS'}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -28,7 +59,7 @@ function Logo({
             letterSpacing: 0.5,
           }}
         >
-          WMS
+          {companyName || 'WMS'}
         </span>
       )}
     </div>

@@ -1,7 +1,7 @@
-import { App, Form, Input, Modal } from 'antd'
+import { Form, Input, Modal } from 'antd'
 import { useResetUserPassword } from '../../../hooks/useUsers'
 import type { UserListItem } from '../../../types/user'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface ResetPasswordModalProps {
   user: UserListItem | null
@@ -10,7 +10,6 @@ interface ResetPasswordModalProps {
 
 function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
   const [form] = Form.useForm<{ newPassword: string; confirmPassword: string }>()
-  const { message } = App.useApp()
   const resetMutation = useResetUserPassword()
 
   const handleOk = async () => {
@@ -21,12 +20,12 @@ function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
         { id: user.id, dto: { newPassword: values.newPassword } },
         {
           onSuccess: () => {
-            message.success('Đã đặt lại mật khẩu.')
+            toast.success('Đã đặt lại mật khẩu.')
             form.resetFields()
             onClose()
           },
           onError: (err) => {
-            message.error(getErrorMessage(err, 'Đặt lại mật khẩu thất bại.'))
+            toast.error(err, 'Đặt lại mật khẩu thất bại.')
           },
         },
       )

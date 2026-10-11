@@ -78,6 +78,7 @@ public class InvoiceScanService : IInvoiceScanService
             InvoiceDate = extraction.InvoiceDate,
             ImageUrl = imageUrl,
             Products = products,
+            ConfidenceScore = extraction.ConfidenceScore,
         };
     }
 }

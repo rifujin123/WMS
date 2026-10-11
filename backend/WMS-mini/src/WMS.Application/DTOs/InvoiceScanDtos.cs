@@ -6,6 +6,8 @@ public class InvoiceLineItemDto
     public string Sku { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public decimal? UnitPrice { get; set; }
+    public decimal? TotalAmount { get; set; }
 }
 
 // Toàn bộ thông tin AI trích xuất từ ảnh hóa đơn
@@ -15,6 +17,7 @@ public class InvoiceExtractionResult
     public string VendorName { get; set; } = string.Empty;
     public DateTime? InvoiceDate { get; set; }
     public List<InvoiceLineItemDto> LineItems { get; set; } = new();
+    public double ConfidenceScore { get; set; } = 1.0;
 }
 
 // 1 gợi ý sản phẩm khi không khớp chính xác SKU
@@ -34,6 +37,8 @@ public class ProductMatchDto
     public string Sku { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public decimal? UnitPrice { get; set; }
+    public decimal? TotalAmount { get; set; }
     public List<ProductSuggestionDto> Suggestions { get; set; } = new();
 }
 
@@ -45,4 +50,5 @@ public class InvoiceScanResultDto
     public DateTime? InvoiceDate { get; set; }
     public string ImageUrl { get; set; } = string.Empty; // URL Cloudinary đã upload
     public List<ProductMatchDto> Products { get; set; } = new();
+    public double ConfidenceScore { get; set; } = 1.0;
 }

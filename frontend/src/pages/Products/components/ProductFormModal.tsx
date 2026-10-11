@@ -1,10 +1,10 @@
-import { App, Col, Form, Input, InputNumber, Modal, Row, Select, Upload } from 'antd'
+import { Col, Form, Input, InputNumber, Modal, Row, Select, Upload } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import type { CreateProductDto, ProductDto } from '../../../types/product'
 import { useCategoryLookup } from '../../../hooks/useCategories'
 import { useCreateProduct, useUpdateProduct } from '../../../hooks/useProducts'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface ProductFormModalProps {
   open: boolean
@@ -14,7 +14,6 @@ interface ProductFormModalProps {
 
 function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
   const [form] = Form.useForm<CreateProductDto>()
-  const { message } = App.useApp()
   const { data: categories, isPending: categoriesPending } = useCategoryLookup()
   const createMutation = useCreateProduct()
   const updateMutation = useUpdateProduct()
@@ -33,7 +32,7 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
 
   const handleOk = async () => {
     if (!isEdit && !imageFile) {
-      message.warning('Vui lòng chọn ảnh sản phẩm.')
+      toast.warning('Vui lòng chọn ảnh sản phẩm.')
       return
     }
     try {
@@ -46,11 +45,11 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
         dimension: values.dimension?.trim() || undefined,
       }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật sản phẩm.' : 'Đã tạo sản phẩm.')
+        toast.success(isEdit ? 'Đã cập nhật sản phẩm.' : 'Đã tạo sản phẩm.')
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật sản phẩm thất bại.' : 'Tạo sản phẩm thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật sản phẩm thất bại.' : 'Tạo sản phẩm thất bại.')
       if (isEdit && product) {
         updateMutation.mutate(
           { id: product.id, dto, image: imageFile ?? undefined },
@@ -58,7 +57,7 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
         )
       } else {
         if (!imageFile) {
-          message.error('Vui lòng chọn ảnh sản phẩm.')
+          toast.error('Vui lòng chọn ảnh sản phẩm.')
           return
         }
         createMutation.mutate({ dto, image: imageFile }, { onSuccess, onError })
@@ -159,7 +158,7 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
             accept="image/jpeg,image/png,image/webp,image/gif"
             beforeUpload={(file) => {
               if (file.size > 5 * 1024 * 1024) {
-                message.error('Ảnh phải nhỏ hơn 5MB.')
+                toast.error('Ảnh phải nhỏ hơn 5MB.')
                 return Upload.LIST_IGNORE
               }
               setImageFile(file)

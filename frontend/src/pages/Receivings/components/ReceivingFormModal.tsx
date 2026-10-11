@@ -1,4 +1,4 @@
-import { App, Button, Col, Empty, Form, Image, Input, InputNumber, Modal, Row, Select, Skeleton, Spin, Tooltip, Typography, Upload } from 'antd'
+import { Button, Col, Empty, Form, Image, Input, InputNumber, Modal, Row, Select, Skeleton, Spin, Tooltip, Typography, Upload } from 'antd'
 import type { UploadProps } from 'antd'
 import { DeleteOutlined, ExclamationCircleFilled, PlusOutlined, UploadOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
@@ -13,7 +13,7 @@ import { useCreateReceiving, useReceiving, useUpdateReceiving } from '../../../h
 import { useInvoiceScan } from '../../../hooks/useInvoiceScan'
 import { usePurchaseOrders } from '../../../hooks/usePurchaseOrders'
 import type { PurchaseOrderDto } from '../../../types/purchaseOrder'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface ReceivingFormModalProps {
   open: boolean
@@ -55,7 +55,6 @@ function FieldErrorDot({ message }: { message?: string }) {
 function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProps) {
   // --- Hooks & dữ liệu cơ bản ---
   const [form] = Form.useForm<CreateReceivingDto>()
-  const { message } = App.useApp()
   const isEdit = receiving !== null
   const { data: purchaseOrders, isPending: purchaseOrdersPending } = usePurchaseOrders()
   const { data: receivingDetail } = useReceiving(receiving?.id)
@@ -197,15 +196,15 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     const acceptedTypes = ['image/jpeg', 'image/png', 'application/pdf']
     const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf'
     if (!acceptedTypes.includes(file.type) && !isPdf) {
-      message.error('Chỉ nhận ảnh JPG, PNG hoặc file PDF hóa đơn.')
+      toast.error('Chỉ nhận ảnh JPG, PNG hoặc file PDF hóa đơn.')
       return Upload.LIST_IGNORE
     }
     if (file.size > 5 * 1024 * 1024) {
-      message.error('File phải nhỏ hơn 5MB.')
+      toast.error('File phải nhỏ hơn 5MB.')
       return Upload.LIST_IGNORE
     }
     if (!selectedPurchaseOrderId) {
-      message.warning('Vui lòng chọn PO trước khi scan hóa đơn.')
+      toast.warning('Vui lòng chọn PO trước khi scan hóa đơn.')
       return Upload.LIST_IGNORE
     }
 
@@ -220,7 +219,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
         onSuccess: (result) => applyScanResult(result),
         onError: (err) => {
           setInvoicePreview(undefined)
-          message.error(getErrorMessage(err, 'Không đọc được hóa đơn. Vui lòng thử lại hoặc nhập tay.'))
+          toast.error(err, 'Không đọc được hóa đơn. Vui lòng thử lại hoặc nhập tay.')
         },
       },
     )
@@ -233,7 +232,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       const poProductIds = new Set(selectedPurchaseOrder?.purchaseOrderDetails.map((detail) => detail.productId) ?? [])
       const unmatched = (values.details ?? []).some((detail) => !detail.productId || !poProductIds.has(detail.productId))
       if (unmatched) {
-        message.error('Không khớp với đơn đặt hàng.')
+        toast.error('Không khớp với đơn đặt hàng.')
         return
       }
       const dto: CreateReceivingDto = {
@@ -248,7 +247,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
         invoiceImageUrl: invoiceImageUrl || undefined,
       }
       if (dto.details.some((detail) => !detail.expectedQuantity || detail.expectedQuantity < 1)) {
-        message.error('Số lượng ước tính không hợp lệ.')
+        toast.error('Số lượng ước tính không hợp lệ.')
         return
       }
       if (isEdit) {
@@ -256,10 +255,10 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
       } else {
         await createMutation.mutateAsync(dto)
       }
-      message.success(isEdit ? 'Đã cập nhật phiếu nhận nháp.' : 'Đã tạo phiếu nhận nháp.')
+      toast.success(isEdit ? 'Đã cập nhật phiếu nhận nháp.' : 'Đã tạo phiếu nhận nháp.')
       onClose()
     } catch (error) {
-      message.error(getErrorMessage(error, isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.'))
+      toast.error(error, isEdit ? 'Cập nhật phiếu nhận thất bại.' : 'Tạo phiếu nhận thất bại.')
     }
   }
 

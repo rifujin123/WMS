@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -15,15 +14,13 @@ import type { TableColumnsType } from 'antd'
 import CategoryFormModal from './components/CategoryFormModal'
 import type { CategoryDto } from '../../types/category'
 import { useCategories, useDeleteCategory } from '../../hooks/useCategories'
-
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 
 function Categories() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CategoryDto | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const { message } = App.useApp()
   const categoryParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -40,8 +37,8 @@ function Categories() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá danh mục.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá danh mục thất bại.')),
+          onSuccess: () => toast.success('Đã xoá danh mục.'),
+          onError: (err: Error) => toast.error(err, 'Xoá danh mục thất bại.'),
         }),
     })
   }
@@ -112,34 +109,41 @@ function Categories() {
         </Button>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <Card style={{ marginBottom: 16 }}>
         <Input
+          placeholder="Tìm theo tên danh mục..."
+          prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
           allowClear
-          prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
-          placeholder="Tìm theo tên danh mục"
-          style={{ width: 240 }}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
             setPage(1)
           }}
+          style={{ maxWidth: 320 }}
         />
-      </div>
+      </Card>
 
-      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+      <Card>
         <Table<CategoryDto>
           rowKey="id"
           columns={columns}
           dataSource={categories?.items ?? []}
           loading={isPending}
           pagination={{
-             current: categories?.page ?? page,
-             pageSize: categories?.pageSize ?? 10,
-             total: categories?.totalCount ?? 0,
-             showSizeChanger: false,
-           }}
-           onChange={(pagination) => setPage(pagination.current ?? 1)}
-          locale={{ emptyText: <Empty image={null} description="Chưa có danh mục nào" /> }}
+            current: page,
+            total: categories?.totalCount ?? 0,
+            pageSize: categories?.pageSize ?? 10,
+            showSizeChanger: false,
+            onChange: (p) => setPage(p),
+          }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chưa có danh mục nào."
+              />
+            ),
+          }}
         />
       </Card>
 

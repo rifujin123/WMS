@@ -1,8 +1,8 @@
-import { App, Col, Form, Input, Modal, Row } from 'antd'
+import { Col, Form, Input, Modal, Row } from 'antd'
 import { useEffect } from 'react'
 import type { CustomerDto } from '../../../types/customer'
 import { useCreateCustomer, useUpdateCustomer } from '../../../hooks/useCustomers'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface CustomerFormModalProps {
   open: boolean
@@ -12,7 +12,6 @@ interface CustomerFormModalProps {
 
 function CustomerFormModal({ open, customer, onClose }: CustomerFormModalProps) {
   const [form] = Form.useForm<Partial<CustomerDto>>()
-  const { message } = App.useApp()
   const createMutation = useCreateCustomer()
   const updateMutation = useUpdateCustomer()
   const isEdit = customer !== null
@@ -44,11 +43,11 @@ function CustomerFormModal({ open, customer, onClose }: CustomerFormModalProps) 
         address: values.address?.trim() || undefined,
       }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật khách hàng.' : 'Đã thêm khách hàng.')
+        toast.success(isEdit ? 'Đã cập nhật khách hàng.' : 'Đã thêm khách hàng.')
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật khách hàng thất bại.' : 'Thêm khách hàng thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật khách hàng thất bại.' : 'Thêm khách hàng thất bại.')
       if (isEdit && customer) {
         updateMutation.mutate({ id: customer.id, dto }, { onSuccess, onError })
       } else {

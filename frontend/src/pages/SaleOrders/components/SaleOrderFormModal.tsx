@@ -1,4 +1,4 @@
-import { App, Button, Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select } from 'antd'
+import { Button, Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useEffect } from 'react'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -11,7 +11,7 @@ import { useProductLookup } from '../../../hooks/useProducts'
 import { useCustomerLookup } from '../../../hooks/useCustomers'
 import { useWarehouses } from '../../../hooks/useWarehouses'
 import { useCreateSaleOrder, useUpdateSaleOrder } from '../../../hooks/useSaleOrders'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface SaleOrderFormModalProps {
   open: boolean
@@ -26,7 +26,6 @@ interface SaleOrderFormValues extends Omit<CreateSaleOrderDto, 'orderDate'> {
 
 function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProps) {
   const [form] = Form.useForm<SaleOrderFormValues>()
-  const { message } = App.useApp()
   const { data: products, isPending: productsPending } = useProductLookup()
   const { data: customers } = useCustomerLookup()
   const { data: warehouses } = useWarehouses()
@@ -66,11 +65,11 @@ function SaleOrderFormModal({ open, saleOrder, onClose }: SaleOrderFormModalProp
         orderDate: values.orderDate.toISOString(),
       }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật đơn bán.' : 'Đã tạo đơn bán và tự động tạo phiếu lấy hàng.')
+        toast.success(isEdit ? 'Đã cập nhật đơn bán.' : 'Đã tạo đơn bán và tự động tạo phiếu lấy hàng.')
         onClose()
       }
       const onError = (err: Error) => {
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật đơn bán thất bại.' : 'Tạo đơn bán thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật đơn bán thất bại.' : 'Tạo đơn bán thất bại.')
       }
       if (isEdit && saleOrder) {
         updateMutation.mutate({ id: saleOrder.id, dto }, { onSuccess, onError })

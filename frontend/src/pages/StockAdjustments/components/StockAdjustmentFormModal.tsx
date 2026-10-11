@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { App, Button, Empty, Form, Input, InputNumber, Modal, Select, Typography } from 'antd'
+import { Button, Empty, Form, Input, InputNumber, Modal, Select, Typography } from 'antd'
 import type {
   CreateStockAdjustmentDetailDto,
   CreateStockAdjustmentDto,
@@ -7,7 +7,7 @@ import type {
 import { useCreateStockAdjustment } from '../../../hooks/useStockAdjustments'
 import { useStocks } from '../../../hooks/useStocks'
 import { useProductLookup } from '../../../hooks/useProducts'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface StockAdjustmentFormModalProps {
   open: boolean
@@ -15,7 +15,6 @@ interface StockAdjustmentFormModalProps {
 }
 
 export function StockAdjustmentFormModal({ open, onClose }: StockAdjustmentFormModalProps) {
-  const { message } = App.useApp()
   const { data: products } = useProductLookup()
   const { data: stocks } = useStocks()
   const createMutation = useCreateStockAdjustment()
@@ -57,11 +56,11 @@ export function StockAdjustmentFormModal({ open, onClose }: StockAdjustmentFormM
         details,
       }
       await createMutation.mutateAsync(dto)
-      message.success('Đã tạo phiếu điều chỉnh tồn kho.')
+      toast.success('Đã tạo phiếu điều chỉnh tồn kho.')
       onClose()
       form.resetFields()
     } catch (error) {
-      message.error(getErrorMessage(error, 'Tạo phiếu điều chỉnh tồn kho thất bại.'))
+      toast.error(error, 'Tạo phiếu điều chỉnh tồn kho thất bại.')
     }
   }
 

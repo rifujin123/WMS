@@ -1,4 +1,4 @@
-import { App, Button, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd'
+import { Button, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useEffect } from 'react'
 import type {
@@ -9,7 +9,7 @@ import type {
 import { useProductLookup } from '../../../hooks/useProducts'
 import { useVendorLookup } from '../../../hooks/useVendors'
 import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../../../hooks/usePurchaseOrders'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface PurchaseOrderFormModalProps {
   open: boolean
@@ -19,7 +19,6 @@ interface PurchaseOrderFormModalProps {
 
 function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalProps) {
   const [form] = Form.useForm<CreatePurchaseOrderDto>()
-  const { message } = App.useApp()
   const { data: products, isPending: productsPending } = useProductLookup()
   const { data: vendors } = useVendorLookup()
   const createMutation = useCreatePurchaseOrder()
@@ -52,11 +51,11 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
         vendorName: values.vendorName?.trim() || undefined,
       }
       const onSuccess = () => {
-        message.success(isEdit ? 'Đã cập nhật đơn hàng.' : 'Đã tạo đơn hàng.')
+        toast.success(isEdit ? 'Đã cập nhật đơn hàng.' : 'Đã tạo đơn hàng.')
         onClose()
       }
       const onError = (err: Error) =>
-        message.error(getErrorMessage(err, isEdit ? 'Cập nhật đơn hàng thất bại.' : 'Tạo đơn hàng thất bại.'))
+        toast.error(err, isEdit ? 'Cập nhật đơn hàng thất bại.' : 'Tạo đơn hàng thất bại.')
       if (isEdit && po) {
         updateMutation.mutate({ id: po.id, dto }, { onSuccess, onError })
       } else {

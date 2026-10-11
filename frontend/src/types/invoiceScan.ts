@@ -2,6 +2,8 @@ export interface InvoiceLineItem {
   sku: string
   name: string
   quantity: number
+  unitPrice?: number
+  totalAmount?: number
 }
 
 export interface ProductSuggestion {
@@ -17,6 +19,8 @@ export interface ProductMatch {
   sku: string
   name: string
   quantity: number
+  unitPrice?: number
+  totalAmount?: number
   suggestions: ProductSuggestion[]
 }
 
@@ -26,4 +30,5 @@ export interface InvoiceScanResult {
   invoiceDate?: string
   imageUrl: string
   products: ProductMatch[]
+  confidenceScore?: number
 }

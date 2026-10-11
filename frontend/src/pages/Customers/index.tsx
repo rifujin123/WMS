@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -15,14 +14,13 @@ import type { TableColumnsType } from 'antd'
 import CustomerFormModal from './components/CustomerFormModal'
 import type { CustomerDto } from '../../types/customer'
 import { useCustomers, useDeleteCustomer } from '../../hooks/useCustomers'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 
 function Customers() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CustomerDto | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const { message } = App.useApp()
   const customerParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -39,8 +37,8 @@ function Customers() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá khách hàng.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá khách hàng thất bại.')),
+          onSuccess: () => toast.success('Đã xoá khách hàng.'),
+          onError: (err: Error) => toast.error(err, 'Xoá khách hàng thất bại.'),
         }),
     })
   }
@@ -74,7 +72,12 @@ function Customers() {
             <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} />
           </Tooltip>
           <Tooltip title="Xoá">
-            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(row)} />
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(row)}
+            />
           </Tooltip>
         </div>
       ),
@@ -98,7 +101,7 @@ function Customers() {
             Khách hàng
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Danh mục khách hàng dùng cho đơn bán.
+            Quản lý thông tin khách hàng.
           </Typography.Text>
         </div>
         <Button
@@ -114,35 +117,41 @@ function Customers() {
         </Button>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <Card style={{ marginBottom: 16 }}>
         <Input
+          placeholder="Tìm theo tên khách hàng, số điện thoại, email..."
+          prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
           allowClear
-          prefix={<SearchOutlined style={{ color: '#8C99A6' }} />}
-          placeholder="Tìm theo tên, điện thoại hoặc email"
-          style={{ width: 280 }}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
             setPage(1)
           }}
+          style={{ maxWidth: 360 }}
         />
-      </div>
+      </Card>
 
-      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+      <Card>
         <Table<CustomerDto>
           rowKey="id"
           columns={columns}
           dataSource={customers?.items ?? []}
           loading={isPending}
           pagination={{
-            current: customers?.page ?? page,
-            pageSize: customers?.pageSize ?? 10,
+            current: page,
             total: customers?.totalCount ?? 0,
+            pageSize: customers?.pageSize ?? 10,
             showSizeChanger: false,
+            onChange: (p) => setPage(p),
           }}
-          onChange={(pagination) => setPage(pagination.current ?? 1)}
-          scroll={{ x: 720 }}
-          locale={{ emptyText: <Empty image={null} description="Chưa có khách hàng nào" /> }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chưa có khách hàng nào."
+              />
+            ),
+          }}
         />
       </Card>
 

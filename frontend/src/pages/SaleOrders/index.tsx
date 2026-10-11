@@ -7,7 +7,6 @@ import {
   SendOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -29,7 +28,7 @@ import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/stat
 import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
 import { useCreateShipment, useMarkShipped, useShipments } from '../../hooks/useShipments'
 import { useAuthContext } from '../../contexts/useAuthContext'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 
 function SaleOrders() {
@@ -38,7 +37,6 @@ function SaleOrders() {
   const [selectedOrder, setSelectedOrder] = useState<SaleOrderDto | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<SaleOrderStatus | undefined>(undefined)
-  const { message } = App.useApp()
   const { data: saleOrders, isPending } = useSaleOrders()
   const { data: shipments } = useShipments()
   const deleteMutation = useDeleteSaleOrder()
@@ -77,8 +75,8 @@ function SaleOrders() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá đơn bán.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá đơn bán thất bại.')),
+          onSuccess: () => toast.success('Đã xoá đơn bán.'),
+          onError: (err: Error) => toast.error(err, 'Xoá đơn bán thất bại.'),
         }),
     })
   }
@@ -98,9 +96,9 @@ function SaleOrders() {
             shipment = await createShipmentMutation.mutateAsync({ saleOrderId: row.id })
           }
           await markShippedMutation.mutateAsync(shipment.id)
-          message.success(`Đơn "${row.orderNo}" đã được đánh dấu là đã giao.`)
+          toast.success(`Đơn "${row.orderNo}" đã được đánh dấu là đã giao.`)
         } catch (error) {
-          message.error(getErrorMessage(error, 'Đánh dấu đã giao thất bại.'))
+          toast.error(error, 'Đánh dấu đã giao thất bại.')
         }
       },
     })

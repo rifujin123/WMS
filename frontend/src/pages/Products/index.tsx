@@ -7,7 +7,6 @@ import {
   ShoppingOutlined,
 } from '@ant-design/icons'
 import {
-  App,
   Button,
   Card,
   Empty,
@@ -24,7 +23,7 @@ import ProductFormModal from './components/ProductFormModal'
 import type { ProductDto } from '../../types/product'
 import { useCategoryLookup } from '../../hooks/useCategories'
 import { useDeleteProduct, useProducts } from '../../hooks/useProducts'
-import { getErrorMessage } from '../../lib/errorHandler'
+import { toast } from '../../lib/toast'
 
 function Products() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -33,7 +32,6 @@ function Products() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined)
   const [page, setPage] = useState(1)
-  const { message } = App.useApp()
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500)
@@ -63,8 +61,8 @@ function Products() {
       cancelText: 'Huỷ',
       onOk: () =>
         deleteMutation.mutate(row.id, {
-          onSuccess: () => message.success('Đã xoá sản phẩm.'),
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Xoá sản phẩm thất bại.')),
+          onSuccess: () => toast.success('Đã xoá sản phẩm.'),
+          onError: (err: Error) => toast.error(err, 'Xoá sản phẩm thất bại.'),
         }),
     })
   }
@@ -126,7 +124,7 @@ function Products() {
       title: 'Danh mục',
       dataIndex: 'categoryId',
       key: 'categoryId',
-      render: (id: string) => <Tag>{categoryName(id)}</Tag>,
+      render: (id: string) => categoryName(id),
     },
     {
       title: 'Đơn vị',

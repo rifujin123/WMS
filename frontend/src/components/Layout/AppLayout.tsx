@@ -13,6 +13,7 @@ import { useAuthContext } from '../../contexts/useAuthContext'
 import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import { getGroupKeyForPath, getMenuItems, navConfig } from './navConfig'
 import { AppFooter } from './AppFooter'
+import { useTenantConfig } from '../../hooks/useTenant'
 
 const { Header, Content, Sider } = Layout
 
@@ -22,6 +23,7 @@ function AppLayout() {
   const menuItems = getMenuItems(user?.role)
   const navigate = useNavigate()
   const location = useLocation()
+  const { data: tenantConfig } = useTenantConfig()
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
@@ -126,7 +128,12 @@ function AppLayout() {
             marginBottom: 8,
           }}
         >
-          <Logo size={28} withWordmark={!collapsed} />
+          <Logo
+            size={28}
+            withWordmark={!collapsed}
+            customLogoUrl={tenantConfig?.logoUrl}
+            companyName={tenantConfig?.companyName}
+          />
         </div>
         <Menu
           theme="dark"

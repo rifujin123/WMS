@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { LockOutlined } from '@ant-design/icons'
-import { Alert, App, Button, Card, Col, Divider, Form, Input, Row } from 'antd'
+import { Alert, Button, Card, Col, Divider, Form, Input, Row } from 'antd'
 import { useChangePassword } from '../../../hooks/useUserProfile'
 import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface FormValues {
   currentPassword: string
@@ -11,7 +12,6 @@ interface FormValues {
 }
 
 function ChangePasswordForm() {
-  const { message } = App.useApp()
   const changePasswordMutation = useChangePassword()
   const [form] = Form.useForm<FormValues>()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -23,7 +23,7 @@ function ChangePasswordForm() {
       {
         onSuccess: (res) => {
           form.resetFields()
-          message.success(res.message)
+          toast.success(res.message)
         },
         onError: (err) => {
           setErrorMsg(getErrorMessage(err, 'Đổi mật khẩu thất bại.'))

@@ -1,8 +1,8 @@
-import { App, Form, Modal, Select, Typography } from 'antd'
+import { Form, Modal, Select, Typography } from 'antd'
 import type { PickingDto } from '../../../types/picking'
 import { useAssignPicking } from '../../../hooks/usePickings'
 import { useWarehouseStaff } from '../../../hooks/useUsers'
-import { getErrorMessage } from '../../../lib/errorHandler'
+import { toast } from '../../../lib/toast'
 
 interface AssignStaffModalProps {
   picking: PickingDto | null
@@ -10,7 +10,6 @@ interface AssignStaffModalProps {
 }
 
 export function AssignStaffModal({ picking, onClose }: AssignStaffModalProps) {
-  const { message } = App.useApp()
   const { data: warehouseStaff } = useWarehouseStaff(picking?.warehouseId)
   const assignMutation = useAssignPicking()
   const [form] = Form.useForm<{ userId: string }>()
@@ -28,10 +27,10 @@ export function AssignStaffModal({ picking, onClose }: AssignStaffModalProps) {
         { id: picking.id, dto: { userId: values.userId } },
         {
           onSuccess: () => {
-            message.success('Đã phân công cho nhân viên.')
+            toast.success('Đã phân công cho nhân viên.')
             handleClose()
           },
-          onError: (err: Error) => message.error(getErrorMessage(err, 'Phân công thất bại.')),
+          onError: (err: Error) => toast.error(err, 'Phân công thất bại.'),
         },
       )
     } catch {

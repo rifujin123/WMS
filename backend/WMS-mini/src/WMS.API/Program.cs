@@ -61,13 +61,11 @@ builder.Services.AddOptions<DemoSeedOptions>()
 builder.Services.AddHttpClient("AiProvider", (sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<AiProviderOptions>>().Value;
-    var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
-        ? "https://generativelanguage.googleapis.com"
-        : options.BaseUrl;
-    client.BaseAddress = new Uri(baseUrl);
-    client.Timeout = TimeSpan.FromSeconds(60);
-    if (!string.IsNullOrWhiteSpace(options.ApiKey))
-        client.DefaultRequestHeaders.Add("x-goog-api-key", options.ApiKey);
+    var serviceUrl = string.IsNullOrWhiteSpace(options.ServiceUrl)
+        ? "http://localhost:8000"
+        : options.ServiceUrl;
+    client.BaseAddress = new Uri(serviceUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds > 0 ? options.TimeoutSeconds : 60);
 });
 
 var frontendOrigin = builder.Configuration["Frontend:Origin"]
