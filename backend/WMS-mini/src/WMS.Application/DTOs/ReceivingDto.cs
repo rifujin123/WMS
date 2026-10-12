@@ -14,6 +14,11 @@ public class ReceivingDto
     public ReceivingStatus Status { get; set; }
     public string? Notes { get; set; }
     public string? InvoiceImageUrl { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public DateTime? InvoiceDate { get; set; }
+    public decimal? InvoiceTotalAmount { get; set; }
+    public bool HasDiscrepancy { get; set; }
+    public string? DiscrepancyReason { get; set; }
     public List<ReceivingDetailDto> Details { get; set; } = new();
     public DateTime CreatedDate { get; set; }
 }

@@ -20,6 +20,8 @@ public class ReceivingDetail : BaseAuditableEntity
     public int ActualQuantity { get; set; }
     public ProductCondition Condition { get; set; }
 
+    public decimal? UnitPrice { get; set; }
+
     [MaxLength(50)]
     public string? LotNumber { get; set; }
 

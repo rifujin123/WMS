@@ -73,7 +73,9 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   // --- Dữ liệu dẫn xuất từ form: PO đang chọn, product options ---
   const approvedPurchaseOrders = (purchaseOrders ?? []).filter(
     (purchaseOrder) =>
-      purchaseOrder.status === 'Approved' || purchaseOrder.id === receiving?.purchaseOrderId,
+      purchaseOrder.status === 'Approved' ||
+      purchaseOrder.status === 'PartiallyReceived' ||
+      purchaseOrder.id === receiving?.purchaseOrderId,
   )
   const selectedPurchaseOrderId = Form.useWatch('purchaseOrderId', form)
   const formDetails = Form.useWatch('details', form)
@@ -82,10 +84,14 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   )
 
   // Sản phẩm trong PO
-  const poProductOptions = selectedPurchaseOrder?.purchaseOrderDetails.map((detail) => ({
-    value: detail.productId,
-    label: `${detail.productSku} — ${detail.productName}`,
-  })) ?? []
+  const poProductOptions = selectedPurchaseOrder?.purchaseOrderDetails.map((detail) => {
+    const remaining = getRemainingQuantity(detail)
+    return {
+      value: detail.productId,
+      label: `${detail.productSku} — ${detail.productName}${remaining <= 0 ? ' (Đã nhận đủ)' : ` (Còn: ${remaining})`}`,
+      disabled: remaining <= 0,
+    }
+  }) ?? []
 
   // Gom toàn bộ gợi ý AI (dedupe theo productId)
   const suggestionOptions = (() => {
@@ -114,6 +120,11 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
     const remainingQuantity = getExpectedQuantity(detail?.productId)
     if (detail?.condition !== 'Ok' || remainingQuantity === undefined) {
       return { required: true, type: 'number' as const, min: 1, max: undefined, message: 'Nhập SL.' }
+    }
+    if (remainingQuantity <= 0) {
+      return {
+        validator: () => Promise.reject(new Error('Sản phẩm đã nhận đủ số lượng.')),
+      }
     }
     return {
       required: true,
@@ -292,7 +303,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
             >
               <Select
                 disabled={isEdit}
-                placeholder="Chọn PO đã duyệt"
+                placeholder="Chọn PO đã duyệt hoặc nhận một phần"
                 showSearch
                 optionFilterProp="label"
                 loading={purchaseOrdersPending}
@@ -302,7 +313,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                 }))}
                 onChange={isEdit ? undefined : handlePOChange}
                 notFoundContent={
-                  purchaseOrdersPending ? <Skeleton active paragraph={{ rows: 1 }} /> : <Empty image={null} description="Không có PO đã duyệt" />
+                  purchaseOrdersPending ? <Skeleton active paragraph={{ rows: 1 }} /> : <Empty image={null} description="Không có PO khả dụng" />
                 }
               />
             </Form.Item>

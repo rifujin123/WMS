@@ -41,21 +41,33 @@ public class ReceivingService : IReceivingService
     {
         var po = await GetPurchaseOrderAsync(dto);
         ValidatePurchaseOrder(po);
-        if (await _repo.GetConfirmedByPurchaseOrderIdAsync(dto.PurchaseOrderId) != null)
-            throw new InvalidOperationException("Đơn đặt hàng đã có phiếu nhận được xác nhận.");
+        if (dto.InvoiceTotalAmount.HasValue && dto.InvoiceTotalAmount.Value < 0)
+            throw new InvalidOperationException("Tổng tiền hóa đơn không được nhỏ hơn 0.");
         ValidateDetails(dto, po);
         ValidateInvoiceImageUrl(dto.InvoiceImageUrl);
         var now = DateTime.UtcNow;
         var receiving = new Receiving
         {
             ReceivingNo = $"RC-{now:yyyyMMddHHmmssfff}-{Guid.NewGuid().ToString("N")[..8]}",
-            PurchaseOrderId = dto.PurchaseOrderId, 
-            ReceivedById = _currentUser.UserId, 
+            PurchaseOrderId = dto.PurchaseOrderId,
+            ReceivedById = _currentUser.UserId,
             ReceivedDate = now,
-            Status = ReceivingStatus.Draft, 
+            Status = ReceivingStatus.Draft,
             Notes = dto.Notes,
             InvoiceImageUrl = dto.InvoiceImageUrl,
-            ReceivingDetails = dto.Details.Select(d => new ReceivingDetail { ProductId = d.ProductId, ExpectedQuantity = d.ExpectedQuantity, ActualQuantity = d.ActualQuantity, Condition = d.Condition }).ToList()
+            InvoiceNumber = dto.InvoiceNumber,
+            InvoiceDate = dto.InvoiceDate,
+            InvoiceTotalAmount = dto.InvoiceTotalAmount,
+            ReceivingDetails = dto.Details.Select(d => new ReceivingDetail
+            {
+                ProductId = d.ProductId,
+                ExpectedQuantity = d.ExpectedQuantity,
+                ActualQuantity = d.ActualQuantity,
+                Condition = d.Condition,
+                LotNumber = d.LotNumber,
+                ExpiryDate = d.ExpiryDate,
+                UnitPrice = d.UnitPrice
+            }).ToList()
         };
         await _repo.AddAsync(receiving);
         await _unitOfWork.SaveChangesAsync();
@@ -69,15 +81,13 @@ public class ReceivingService : IReceivingService
         if (receiving.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Không thể xác nhận phiếu nhận ở trạng thái '{receiving.Status}'. Chỉ có thể xác nhận phiếu 'Nháp' (Draft).");
         var po = await _poRepo.GetByIdAsync(receiving.PurchaseOrderId) ?? throw new InvalidOperationException("Không tìm thấy đơn đặt hàng.");
         ValidatePurchaseOrder(po);
-        if (await _repo.GetConfirmedByPurchaseOrderIdAsync(receiving.PurchaseOrderId) != null)
-            throw new InvalidOperationException("Đơn đặt hàng đã có phiếu nhận được xác nhận.");
-        ValidateCompleteReceiving(receiving, po);
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             ApplyReceivedQuantities(receiving, po);
 
-            po.Status = PurchaseOrderStatus.Received;
+            var isFullyReceived = po.PurchaseOrderDetails.All(d => d.ReceivedQuantity >= d.OrderedQuantity);
+            po.Status = isFullyReceived ? PurchaseOrderStatus.Received : PurchaseOrderStatus.PartiallyReceived;
             receiving.Status = ReceivingStatus.Confirmed;
             receiving.ConfirmedById = _currentUser.UserId;
             receiving.ConfirmedDate = DateTime.UtcNow;
@@ -97,14 +107,17 @@ public class ReceivingService : IReceivingService
         if (entity == null) return null;
         if (entity.Status != ReceivingStatus.Draft) throw new InvalidOperationException($"Không thể cập nhật phiếu nhận ở trạng thái '{entity.Status}'. Chỉ có thể cập nhật phiếu 'Nháp' (Draft).");
         var po = await GetPurchaseOrderAsync(dto);
-        if (await _repo.GetConfirmedByPurchaseOrderIdAsync(dto.PurchaseOrderId) is { Id: var confirmedId } && confirmedId != entity.Id)
-            throw new InvalidOperationException("Đơn đặt hàng đã có phiếu nhận được xác nhận.");
         ValidatePurchaseOrder(po);
+        if (dto.InvoiceTotalAmount.HasValue && dto.InvoiceTotalAmount.Value < 0)
+            throw new InvalidOperationException("Tổng tiền hóa đơn không được nhỏ hơn 0.");
         ValidateDetails(dto, po);
         ValidateInvoiceImageUrl(dto.InvoiceImageUrl);
         entity.PurchaseOrderId = dto.PurchaseOrderId;
         entity.Notes = dto.Notes;
         entity.InvoiceImageUrl = dto.InvoiceImageUrl;
+        entity.InvoiceNumber = dto.InvoiceNumber;
+        entity.InvoiceDate = dto.InvoiceDate;
+        entity.InvoiceTotalAmount = dto.InvoiceTotalAmount;
         await _repo.RemoveDetailsAsync(entity.Id);
         entity.ReceivingDetails = dto.Details.Select(d => new ReceivingDetail
         {
@@ -113,6 +126,9 @@ public class ReceivingService : IReceivingService
             ExpectedQuantity = d.ExpectedQuantity,
             ActualQuantity = d.ActualQuantity,
             Condition = d.Condition,
+            LotNumber = d.LotNumber,
+            ExpiryDate = d.ExpiryDate,
+            UnitPrice = d.UnitPrice
         }).ToList();
         await _repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
@@ -133,8 +149,8 @@ public class ReceivingService : IReceivingService
 
     private static void ValidatePurchaseOrder(PurchaseOrder po)
     {
-        if (po.Status != PurchaseOrderStatus.Approved)
-            throw new InvalidOperationException("Đơn đặt hàng phải ở trạng thái Đã duyệt (Approved) trước khi nhận hàng.");
+        if (po.Status != PurchaseOrderStatus.Approved && po.Status != PurchaseOrderStatus.PartiallyReceived)
+            throw new InvalidOperationException("Đơn đặt hàng phải ở trạng thái Đã duyệt (Approved) hoặc Đã nhận một phần (PartiallyReceived) trước khi nhận hàng.");
     }
 
     private static void ValidateInvoiceImageUrl(string? invoiceImageUrl)
@@ -145,25 +161,6 @@ public class ReceivingService : IReceivingService
             throw new InvalidOperationException("Đường dẫn ảnh hóa đơn phải là URL HTTP hoặc HTTPS hợp lệ.");
     }
 
-    private static void ValidateCompleteReceiving(Receiving receiving, PurchaseOrder po)
-    {
-        var receivingByProduct = receiving.ReceivingDetails
-            .GroupBy(d => d.ProductId)
-            .ToDictionary(g => g.Key, g => g.Sum(d => d.ActualQuantity));
-
-        foreach (var poDetail in po.PurchaseOrderDetails.GroupBy(d => d.ProductId).Select(g => new
-        {
-            ProductId = g.Key,
-            OrderedQuantity = g.Sum(d => d.OrderedQuantity),
-            ReceivedQuantity = g.Sum(d => d.ReceivedQuantity)
-        }))
-        {
-            var receivingQuantity = receivingByProduct.GetValueOrDefault(poDetail.ProductId);
-            if (poDetail.ReceivedQuantity + receivingQuantity != poDetail.OrderedQuantity)
-                throw new InvalidOperationException("Không thể xác nhận: Tổng số lượng nhận trong phiếu phải khớp với số lượng còn lại của đơn đặt hàng.");
-        }
-    }
-
     private static void ApplyReceivedQuantities(Receiving receiving, PurchaseOrder po)
     {
         var poDetailsByProduct = po.PurchaseOrderDetails
@@ -172,20 +169,26 @@ public class ReceivingService : IReceivingService
 
         foreach (var detailGroup in receiving.ReceivingDetails.GroupBy(d => d.ProductId))
         {
-            var poDetails = poDetailsByProduct[detailGroup.Key];
-            var quantity = detailGroup.Sum(d => d.ActualQuantity);
-            var remaining = quantity;
+            if (!poDetailsByProduct.TryGetValue(detailGroup.Key, out var poDetails))
+                throw new InvalidOperationException($"Không thể xác nhận: Sản phẩm không thuộc đơn đặt hàng '{po.PoNumber}'.");
 
+            var quantity = detailGroup.Sum(d => d.ActualQuantity);
+            var totalRemaining = poDetails.Sum(d => Math.Max(0, d.OrderedQuantity - d.ReceivedQuantity));
+            if (quantity > totalRemaining)
+                throw new InvalidOperationException($"Không thể xác nhận: Số lượng nhận {quantity} vượt quá số lượng đặt còn lại của sản phẩm.");
+
+            var remaining = quantity;
             foreach (var poDetail in poDetails)
             {
-                var appliedQuantity = Math.Min(remaining, poDetail.OrderedQuantity - poDetail.ReceivedQuantity);
-                poDetail.ReceivedQuantity += appliedQuantity;
-                remaining -= appliedQuantity;
-                if (remaining == 0) break;
+                var canApply = poDetail.OrderedQuantity - poDetail.ReceivedQuantity;
+                if (canApply > 0)
+                {
+                    var appliedQuantity = Math.Min(remaining, canApply);
+                    poDetail.ReceivedQuantity += appliedQuantity;
+                    remaining -= appliedQuantity;
+                    if (remaining == 0) break;
+                }
             }
-
-            if (remaining != 0)
-                throw new InvalidOperationException($"Không thể xác nhận: Số lượng nhận {quantity} vượt quá số lượng đặt còn lại của sản phẩm.");
         }
     }
 
@@ -204,6 +207,9 @@ public class ReceivingService : IReceivingService
             if (detail.ActualQuantity <= 0)
                 throw new InvalidOperationException($"Số lượng nhận của sản phẩm phải lớn hơn 0.");
 
+            if (detail.UnitPrice.HasValue && detail.UnitPrice.Value < 0)
+                throw new InvalidOperationException("Đơn giá không được nhỏ hơn 0.");
+
             if (!poDetails.TryGetValue(detail.ProductId, out var poDetail))
                 throw new InvalidOperationException($"Sản phẩm không thuộc đơn đặt hàng '{po.PoNumber}'.");
         }
@@ -214,7 +220,7 @@ public class ReceivingService : IReceivingService
             var quantity = detailGroup.Sum(d => d.ActualQuantity);
             var remaining = poDetail.OrderedQuantity - poDetail.ReceivedQuantity;
             if (quantity > remaining)
-                throw new InvalidOperationException($"Không thể nhận {quantity} sản phẩm. Số lượng còn lại cần nhận là {remaining}.");
+                throw new InvalidOperationException($"Không thể nhận {quantity} sản phẩm vượt quá số lượng còn lại. Số lượng còn lại cần nhận là {remaining}.");
         }
     }
 }

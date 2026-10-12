@@ -52,6 +52,7 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
                 Id = po.Id,
                 PoNumber = po.PoNumber,
                 VendorName = po.VendorName,
+                TotalAmount = po.TotalAmount,
                 Status = po.Status,
                 WarehouseId = po.WarehouseId,
                 WarehouseName = po.Warehouse != null ? po.Warehouse.Name : null,
@@ -66,6 +67,8 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
                     ProductName = d.Product.Name,
                     OrderedQuantity = d.OrderedQuantity,
                     ReceivedQuantity = d.ReceivedQuantity,
+                    UnitPrice = d.UnitPrice,
+                    TaxRate = d.TaxRate,
                 }).ToList(),
             })
             .ToListAsync(cancellationToken);

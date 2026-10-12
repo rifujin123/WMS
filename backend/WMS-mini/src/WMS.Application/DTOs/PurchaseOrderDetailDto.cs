@@ -7,4 +7,6 @@ public class PurchaseOrderDetailDto {
     public string ProductName { get; set; } = string.Empty;
     public int OrderedQuantity { get; set; }
     public int ReceivedQuantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TaxRate { get; set; }
 }

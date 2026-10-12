@@ -17,4 +17,11 @@ public class CreateReceivingDto
 
     [MaxLength(1000)]
     public string? InvoiceImageUrl { get; set; }
+
+    [MaxLength(100)]
+    public string? InvoiceNumber { get; set; }
+
+    public DateTime? InvoiceDate { get; set; }
+
+    public decimal? InvoiceTotalAmount { get; set; }
 }

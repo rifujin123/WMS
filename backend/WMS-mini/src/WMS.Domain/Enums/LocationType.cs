@@ -5,5 +5,6 @@ public enum LocationType
     Storage,
     Picking,
     Receiving,
-    Shipping
+    Shipping,
+    Quarantine
 }

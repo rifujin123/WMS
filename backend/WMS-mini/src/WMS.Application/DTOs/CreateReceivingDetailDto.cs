@@ -16,6 +16,8 @@ public class CreateReceivingDetailDto
 
     public ProductCondition Condition { get; set; } = ProductCondition.Ok;
 
+    public decimal? UnitPrice { get; set; }
+
     [MaxLength(50)]
     public string? LotNumber { get; set; }
 

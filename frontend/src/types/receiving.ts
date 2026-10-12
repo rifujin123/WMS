@@ -10,6 +10,7 @@ export interface ReceivingDetailDto {
   expectedQuantity: number
   actualQuantity: number
   condition: ProductCondition
+  unitPrice?: number
   lotNumber?: string
   expiryDate?: string
 }
@@ -24,9 +25,14 @@ export interface ReceivingDto {
   receivedDate: string
   status: ReceivingStatus
   notes?: string
+  invoiceImageUrl?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  invoiceTotalAmount?: number
+  hasDiscrepancy?: boolean
+  discrepancyReason?: string
   details: ReceivingDetailDto[]
   createdDate: string
-  invoiceImageUrl?: string
 }
 
 export interface CreateReceivingDetailDto {
@@ -34,6 +40,7 @@ export interface CreateReceivingDetailDto {
   expectedQuantity: number
   actualQuantity: number
   condition: ProductCondition
+  unitPrice?: number
   lotNumber?: string
   expiryDate?: string
 }
@@ -43,4 +50,7 @@ export interface CreateReceivingDto {
   details: CreateReceivingDetailDto[]
   notes?: string
   invoiceImageUrl?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  invoiceTotalAmount?: number
 }

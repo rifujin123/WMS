@@ -65,6 +65,7 @@ export const PICKING_STATUS_COLOR: Record<PickingStatus, string> = {
 export const PURCHASE_ORDER_STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
   Pending: 'Chờ duyệt',
   Approved: 'Đã duyệt',
+  PartiallyReceived: 'Nhận một phần',
   Received: 'Đã nhận hàng',
   Closed: 'Đã đóng',
 }
@@ -72,6 +73,7 @@ export const PURCHASE_ORDER_STATUS_LABEL: Record<PurchaseOrderStatus, string> = 
 export const PURCHASE_ORDER_STATUS_COLOR: Record<PurchaseOrderStatus, string> = {
   Pending: 'orange',
   Approved: 'green',
+  PartiallyReceived: 'processing',
   Received: 'blue',
   Closed: 'default',
 }

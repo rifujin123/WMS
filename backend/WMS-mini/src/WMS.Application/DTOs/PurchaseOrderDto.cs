@@ -6,6 +6,7 @@ public class PurchaseOrderDto {
     public Guid Id { get; set; }
     public string PoNumber { get; set; } = string.Empty;
     public string? VendorName { get; set; }
+    public decimal TotalAmount { get; set; }
     public PurchaseOrderStatus Status { get; set; }
     public Guid? WarehouseId { get; set; }
     public string? WarehouseName { get; set; }

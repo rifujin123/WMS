@@ -133,9 +133,21 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(p => new { p.TenantId, p.PoNumber })
             .IsUnique();
 
+        modelBuilder.Entity<PurchaseOrder>()
+            .Property(p => p.TotalAmount)
+            .HasColumnType("decimal(18,2)");
+
         modelBuilder.Entity<PurchaseOrderDetail>()
             .Property(d => d.RowVersion)
             .IsRowVersion();
+
+        modelBuilder.Entity<PurchaseOrderDetail>()
+            .Property(d => d.UnitPrice)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<PurchaseOrderDetail>()
+            .Property(d => d.TaxRate)
+            .HasColumnType("decimal(5,2)");
 
         modelBuilder.Entity<SaleOrder>()
             .HasIndex(s => new { s.TenantId, s.OrderNo })
@@ -146,9 +158,12 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .IsUnique();
 
         modelBuilder.Entity<Receiving>()
-            .HasIndex(r => new { r.TenantId, r.PurchaseOrderId })
-            .IsUnique()
-            .HasFilter("[Status] = 1");
+            .Property(r => r.InvoiceTotalAmount)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<ReceivingDetail>()
+            .Property(d => d.UnitPrice)
+            .HasColumnType("decimal(18,2)");
 
         modelBuilder.Entity<StockAdjustment>()
             .HasIndex(a => new { a.TenantId, a.AdjustmentNo })

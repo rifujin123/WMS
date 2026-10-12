@@ -12,6 +12,8 @@ public class PurchaseOrder : BaseAuditableEntity
     [MaxLength(200)]
     public string? VendorName { get; set; }
 
+    public decimal TotalAmount { get; set; }
+
     public PurchaseOrderStatus Status { get; set; }
 
     public Guid? ApprovedById { get; set; }

@@ -61,6 +61,11 @@ public class SqlReceivingRepository : IReceivingRepository
                 Status = r.Status,
                 Notes = r.Notes,
                 InvoiceImageUrl = r.InvoiceImageUrl,
+                InvoiceNumber = r.InvoiceNumber,
+                InvoiceDate = r.InvoiceDate,
+                InvoiceTotalAmount = r.InvoiceTotalAmount,
+                HasDiscrepancy = r.HasDiscrepancy,
+                DiscrepancyReason = r.DiscrepancyReason,
                 CreatedDate = r.CreatedDate,
                 Details = r.ReceivingDetails.Select(d => new ReceivingDetailDto
                 {
@@ -72,6 +77,9 @@ public class SqlReceivingRepository : IReceivingRepository
                     ExpectedQuantity = d.ExpectedQuantity,
                     ActualQuantity = d.ActualQuantity,
                     Condition = d.Condition,
+                    UnitPrice = d.UnitPrice,
+                    LotNumber = d.LotNumber,
+                    ExpiryDate = d.ExpiryDate,
                 }).ToList(),
             })
             .ToListAsync(cancellationToken);

@@ -12,6 +12,7 @@ public class ReceivingDetailDto
     public int ExpectedQuantity { get; set; }
     public int ActualQuantity { get; set; }
     public ProductCondition Condition { get; set; }
+    public decimal? UnitPrice { get; set; }
     public string? LotNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
 }

@@ -60,7 +60,14 @@ public class PurchaseOrderService : IPurchaseOrderService
         {
             entity.WarehouseId = _currentUser.WarehouseId.Value;
         }
+        if (entity.PurchaseOrderDetails.Any(d => d.UnitPrice < 0 || d.TaxRate < 0))
+            throw new InvalidOperationException("Đơn giá và thuế suất không được nhỏ hơn 0.");
+
         entity.Status = PurchaseOrderStatus.Pending;
+        entity.TotalAmount = Math.Round(
+            entity.PurchaseOrderDetails.Sum(d => d.OrderedQuantity * d.UnitPrice * (1 + d.TaxRate / 100m)),
+            2,
+            MidpointRounding.AwayFromZero);
         await _repo.AddAsync(entity);
         await _unitOfWork.SaveChangesAsync();
         return (await GetByIdAsync(entity.Id))!;
@@ -74,6 +81,13 @@ public class PurchaseOrderService : IPurchaseOrderService
         await _repo.RemoveDetailsAsync(entity.Id);
         entity.PurchaseOrderDetails = _mapper.Map<List<PurchaseOrderDetail>>(dto.PurchaseOrderDetails);
         foreach (var detail in entity.PurchaseOrderDetails) detail.PurchaseOrderId = entity.Id;
+        if (entity.PurchaseOrderDetails.Any(d => d.UnitPrice < 0 || d.TaxRate < 0))
+            throw new InvalidOperationException("Đơn giá và thuế suất không được nhỏ hơn 0.");
+
+        entity.TotalAmount = Math.Round(
+            entity.PurchaseOrderDetails.Sum(d => d.OrderedQuantity * d.UnitPrice * (1 + d.TaxRate / 100m)),
+            2,
+            MidpointRounding.AwayFromZero);
         await _repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<PurchaseOrderDto>(entity);
@@ -104,7 +118,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     public async Task<PurchaseOrderDto?> CloseAsync(Guid id)
     {
         var entity = await _repo.GetByIdAsync(id);
-        if (entity == null || entity.Status != PurchaseOrderStatus.Received) return null;
+        if (entity == null || (entity.Status != PurchaseOrderStatus.Received && entity.Status != PurchaseOrderStatus.PartiallyReceived)) return null;
         entity.Status = PurchaseOrderStatus.Closed;
         entity.ClosedById = _currentUser.UserId;
         entity.ClosedDate = DateTime.UtcNow;

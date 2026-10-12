@@ -29,5 +29,17 @@ public class Receiving : BaseAuditableEntity
     [MaxLength(1000)]
     public string? InvoiceImageUrl { get; set; }
 
+    [MaxLength(100)]
+    public string? InvoiceNumber { get; set; }
+
+    public DateTime? InvoiceDate { get; set; }
+
+    public decimal? InvoiceTotalAmount { get; set; }
+
+    public bool HasDiscrepancy { get; set; }
+
+    [MaxLength(1000)]
+    public string? DiscrepancyReason { get; set; }
+
     public ICollection<ReceivingDetail> ReceivingDetails { get; set; } = new List<ReceivingDetail>();
 }
