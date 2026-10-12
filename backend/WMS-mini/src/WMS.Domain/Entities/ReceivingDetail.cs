@@ -27,5 +27,10 @@ public class ReceivingDetail : BaseAuditableEntity
 
     public DateTime? ExpiryDate { get; set; }
 
+    public DiscrepancyAction? DiscrepancyAction { get; set; }
+
+    [MaxLength(500)]
+    public string? DiscrepancyNotes { get; set; }
+
     public ICollection<PutAwayTask> PutAwayTasks { get; set; } = new List<PutAwayTask>();
 }

@@ -15,4 +15,6 @@ public class ReceivingDetailDto
     public decimal? UnitPrice { get; set; }
     public string? LotNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
+    public DiscrepancyAction? DiscrepancyAction { get; set; }
+    public string? DiscrepancyNotes { get; set; }
 }

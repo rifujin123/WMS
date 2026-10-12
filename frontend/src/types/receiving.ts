@@ -1,3 +1,5 @@
+import type { DiscrepancyAction, DiscrepancyReportDto } from './discrepancy'
+
 export type ReceivingStatus = 'Draft' | 'Confirmed'
 export type ProductCondition = 'Ok' | 'Damaged' | 'Missing'
 
@@ -13,6 +15,8 @@ export interface ReceivingDetailDto {
   unitPrice?: number
   lotNumber?: string
   expiryDate?: string
+  discrepancyAction?: DiscrepancyAction
+  discrepancyNotes?: string
 }
 
 export interface ReceivingDto {
@@ -31,6 +35,7 @@ export interface ReceivingDto {
   invoiceTotalAmount?: number
   hasDiscrepancy?: boolean
   discrepancyReason?: string
+  discrepancyReport?: DiscrepancyReportDto
   details: ReceivingDetailDto[]
   createdDate: string
 }
@@ -43,6 +48,8 @@ export interface CreateReceivingDetailDto {
   unitPrice?: number
   lotNumber?: string
   expiryDate?: string
+  discrepancyAction?: DiscrepancyAction
+  discrepancyNotes?: string
 }
 
 export interface CreateReceivingDto {

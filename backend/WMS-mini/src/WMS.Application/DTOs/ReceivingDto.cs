@@ -19,6 +19,7 @@ public class ReceivingDto
     public decimal? InvoiceTotalAmount { get; set; }
     public bool HasDiscrepancy { get; set; }
     public string? DiscrepancyReason { get; set; }
+    public DiscrepancyReportDto? DiscrepancyReport { get; set; }
     public List<ReceivingDetailDto> Details { get; set; } = new();
     public DateTime CreatedDate { get; set; }
 }

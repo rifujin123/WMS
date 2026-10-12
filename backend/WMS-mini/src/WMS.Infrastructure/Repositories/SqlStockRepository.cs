@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
+using WMS.Domain.Enums;
 using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Repositories;
@@ -105,6 +106,7 @@ public class SqlStockRepository : IStockRepository
             .Include(s => s.Location)
             .Where(s => s.ProductId == productId
                 && s.Location.WarehouseId == warehouseId
+                && s.Location.LocationType != LocationType.Quarantine
                 && s.OnhandQty - s.ReservedQty > 0);
 
         if (hasExpiry)

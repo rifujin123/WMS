@@ -51,12 +51,19 @@ public class MappingProfile : Profile
         CreateMap<Receiving, ReceivingDto>()
             .ForMember(d => d.PoNumber, o => o.MapFrom(s => s.PurchaseOrder.PoNumber))
             .ForMember(d => d.ReceivedByName, o => o.MapFrom(s => s.ReceivedBy != null ? s.ReceivedBy.UserName : null))
-            .ForMember(d => d.Details, o => o.MapFrom(s => s.ReceivingDetails));
+            .ForMember(d => d.Details, o => o.MapFrom(s => s.ReceivingDetails))
+            .ForMember(d => d.DiscrepancyReport, o => o.MapFrom(s => s.DiscrepancyReport));
         CreateMap<CreateReceivingDto, Receiving>()
             .ForMember(d => d.ReceivingDetails, o => o.Ignore());
         CreateMap<ReceivingDetail, ReceivingDetailDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
+
+        CreateMap<DiscrepancyReport, DiscrepancyReportDto>()
+            .ForMember(d => d.ReceivingNo, o => o.MapFrom(s => s.Receiving != null ? s.Receiving.ReceivingNo : string.Empty))
+            .ForMember(d => d.PoNumber, o => o.MapFrom(s => s.PurchaseOrder != null ? s.PurchaseOrder.PoNumber : null))
+            .ForMember(d => d.VendorName, o => o.MapFrom(s => s.Vendor != null ? s.Vendor.Name : (s.PurchaseOrder != null ? s.PurchaseOrder.VendorName : s.VendorName)))
+            .ForMember(d => d.ApprovedByName, o => o.MapFrom(s => s.ApprovedBy != null ? s.ApprovedBy.FullName : null));
 
         CreateMap<PutAwayTask, PutAwayTaskDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))

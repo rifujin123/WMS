@@ -44,6 +44,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<PurchaseOrderDetail> PurchaseOrderDetails => Set<PurchaseOrderDetail>();
     public DbSet<Receiving> Receivings => Set<Receiving>();
     public DbSet<ReceivingDetail> ReceivingDetails => Set<ReceivingDetail>();
+    public DbSet<DiscrepancyReport> DiscrepancyReports => Set<DiscrepancyReport>();
     public DbSet<PutAwayTask> PutAwayTasks => Set<PutAwayTask>();
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
@@ -186,6 +187,34 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<ReceivingDetail>()
             .Property(d => d.UnitPrice)
             .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<DiscrepancyReport>()
+            .HasOne(d => d.Receiving)
+            .WithOne(r => r.DiscrepancyReport)
+            .HasForeignKey<DiscrepancyReport>(d => d.ReceivingId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<DiscrepancyReport>()
+            .HasOne(d => d.PurchaseOrder)
+            .WithMany()
+            .HasForeignKey(d => d.PurchaseOrderId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<DiscrepancyReport>()
+            .HasOne(d => d.Vendor)
+            .WithMany()
+            .HasForeignKey(d => d.VendorId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<DiscrepancyReport>()
+            .HasOne(d => d.ApprovedBy)
+            .WithMany()
+            .HasForeignKey(d => d.ApprovedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<DiscrepancyReport>()
+            .HasIndex(d => new { d.TenantId, d.ReceivingId })
+            .IsUnique();
 
         modelBuilder.Entity<StockAdjustment>()
             .HasIndex(a => new { a.TenantId, a.AdjustmentNo })

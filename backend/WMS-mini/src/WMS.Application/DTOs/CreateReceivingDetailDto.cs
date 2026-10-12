@@ -11,7 +11,7 @@ public class CreateReceivingDetailDto
     [Range(1, int.MaxValue)]
     public int ExpectedQuantity { get; set; }
 
-    [Range(1, int.MaxValue)]
+    [Range(0, int.MaxValue)]
     public int ActualQuantity { get; set; }
 
     public ProductCondition Condition { get; set; } = ProductCondition.Ok;
@@ -22,4 +22,9 @@ public class CreateReceivingDetailDto
     public string? LotNumber { get; set; }
 
     public DateTime? ExpiryDate { get; set; }
+
+    public DiscrepancyAction? DiscrepancyAction { get; set; }
+
+    [MaxLength(500)]
+    public string? DiscrepancyNotes { get; set; }
 }

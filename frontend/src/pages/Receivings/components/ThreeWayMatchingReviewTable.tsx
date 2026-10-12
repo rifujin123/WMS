@@ -1,4 +1,4 @@
-import { Card, Empty, Table, Tag } from 'antd'
+import { Card, Empty, Select, Table, Tag } from 'antd'
 import type { TableColumnsType } from 'antd'
 import {
   CheckCircleOutlined,
@@ -8,11 +8,15 @@ import dayjs from 'dayjs'
 import type { ThreeWayMatchingRow } from '../../../lib/threeWayMatching'
 import { calculateMatchingSummary } from '../../../lib/threeWayMatching'
 import type { ProductCondition } from '../../../types/receiving'
+import type { DiscrepancyAction } from '../../../types/discrepancy'
+import { discrepancyActionLabels } from '../../../types/discrepancy'
 
 interface ThreeWayMatchingReviewTableProps {
   rows: ThreeWayMatchingRow[]
   loading?: boolean
   showSummary?: boolean
+  editable?: boolean
+  onActionChange?: (rowKey: string, action?: DiscrepancyAction) => void
 }
 
 const conditionTagMap: Record<ProductCondition, { color: string; label: string }> = {
@@ -21,10 +25,20 @@ const conditionTagMap: Record<ProductCondition, { color: string; label: string }
   Missing: { color: 'orange', label: 'Thiếu' },
 }
 
+const discrepancyActionOptions = [
+  { value: 'BacklogDeliverLater', label: 'Giao bù đợt sau' },
+  { value: 'CreditOffset', label: 'Cấn trừ tiền công nợ' },
+  { value: 'CancelShortage', label: 'Chốt nhận đủ, hủy phần thiếu' },
+  { value: 'QuarantineAndHold', label: 'Cất vào khu cách ly' },
+  { value: 'ReturnToVendor', label: 'Trả ngay cho tài xế' },
+]
+
 export function ThreeWayMatchingReviewTable({
   rows,
   loading = false,
   showSummary = true,
+  editable = false,
+  onActionChange,
 }: ThreeWayMatchingReviewTableProps) {
   const summary = calculateMatchingSummary(rows)
 
@@ -237,6 +251,59 @@ export function ThreeWayMatchingReviewTable({
             Khớp chuẩn
           </span>
         )
+      },
+    },
+    {
+      title: 'Hướng xử lý',
+      key: 'discrepancyAction',
+      width: 175,
+      render: (_, r) => {
+        const isDiscrepant =
+          r.hasQuantityDiscrepancy ||
+          r.hasPriceDiscrepancy ||
+          r.isMissingInInvoice ||
+          r.isUnordered ||
+          r.condition !== 'Ok' ||
+          !!r.discrepancyAction
+
+        if (!isDiscrepant) {
+          return <span style={{ color: '#8c8c8c' }}>—</span>
+        }
+
+        if (editable) {
+          let options = discrepancyActionOptions
+          if (r.condition === 'Damaged') {
+            options = [
+              { value: 'QuarantineAndHold', label: 'Cất vào khu cách ly' },
+              { value: 'ReturnToVendor', label: 'Trả ngay cho tài xế' },
+              { value: 'CreditOffset', label: 'Cấn trừ tiền công nợ' },
+            ]
+          } else if (r.condition === 'Missing' || r.actualQuantity < r.poQuantity) {
+            options = [
+              { value: 'BacklogDeliverLater', label: 'Giao bù đợt sau' },
+              { value: 'CreditOffset', label: 'Cấn trừ tiền công nợ' },
+              { value: 'CancelShortage', label: 'Chốt nhận đủ, hủy phần thiếu' },
+            ]
+          }
+
+          return (
+            <Select<DiscrepancyAction>
+              size="small"
+              allowClear
+              placeholder="Chọn hướng xử lý"
+              value={r.discrepancyAction}
+              onChange={(val) => onActionChange?.(r.key, val)}
+              options={options}
+              style={{ width: '100%' }}
+            />
+          )
+        }
+
+        if (!r.discrepancyAction) {
+          return <span style={{ color: '#faad14', fontSize: 12 }}>Chưa chọn</span>
+        }
+
+        return <span style={{ fontSize: 12 }}>{discrepancyActionLabels[r.discrepancyAction] ?? r.discrepancyAction}</span>
       },
     },
   ]

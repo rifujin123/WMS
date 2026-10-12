@@ -11,4 +11,6 @@ public interface IReceivingService
     Task<ReceivingDto?> ConfirmAsync(Guid id);
     Task<ReceivingDto?> UpdateAsync(Guid id, CreateReceivingDto dto);
     Task<bool> DeleteAsync(Guid id);
+    Task<DiscrepancyReportDto?> GetDiscrepancyReportAsync(Guid receivingId);
+    Task<DiscrepancyReportDto> ApproveDiscrepancyReportAsync(Guid receivingId, ApproveDiscrepancyReportDto dto);
 }

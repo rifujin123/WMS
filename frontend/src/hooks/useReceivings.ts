@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateReceivingDto } from '../types/receiving'
+import type { ApproveDiscrepancyReportDto } from '../types/discrepancy'
 import type { ReceivingListParams } from '../services/receiving'
 import {
+  approveDiscrepancyReport as approveDiscrepancyReportRequest,
   confirmReceiving as confirmReceivingRequest,
   createReceiving as createReceivingRequest,
   deleteReceiving as deleteReceivingRequest,
+  getDiscrepancyReport,
   getReceiving,
   getReceivings,
   getReceivingsPage,
@@ -78,6 +81,28 @@ export function useConfirmReceiving() {
       // confirm sinh ra PutAwayTasks mới
       queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] })
       queryClient.invalidateQueries({ queryKey: ['putAwayTasksPage'] })
+    },
+  })
+}
+
+export function useDiscrepancyReport(receivingId: string | undefined) {
+  return useQuery({
+    queryKey: ['discrepancyReport', receivingId],
+    queryFn: () => getDiscrepancyReport(receivingId!),
+    enabled: !!receivingId,
+  })
+}
+
+export function useApproveDiscrepancyReport() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: ApproveDiscrepancyReportDto }) =>
+      approveDiscrepancyReportRequest(id, dto),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['receivings'] })
+      queryClient.invalidateQueries({ queryKey: ['receivingsPage'] })
+      queryClient.invalidateQueries({ queryKey: ['receiving', id] })
+      queryClient.invalidateQueries({ queryKey: ['discrepancyReport', id] })
     },
   })
 }

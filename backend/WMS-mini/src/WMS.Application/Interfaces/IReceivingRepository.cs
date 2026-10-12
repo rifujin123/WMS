@@ -10,6 +10,10 @@ public interface IReceivingRepository
     Task<Receiving?> GetByIdAsync(Guid id);
     Task<Receiving?> GetConfirmedByPurchaseOrderIdAsync(Guid purchaseOrderId);
     Task<ReceivingDetail?> GetDetailByIdAsync(Guid id);
+    Task<DiscrepancyReport?> GetDiscrepancyReportByReceivingIdAsync(Guid receivingId);
+    Task AddDiscrepancyReportAsync(DiscrepancyReport report);
+    Task UpdateDiscrepancyReportAsync(DiscrepancyReport report);
+    Task DeleteDiscrepancyReportAsync(DiscrepancyReport report);
     Task AddAsync(Receiving receiving);
     Task UpdateAsync(Receiving receiving);
     Task RemoveDetailsAsync(Guid receivingId);

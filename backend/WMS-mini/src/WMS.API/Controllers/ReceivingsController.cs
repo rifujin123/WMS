@@ -93,6 +93,35 @@ public class ReceivingsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id}/discrepancy-report")]
+    public async Task<IActionResult> GetDiscrepancyReport([FromRoute] Guid id)
+    {
+        var result = await _service.GetDiscrepancyReportAsync(id);
+        if (result == null)
+            return NotFound(new { message = "Không tìm thấy biên bản bất thường." });
+
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/discrepancy-report/approve")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> ApproveDiscrepancyReport([FromRoute] Guid id, [FromBody] ApproveDiscrepancyReportDto dto)
+    {
+        try
+        {
+            var result = await _service.ApproveDiscrepancyReportAsync(id, dto);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,WarehouseManager,WarehouseStaff")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] CreateReceivingDto dto)

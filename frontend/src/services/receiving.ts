@@ -1,5 +1,6 @@
 import api from '../lib/axios'
 import type { ReceivingDto, CreateReceivingDto, ReceivingStatus } from '../types/receiving'
+import type { DiscrepancyReportDto, ApproveDiscrepancyReportDto } from '../types/discrepancy'
 import type { PagedResponse } from '../types/pagination'
 
 export interface ReceivingListParams {
@@ -28,3 +29,9 @@ export const deleteReceiving = (id: string): Promise<void> =>
 
 export const confirmReceiving = (id: string): Promise<ReceivingDto> =>
   api.post(`/Receivings/${id}/confirm`)
+
+export const getDiscrepancyReport = (id: string): Promise<DiscrepancyReportDto> =>
+  api.get(`/Receivings/${id}/discrepancy-report`)
+
+export const approveDiscrepancyReport = (id: string, dto: ApproveDiscrepancyReportDto): Promise<DiscrepancyReportDto> =>
+  api.post(`/Receivings/${id}/discrepancy-report/approve`, dto)

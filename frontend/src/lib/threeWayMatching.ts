@@ -1,6 +1,7 @@
 import type { PurchaseOrderDetailDto } from '../types/purchaseOrder'
 import type { ProductMatch, ProductSuggestion } from '../types/invoiceScan'
 import type { ProductCondition, ReceivingDetailDto } from '../types/receiving'
+import type { DiscrepancyAction } from '../types/discrepancy'
 
 export interface ThreeWayMatchingRow {
   key: string
@@ -27,6 +28,8 @@ export interface ThreeWayMatchingRow {
   hasPriceDiscrepancy: boolean
   lotNumber?: string
   expiryDate?: string
+  discrepancyAction?: DiscrepancyAction
+  discrepancyNotes?: string
   suggestions?: ProductSuggestion[]
 }
 
@@ -57,6 +60,8 @@ export function buildThreeWayMatchingMatrix(
     condition?: ProductCondition
     unitPrice?: number
     expectedQuantity?: number
+    discrepancyAction?: DiscrepancyAction
+    discrepancyNotes?: string
   }> = [],
 ): ThreeWayMatchingRow[] {
   const rows: ThreeWayMatchingRow[] = []
@@ -115,6 +120,8 @@ export function buildThreeWayMatchingMatrix(
         isUnordered: false,
         hasQuantityDiscrepancy: hasQDisc,
         hasPriceDiscrepancy: hasPDisc,
+        discrepancyAction: actual?.discrepancyAction,
+        discrepancyNotes: actual?.discrepancyNotes,
         suggestions: inv.suggestions,
       })
     } else {
@@ -145,6 +152,8 @@ export function buildThreeWayMatchingMatrix(
         isUnordered: false,
         hasQuantityDiscrepancy: true,
         hasPriceDiscrepancy: false,
+        discrepancyAction: actual?.discrepancyAction,
+        discrepancyNotes: actual?.discrepancyNotes,
       })
     }
   })
@@ -183,6 +192,8 @@ export function buildThreeWayMatchingMatrix(
       isUnordered: true,
       hasQuantityDiscrepancy: true,
       hasPriceDiscrepancy: false,
+      discrepancyAction: actual?.discrepancyAction,
+      discrepancyNotes: actual?.discrepancyNotes,
       suggestions: inv.suggestions,
     })
   })
@@ -193,12 +204,13 @@ export function buildThreeWayMatchingMatrix(
 export function buildMatchingMatrixFromReceiving(
   receivingDetails: ReceivingDetailDto[] = [],
   poDetails: PurchaseOrderDetailDto[] = [],
+  includeMissingPoItems = false,
 ): ThreeWayMatchingRow[] {
   // ponytail: view-mode mapping from persisted receiving details; upgrade when audit history API arrives
   const poMap = new Map<string, PurchaseOrderDetailDto>()
   poDetails.forEach((p) => poMap.set(p.productId, p))
 
-  return receivingDetails.map((rd, idx) => {
+  const rows: ThreeWayMatchingRow[] = receivingDetails.map((rd, idx) => {
     const po = poMap.get(rd.productId)
     // For historical inspection, baseline is original PO ordered quantity or expectedQuantity on receipt
     const poQty = rd.expectedQuantity > 0 ? rd.expectedQuantity : (po?.orderedQuantity ?? 0)
@@ -237,8 +249,47 @@ export function buildMatchingMatrixFromReceiving(
       hasPriceDiscrepancy: hasPDisc,
       lotNumber: rd.lotNumber,
       expiryDate: rd.expiryDate,
+      discrepancyAction: rd.discrepancyAction,
+      discrepancyNotes: rd.discrepancyNotes,
     }
   })
+
+  // Full Outer-Join: include PO items not received at all when requested
+  if (includeMissingPoItems) {
+    const receivedProductIds = new Set(receivingDetails.map((r) => r.productId))
+    poDetails.forEach((po) => {
+      if (!receivedProductIds.has(po.productId)) {
+        const poQty = po.orderedQuantity
+        const poPrice = po.unitPrice ?? 0
+        rows.push({
+          key: `missing-po-${po.productId}`,
+          productId: po.productId,
+          sku: po.productSku,
+          productName: po.productName,
+          poQuantity: poQty,
+          poUnitPrice: poPrice,
+          poTotalAmount: poQty * poPrice,
+          invoiceQuantity: 0,
+          invoiceUnitPrice: 0,
+          invoiceTotalAmount: 0,
+          actualQuantity: 0,
+          actualTotalAmount: 0,
+          condition: 'Missing',
+          quantityDeltaInvoice: -poQty,
+          quantityDeltaActual: 0,
+          priceDelta: 0,
+          confidenceScore: 0,
+          confidenceLevel: 'low',
+          isMissingInInvoice: true,
+          isUnordered: false,
+          hasQuantityDiscrepancy: true,
+          hasPriceDiscrepancy: false,
+        })
+      }
+    })
+  }
+
+  return rows
 }
 
 export function calculateMatchingSummary(rows: ThreeWayMatchingRow[]): ThreeWayMatchingSummary {
@@ -251,7 +302,7 @@ export function calculateMatchingSummary(rows: ThreeWayMatchingRow[]): ThreeWayM
     totalPoAmount += r.poTotalAmount
     totalInvoiceAmount += r.invoiceTotalAmount
     totalActualAmount += r.actualTotalAmount
-    if (r.hasQuantityDiscrepancy || r.hasPriceDiscrepancy || r.isMissingInInvoice || r.isUnordered) {
+    if (r.hasQuantityDiscrepancy || r.hasPriceDiscrepancy || r.isMissingInInvoice || r.isUnordered || r.condition !== 'Ok' || !!r.discrepancyAction) {
       discrepancyCount += 1
     }
   })

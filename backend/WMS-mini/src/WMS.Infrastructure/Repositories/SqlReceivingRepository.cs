@@ -20,6 +20,8 @@ public class SqlReceivingRepository : IReceivingRepository
     {
         return await _db.Receivings
             .Include(r => r.PurchaseOrder)
+            .Include(r => r.DiscrepancyReport)
+                .ThenInclude(d => d!.ApprovedBy)
             .Include(r => r.ReceivingDetails)
                 .ThenInclude(d => d.Product)
             .OrderByDescending(r => r.CreatedDate)
@@ -66,6 +68,24 @@ public class SqlReceivingRepository : IReceivingRepository
                 InvoiceTotalAmount = r.InvoiceTotalAmount,
                 HasDiscrepancy = r.HasDiscrepancy,
                 DiscrepancyReason = r.DiscrepancyReason,
+                DiscrepancyReport = r.DiscrepancyReport == null ? null : new DiscrepancyReportDto
+                {
+                    Id = r.DiscrepancyReport.Id,
+                    ReceivingId = r.DiscrepancyReport.ReceivingId,
+                    ReceivingNo = r.ReceivingNo,
+                    PurchaseOrderId = r.DiscrepancyReport.PurchaseOrderId,
+                    PoNumber = r.PurchaseOrder.PoNumber,
+                    VendorId = r.DiscrepancyReport.VendorId,
+                    VendorName = r.DiscrepancyReport.VendorName,
+                    Status = r.DiscrepancyReport.Status,
+                    ApprovedById = r.DiscrepancyReport.ApprovedById,
+                    ApprovedByName = r.DiscrepancyReport.ApprovedBy != null ? r.DiscrepancyReport.ApprovedBy.FullName : null,
+                    ApprovedDate = r.DiscrepancyReport.ApprovedDate,
+                    ResolutionSummary = r.DiscrepancyReport.ResolutionSummary,
+                    Notes = r.DiscrepancyReport.Notes,
+                    EvidenceImagesJson = r.DiscrepancyReport.EvidenceImagesJson,
+                    CreatedDate = r.DiscrepancyReport.CreatedDate
+                },
                 CreatedDate = r.CreatedDate,
                 Details = r.ReceivingDetails.Select(d => new ReceivingDetailDto
                 {
@@ -80,6 +100,8 @@ public class SqlReceivingRepository : IReceivingRepository
                     UnitPrice = d.UnitPrice,
                     LotNumber = d.LotNumber,
                     ExpiryDate = d.ExpiryDate,
+                    DiscrepancyAction = d.DiscrepancyAction,
+                    DiscrepancyNotes = d.DiscrepancyNotes,
                 }).ToList(),
             })
             .ToListAsync(cancellationToken);
@@ -91,9 +113,36 @@ public class SqlReceivingRepository : IReceivingRepository
     {
         return await _db.Receivings
             .Include(r => r.PurchaseOrder)
+            .Include(r => r.DiscrepancyReport)
+                .ThenInclude(d => d!.ApprovedBy)
             .Include(r => r.ReceivingDetails)
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task<DiscrepancyReport?> GetDiscrepancyReportByReceivingIdAsync(Guid receivingId)
+    {
+        return await _db.DiscrepancyReports
+            .Include(d => d.Receiving)
+            .Include(d => d.PurchaseOrder)
+            .Include(d => d.Vendor)
+            .Include(d => d.ApprovedBy)
+            .FirstOrDefaultAsync(d => d.ReceivingId == receivingId);
+    }
+
+    public async Task AddDiscrepancyReportAsync(DiscrepancyReport report)
+    {
+        await _db.DiscrepancyReports.AddAsync(report);
+    }
+
+    public async Task UpdateDiscrepancyReportAsync(DiscrepancyReport report)
+    {
+        _db.DiscrepancyReports.Update(report);
+    }
+
+    public async Task DeleteDiscrepancyReportAsync(DiscrepancyReport report)
+    {
+        _db.DiscrepancyReports.Remove(report);
     }
 
     public async Task<Receiving?> GetConfirmedByPurchaseOrderIdAsync(Guid purchaseOrderId)
@@ -129,6 +178,11 @@ public class SqlReceivingRepository : IReceivingRepository
 
     public async Task DeleteAsync(Receiving receiving)
     {
+        var report = await _db.DiscrepancyReports.FirstOrDefaultAsync(r => r.ReceivingId == receiving.Id);
+        if (report != null)
+        {
+            _db.DiscrepancyReports.Remove(report);
+        }
         // Mark details as deleted too because the required FK uses NoAction.
         _db.ReceivingDetails.RemoveRange(receiving.ReceivingDetails);
         _db.Receivings.Remove(receiving);

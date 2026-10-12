@@ -29,6 +29,7 @@ import type {
   ProductCondition,
   ReceivingDto,
 } from '../../../types/receiving'
+import type { DiscrepancyAction } from '../../../types/discrepancy'
 import type { InvoiceScanResult, ProductSuggestion } from '../../../types/invoiceScan'
 import { useCreateReceiving, useReceiving, useUpdateReceiving } from '../../../hooks/useReceivings'
 import { useInvoiceScan } from '../../../hooks/useInvoiceScan'
@@ -53,6 +54,14 @@ const conditionOptions: { value: ProductCondition; label: string }[] = [
   { value: 'Ok', label: 'OK' },
   { value: 'Damaged', label: 'Hỏng' },
   { value: 'Missing', label: 'Thiếu' },
+]
+
+const discrepancyActionFormOptions: { value: DiscrepancyAction; label: string }[] = [
+  { value: 'BacklogDeliverLater', label: 'Giao bù đợt sau' },
+  { value: 'CreditOffset', label: 'Cấn trừ tiền công nợ' },
+  { value: 'CancelShortage', label: 'Chốt nhận đủ, hủy phần thiếu' },
+  { value: 'QuarantineAndHold', label: 'Cất vào khu cách ly' },
+  { value: 'ReturnToVendor', label: 'Trả ngay cho tài xế' },
 ]
 
 function getRemainingQuantity(detail: PurchaseOrderDto['purchaseOrderDetails'][number]) {
@@ -213,6 +222,8 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
           actualQuantity: detail.actualQuantity,
           condition: detail.condition,
           unitPrice: detail.unitPrice,
+          discrepancyAction: detail.discrepancyAction,
+          discrepancyNotes: detail.discrepancyNotes,
         }
       }),
     })
@@ -288,6 +299,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
           actualQuantity: 0,
           condition: 'Missing',
           unitPrice: poDetail.unitPrice,
+          discrepancyAction: 'BacklogDeliverLater',
         })
       }
     })
@@ -358,10 +370,12 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
         return
       }
 
-      // Chỉ lưu các dòng có số lượng thực nhận > 0 (các dòng thiếu 0 món sẽ được nhận ở đợt sau)
-      const validDetails = (values.details ?? []).filter((detail) => Number(detail.actualQuantity) > 0)
+      // Chỉ lưu các dòng có số lượng thực nhận > 0 hoặc dòng thiếu (0 món) đính kèm hành động xử lý thiếu
+      const validDetails = (values.details ?? []).filter(
+        (detail) => Number(detail.actualQuantity) > 0 || (Number(detail.actualQuantity) === 0 && detail.discrepancyAction),
+      )
       if (validDetails.length === 0) {
-        toast.error('Cần ít nhất một sản phẩm có số lượng thực nhận lớn hơn 0.')
+        toast.error('Cần ít nhất một sản phẩm có số lượng thực nhận lớn hơn 0 hoặc đính kèm hành động xử lý thiếu.')
         return
       }
 
@@ -373,6 +387,8 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
           actualQuantity: Number(detail.actualQuantity),
           condition: detail.condition,
           unitPrice: detail.unitPrice,
+          discrepancyAction: detail.discrepancyAction,
+          discrepancyNotes: detail.discrepancyNotes,
         })),
         notes: values.notes?.trim() || undefined,
         invoiceImageUrl: invoiceImageUrl || editingReceiving?.invoiceImageUrl || undefined,
@@ -508,7 +524,22 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
               Bảng đối soát 3 bên (PO ↔ Hóa đơn ↔ Thực nhận)
             </Typography.Text>
             <div style={{ marginBottom: 16 }}>
-              <ThreeWayMatchingReviewTable rows={matchingRows} showSummary />
+              <ThreeWayMatchingReviewTable
+                rows={matchingRows}
+                showSummary
+                editable
+                onActionChange={(rowKey, action) => {
+                  const currentDetails: CreateReceivingDetailDto[] = form.getFieldValue('details') || []
+                  const idx = currentDetails.findIndex(
+                    (d) =>
+                      d.productId === rowKey ||
+                      selectedPurchaseOrder?.purchaseOrderDetails.find((p) => p.productSku === rowKey)?.productId === d.productId,
+                  )
+                  if (idx >= 0) {
+                    form.setFieldValue(['details', idx, 'discrepancyAction'], action)
+                  }
+                }}
+              />
             </div>
 
             {/* Form chỉnh sửa số lượng thực nhận và tình trạng từng dòng */}
@@ -538,15 +569,16 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                 {(fields, { add, remove }) => (
                   <>
                     <Row gutter={8} style={{ marginBottom: 6 }}>
-                      <Col span={8}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Sản phẩm</Typography.Text></Col>
-                      <Col span={4}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Ước tính</Typography.Text></Col>
-                      <Col span={4}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Thực nhận</Typography.Text></Col>
-                      <Col span={5}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Tình trạng</Typography.Text></Col>
-                      <Col span={3} />
+                      <Col span={7}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Sản phẩm</Typography.Text></Col>
+                      <Col span={3}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Ước tính</Typography.Text></Col>
+                      <Col span={3}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Thực nhận</Typography.Text></Col>
+                      <Col span={4}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Tình trạng</Typography.Text></Col>
+                      <Col span={5}><Typography.Text type="secondary" style={{ fontSize: 12 }}>Hướng xử lý</Typography.Text></Col>
+                      <Col span={2} />
                     </Row>
                     {fields.map((field) => (
                       <Row key={field.key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
-                        <Col span={8} style={{ position: 'relative' }}>
+                        <Col span={7} style={{ position: 'relative' }}>
                           <Form.Item
                             name={[field.name, 'productId']}
                             rules={[{ required: true, message: 'Chọn sản phẩm.' }]}
@@ -570,7 +602,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                           </Form.Item>
                           <FieldErrorDot message={getProductError(field.name)} />
                         </Col>
-                        <Col span={4}>
+                        <Col span={3}>
                           <Form.Item
                             name={[field.name, 'expectedQuantity']}
                             rules={[{ required: true, type: 'number', min: 0, message: 'Nhập SL.' }]}
@@ -580,7 +612,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                             <InputNumber style={{ width: '100%' }} min={0} disabled placeholder="Dự kiến" />
                           </Form.Item>
                         </Col>
-                        <Col span={4} style={{ position: 'relative' }}>
+                        <Col span={3} style={{ position: 'relative' }}>
                           <Form.Item
                             name={[field.name, 'actualQuantity']}
                             rules={[getQuantityRule(field.name)]}
@@ -596,17 +628,41 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
                           </Form.Item>
                           <FieldErrorDot message={getActualQuantityError(field.name)} />
                         </Col>
-                        <Col span={5}>
+                        <Col span={4}>
                           <Form.Item
                             name={[field.name, 'condition']}
                             initialValue="Ok"
                             help={null}
                             style={{ marginBottom: 0 }}
                           >
-                            <Select options={conditionOptions} />
+                            <Select
+                              options={conditionOptions}
+                              onChange={(cond) => {
+                                if (cond === 'Damaged') {
+                                  form.setFieldValue(['details', field.name, 'discrepancyAction'], 'QuarantineAndHold')
+                                } else if (cond === 'Missing') {
+                                  form.setFieldValue(['details', field.name, 'discrepancyAction'], 'BacklogDeliverLater')
+                                } else {
+                                  form.setFieldValue(['details', field.name, 'discrepancyAction'], undefined)
+                                }
+                              }}
+                            />
                           </Form.Item>
                         </Col>
-                        <Col span={3} style={{ textAlign: 'center' }}>
+                        <Col span={5}>
+                          <Form.Item
+                            name={[field.name, 'discrepancyAction']}
+                            help={null}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <Select
+                              allowClear
+                              placeholder="Hướng xử lý"
+                              options={discrepancyActionFormOptions}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={2} style={{ textAlign: 'center' }}>
                           <Button
                             type="text"
                             danger

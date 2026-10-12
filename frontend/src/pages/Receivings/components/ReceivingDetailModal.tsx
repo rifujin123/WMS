@@ -1,15 +1,23 @@
-import { Col, Modal, Row, Tag } from 'antd'
+import { Button, Card, Col, Descriptions, Input, Modal, Row, Space, Tag, Typography } from 'antd'
 import {
   CheckCircleOutlined,
+  CloseCircleOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReceivingDto } from '../../../types/receiving'
+import {
+  discrepancyReportStatusColors,
+  discrepancyReportStatusLabels,
+} from '../../../types/discrepancy'
 import { InvoiceImageReviewPanel } from './InvoiceImageReviewPanel'
 import { ThreeWayMatchingReviewTable } from './ThreeWayMatchingReviewTable'
 import { buildMatchingMatrixFromReceiving } from '../../../lib/threeWayMatching'
 import { usePurchaseOrder } from '../../../hooks/usePurchaseOrders'
+import { useApproveDiscrepancyReport, useDiscrepancyReport } from '../../../hooks/useReceivings'
+import { useAuthContext } from '../../../contexts/useAuthContext'
+import { toast } from '../../../lib/toast'
 
 interface ReceivingDetailModalProps {
   receiving: ReceivingDto | null
@@ -17,7 +25,35 @@ interface ReceivingDetailModalProps {
 }
 
 export function ReceivingDetailModal({ receiving, onClose }: ReceivingDetailModalProps) {
+  const { user } = useAuthContext()
   const { data: purchaseOrder } = usePurchaseOrder(receiving?.purchaseOrderId)
+  const reportQuery = useDiscrepancyReport(receiving?.id)
+  const approveMutation = useApproveDiscrepancyReport()
+
+  const [approveModalOpen, setApproveModalOpen] = useState(false)
+  const [isApproving, setIsApproving] = useState(true)
+  const [approveNotes, setApproveNotes] = useState('')
+
+  const discrepancyReport = reportQuery.data ?? receiving?.discrepancyReport
+  const isManager = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+
+  const handleApproveSubmit = async () => {
+    if (!receiving) return
+    try {
+      await approveMutation.mutateAsync({
+        id: receiving.id,
+        dto: {
+          isApproved: isApproving,
+          notes: approveNotes.trim() || undefined,
+        },
+      })
+      toast.success(isApproving ? 'Đã duyệt biên bản bất thường.' : 'Đã từ chối biên bản bất thường.')
+      setApproveModalOpen(false)
+      setApproveNotes('')
+    } catch (err) {
+      toast.error(err, isApproving ? 'Duyệt biên bản thất bại.' : 'Từ chối biên bản thất bại.')
+    }
+  }
 
   const matchingRows = useMemo(() => {
     return buildMatchingMatrixFromReceiving(
@@ -121,9 +157,109 @@ export function ReceivingDetailModal({ receiving, onClose }: ReceivingDetailModa
             </div>
 
             <ThreeWayMatchingReviewTable rows={matchingRows} showSummary />
+
+            {/* Biên bản bất thường (nếu có sai lệch) */}
+            {(receiving.hasDiscrepancy || discrepancyReport) && (
+              <Card
+                size="small"
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                    <span>Biên bản bất thường</span>
+                    {discrepancyReport && (
+                      <Tag color={discrepancyReportStatusColors[discrepancyReport.status]}>
+                        {discrepancyReportStatusLabels[discrepancyReport.status]}
+                      </Tag>
+                    )}
+                  </div>
+                }
+                variant="borderless"
+                style={{ marginTop: 12, border: '1px solid #ffd591' }}
+                extra={
+                  discrepancyReport?.status === 'Pending' && isManager ? (
+                    <Space size="small">
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<CheckCircleOutlined />}
+                        onClick={() => {
+                          setIsApproving(true)
+                          setApproveNotes('')
+                          setApproveModalOpen(true)
+                        }}
+                      >
+                        Duyệt
+                      </Button>
+                      <Button
+                        danger
+                        size="small"
+                        icon={<CloseCircleOutlined />}
+                        onClick={() => {
+                          setIsApproving(false)
+                          setApproveNotes('')
+                          setApproveModalOpen(true)
+                        }}
+                      >
+                        Từ chối
+                      </Button>
+                    </Space>
+                  ) : null
+                }
+              >
+                <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
+                  <Descriptions.Item label="Lý do sai lệch" span={2}>
+                    <span style={{ color: '#d4380d' }}>
+                      {receiving.discrepancyReason || discrepancyReport?.notes || 'Phát hiện chênh lệch đối soát cửa nhận'}
+                    </span>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Giải trình" span={2}>
+                    {discrepancyReport?.resolutionSummary || 'Chưa ghi nhận phương án giải trình.'}
+                  </Descriptions.Item>
+                  {discrepancyReport?.approvedByName && (
+                    <Descriptions.Item label="Người duyệt">
+                      {discrepancyReport.approvedByName}
+                    </Descriptions.Item>
+                  )}
+                  {discrepancyReport?.approvedDate && (
+                    <Descriptions.Item label="Thời gian">
+                      {dayjs(discrepancyReport.approvedDate).format('DD/MM/YYYY HH:mm')}
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </Card>
+            )}
           </Col>
         </Row>
       )}
+
+      <Modal
+        title={isApproving ? 'Duyệt biên bản bất thường' : 'Từ chối biên bản bất thường'}
+        open={approveModalOpen}
+        onOk={handleApproveSubmit}
+        onCancel={() => setApproveModalOpen(false)}
+        confirmLoading={approveMutation.isPending}
+        okText={isApproving ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
+        okButtonProps={{ danger: !isApproving }}
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        <div style={{ marginTop: 12 }}>
+          <Typography.Paragraph type="secondary">
+            {isApproving
+              ? 'Xác nhận phê duyệt hướng giải quyết các chênh lệch trong biên bản bất thường này.'
+              : 'Xác nhận từ chối và yêu cầu làm rõ phương án giải quyết.'}
+          </Typography.Paragraph>
+          <Typography.Text strong style={{ display: 'block', marginBottom: 6 }}>
+            Ghi chú giải trình / ý kiến:
+          </Typography.Text>
+          <Input.TextArea
+            rows={3}
+            value={approveNotes}
+            onChange={(e) => setApproveNotes(e.target.value)}
+            placeholder="Nhập ghi chú ý kiến phê duyệt..."
+            maxLength={1000}
+          />
+        </div>
+      </Modal>
     </Modal>
   )
 }

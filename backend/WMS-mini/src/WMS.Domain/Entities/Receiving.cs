@@ -41,5 +41,7 @@ public class Receiving : BaseAuditableEntity
     [MaxLength(1000)]
     public string? DiscrepancyReason { get; set; }
 
+    public DiscrepancyReport? DiscrepancyReport { get; set; }
+
     public ICollection<ReceivingDetail> ReceivingDetails { get; set; } = new List<ReceivingDetail>();
 }

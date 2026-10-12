@@ -4,9 +4,12 @@ import {
   Col,
   Descriptions,
   Empty,
+  Input,
+  Modal,
   Result,
   Row,
   Skeleton,
+  Space,
   Table,
   Tag,
   Typography,
@@ -15,15 +18,22 @@ import type { TableColumnsType } from 'antd'
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useReceiving } from '../../hooks/useReceivings'
+import { useApproveDiscrepancyReport, useDiscrepancyReport, useReceiving } from '../../hooks/useReceivings'
 import { usePutAwayTasks } from '../../hooks/usePutAwayTasks'
 import { usePurchaseOrder } from '../../hooks/usePurchaseOrders'
+import { useAuthContext } from '../../contexts/useAuthContext'
+import { toast } from '../../lib/toast'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
+import {
+  discrepancyReportStatusColors,
+  discrepancyReportStatusLabels,
+} from '../../types/discrepancy'
 import { InvoiceImageReviewPanel } from './components/InvoiceImageReviewPanel'
 import { ThreeWayMatchingReviewTable } from './components/ThreeWayMatchingReviewTable'
 import { buildMatchingMatrixFromReceiving } from '../../lib/threeWayMatching'
@@ -45,11 +55,38 @@ const putAwayStatusColor: Record<PutAwayTaskStatus, string> = {
 function ReceivingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuthContext()
   const receivingQuery = useReceiving(id)
+  const reportQuery = useDiscrepancyReport(id)
   const putAwayQuery = usePutAwayTasks()
+  const approveMutation = useApproveDiscrepancyReport()
+
+  const [approveModalOpen, setApproveModalOpen] = useState(false)
+  const [isApproving, setIsApproving] = useState(true)
+  const [approveNotes, setApproveNotes] = useState('')
 
   const receiving = receivingQuery.data
+  const discrepancyReport = reportQuery.data ?? receiving?.discrepancyReport
   const { data: purchaseOrder } = usePurchaseOrder(receiving?.purchaseOrderId)
+  const isManager = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+
+  const handleApproveSubmit = async () => {
+    if (!receiving) return
+    try {
+      await approveMutation.mutateAsync({
+        id: receiving.id,
+        dto: {
+          isApproved: isApproving,
+          notes: approveNotes.trim() || undefined,
+        },
+      })
+      toast.success(isApproving ? 'Đã duyệt biên bản bất thường.' : 'Đã từ chối biên bản bất thường.')
+      setApproveModalOpen(false)
+      setApproveNotes('')
+    } catch (err) {
+      toast.error(err, isApproving ? 'Duyệt biên bản thất bại.' : 'Từ chối biên bản thất bại.')
+    }
+  }
 
   const receivingDetailIds = new Set(receiving?.details.map((detail) => detail.id))
   const relatedTasks = (putAwayQuery.data ?? []).filter((task) =>
@@ -197,6 +234,78 @@ function ReceivingDetail() {
         </Col>
       </Row>
 
+      {/* Biên bản bất thường (nếu có sai lệch) */}
+      {(receiving.hasDiscrepancy || discrepancyReport) && (
+        <Card
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <span>Biên bản bất thường (Discrepancy Report)</span>
+              {discrepancyReport && (
+                <Tag color={discrepancyReportStatusColors[discrepancyReport.status]}>
+                  {discrepancyReportStatusLabels[discrepancyReport.status]}
+                </Tag>
+              )}
+            </div>
+          }
+          variant="borderless"
+          style={{ marginBottom: 24, border: '1px solid #ffd591' }}
+          extra={
+            discrepancyReport?.status === 'Pending' && isManager ? (
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => {
+                    setIsApproving(true)
+                    setApproveNotes('')
+                    setApproveModalOpen(true)
+                  }}
+                >
+                  Duyệt biên bản
+                </Button>
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => {
+                    setIsApproving(false)
+                    setApproveNotes('')
+                    setApproveModalOpen(true)
+                  }}
+                >
+                  Từ chối
+                </Button>
+              </Space>
+            ) : null
+          }
+        >
+          <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} bordered>
+            <Descriptions.Item label="Lý do bất thường" span={3}>
+              <span style={{ color: '#d4380d' }}>
+                {receiving.discrepancyReason || discrepancyReport?.notes || 'Phát hiện chênh lệch đối soát cửa nhận'}
+              </span>
+            </Descriptions.Item>
+            <Descriptions.Item label="Phương án giải trình" span={3}>
+              {discrepancyReport?.resolutionSummary || 'Chưa ghi nhận phương án giải trình.'}
+            </Descriptions.Item>
+            {discrepancyReport?.approvedByName && (
+              <Descriptions.Item label="Người duyệt">
+                {discrepancyReport.approvedByName}
+              </Descriptions.Item>
+            )}
+            {discrepancyReport?.approvedDate && (
+              <Descriptions.Item label="Thời gian duyệt">
+                {dayjs(discrepancyReport.approvedDate).format('DD/MM/YYYY HH:mm')}
+              </Descriptions.Item>
+            )}
+            {discrepancyReport?.createdDate && (
+              <Descriptions.Item label="Ngày lập biên bản">
+                {dayjs(discrepancyReport.createdDate).format('DD/MM/YYYY HH:mm')}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+        </Card>
+      )}
+
       <Typography.Title level={5} style={{ marginTop: 16 }}>
         PutAway Tasks sinh ra
       </Typography.Title>
@@ -226,6 +335,35 @@ function ReceivingDetail() {
           />
         )}
       </Card>
+      <Modal
+        title={isApproving ? 'Duyệt biên bản bất thường' : 'Từ chối biên bản bất thường'}
+        open={approveModalOpen}
+        onOk={handleApproveSubmit}
+        onCancel={() => setApproveModalOpen(false)}
+        confirmLoading={approveMutation.isPending}
+        okText={isApproving ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
+        okButtonProps={{ danger: !isApproving }}
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        <div style={{ marginTop: 12 }}>
+          <Typography.Paragraph type="secondary">
+            {isApproving
+              ? 'Xác nhận phê duyệt hướng giải quyết các chênh lệch trong biên bản bất thường này.'
+              : 'Xác nhận từ chối và yêu cầu làm rõ phương án giải quyết.'}
+          </Typography.Paragraph>
+          <Typography.Text strong style={{ display: 'block', marginBottom: 6 }}>
+            Ghi chú giải trình / ý kiến phê duyệt:
+          </Typography.Text>
+          <Input.TextArea
+            rows={3}
+            value={approveNotes}
+            onChange={(e) => setApproveNotes(e.target.value)}
+            placeholder="Nhập ghi chú hoặc căn cứ phê duyệt (không bắt buộc)..."
+            maxLength={1000}
+          />
+        </div>
+      </Modal>
     </div>
   )
 }

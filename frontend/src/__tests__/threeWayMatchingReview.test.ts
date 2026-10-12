@@ -284,4 +284,58 @@ describe('threeWayMatchingReview - 3-Way Matching Logic and Variance Detection',
     expect(matrix[0].actualQuantity).toBe(100)
     expect(matrix[0].hasQuantityDiscrepancy).toBe(false)
   })
+
+  it('buildThreeWayMatchingMatrix: đính kèm DiscrepancyAction trên dòng sai lệch', () => {
+    const invoiceProducts: ProductMatch[] = [
+      {
+        productId: 'prod-1',
+        sku: 'SKU-APPLE',
+        name: 'Táo Envy Mỹ',
+        quantity: 100,
+        unitPrice: 50000,
+        suggestions: [],
+      },
+    ]
+
+    const actualDetails = [
+      {
+        productId: 'prod-1',
+        actualQuantity: 80,
+        condition: 'Damaged' as const,
+        discrepancyAction: 'QuarantineAndHold' as const,
+        discrepancyNotes: 'Dập nát 20 hộp',
+      },
+    ]
+
+    const matrix = buildThreeWayMatchingMatrix(mockPoDetails, invoiceProducts, actualDetails)
+    const row1 = matrix.find((r) => r.productId === 'prod-1')!
+
+    expect(row1.condition).toBe('Damaged')
+    expect(row1.discrepancyAction).toBe('QuarantineAndHold')
+    expect(row1.discrepancyNotes).toBe('Dập nát 20 hộp')
+
+    const summary = calculateMatchingSummary(matrix)
+    expect(summary.hasAnyDiscrepancy).toBe(true)
+  })
+
+  it('buildMatchingMatrixFromReceiving: lưu vết DiscrepancyAction từ persisted details', () => {
+    const receivingDetails: ReceivingDetailDto[] = [
+      {
+        id: 'rd-1',
+        receivingId: 'rc-1',
+        productId: 'prod-1',
+        productSku: 'SKU-APPLE',
+        productName: 'Táo Envy Mỹ',
+        expectedQuantity: 100,
+        actualQuantity: 0,
+        condition: 'Missing',
+        discrepancyAction: 'BacklogDeliverLater',
+      },
+    ]
+
+    const matrix = buildMatchingMatrixFromReceiving(receivingDetails, mockPoDetails)
+    expect(matrix).toHaveLength(1)
+    expect(matrix[0].discrepancyAction).toBe('BacklogDeliverLater')
+    expect(matrix[0].condition).toBe('Missing')
+  })
 })

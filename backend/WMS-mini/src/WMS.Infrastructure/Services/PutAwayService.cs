@@ -71,7 +71,8 @@ public class PutAwayService : IPutAwayService
     public async Task<PutAwayTaskDto> CreateAsync(CreatePutAwayTaskDto dto)
     {
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
-        ValidatePutAwayEligibility(detail);
+        var toLoc = dto.ToLocationId.HasValue ? await _locationRepo.GetByIdAsync(dto.ToLocationId.Value) : null;
+        ValidatePutAwayEligibility(detail, toLoc);
         await ValidateAvailableQuantityAsync(detail, dto.Quantity);
         await ValidateLocationWarehouseAsync(dto.FromLocationId, dto.ToLocationId, detail);
 
@@ -90,7 +91,8 @@ public class PutAwayService : IPutAwayService
             throw new InvalidOperationException($"Không thể cập nhật task ở trạng thái '{task.Status}'. Chỉ cho phép cập nhật khi task ở trạng thái 'Mở' (Open) hoặc 'Đã phân công' (Assigned).");
 
         var detail = await _receivingRepo.GetDetailByIdAsync(dto.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
-        ValidatePutAwayEligibility(detail);
+        var toLoc = dto.ToLocationId.HasValue ? await _locationRepo.GetByIdAsync(dto.ToLocationId.Value) : null;
+        ValidatePutAwayEligibility(detail, toLoc);
         await ValidateAvailableQuantityAsync(detail, dto.Quantity, task.Id);
         await ValidateLocationWarehouseAsync(dto.FromLocationId, dto.ToLocationId, detail);
 
@@ -147,6 +149,9 @@ public class PutAwayService : IPutAwayService
             throw new InvalidOperationException("Phải thiết lập vị trí đích (Location) trước khi bắt đầu cất hàng.");
 
         var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
+        var detail = await _receivingRepo.GetDetailByIdAsync(task.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
+        ValidatePutAwayEligibility(detail, location);
+
         if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
             throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Yêu cầu cất: {task.Quantity}.");
 
@@ -172,9 +177,9 @@ public class PutAwayService : IPutAwayService
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             var detail = await _receivingRepo.GetDetailByIdAsync(task.ReceivingDetailId) ?? throw new InvalidOperationException("Không tìm thấy chi tiết phiếu nhận.");
-            ValidatePutAwayEligibility(detail);
-
             var location = await _locationRepo.GetByIdAsync(task.ToLocationId.Value) ?? throw new InvalidOperationException("Không tìm thấy vị trí đích trong kho.");
+            ValidatePutAwayEligibility(detail, location);
+
             if (location.CurrentQuantity + task.Quantity > location.MaxQuantity)
                 throw new InvalidOperationException($"Vị trí '{location.Code}' không đủ sức chứa. Còn trống: {location.MaxQuantity - location.CurrentQuantity}, Yêu cầu cất: {task.Quantity}.");
 
@@ -229,13 +234,33 @@ public class PutAwayService : IPutAwayService
         return _mapper.Map<PutAwayTaskDto>(task);
     }
 
-    private static void ValidatePutAwayEligibility(ReceivingDetail detail)
+    public static void ValidatePutAwayEligibility(ReceivingDetail detail, Location? toLocation = null)
+    {
+        ValidatePutAwayEligibility(detail, toLocation?.LocationType);
+    }
+
+    public static void ValidatePutAwayEligibility(ReceivingDetail detail, LocationType? toLocationType = null)
     {
         if (detail.Receiving.Status != ReceivingStatus.Confirmed)
             throw new InvalidOperationException("Chỉ có thể cất hàng sau khi phiếu nhận đã được xác nhận.");
 
-        if (detail.Condition != ProductCondition.Ok)
-            throw new InvalidOperationException("Chỉ có thể cất hàng cho sản phẩm có tình trạng đạt yêu cầu.");
+        if (detail.DiscrepancyAction == DiscrepancyAction.ReturnToVendor)
+            throw new InvalidOperationException("Không thể tạo tác vụ cất hàng cho sản phẩm trả nhà cung cấp tại cửa kho.");
+
+        if (detail.Condition == ProductCondition.Damaged)
+        {
+            if (toLocationType.HasValue && toLocationType.Value != LocationType.Quarantine)
+                throw new InvalidOperationException("Hàng hư hỏng chỉ được phép cất vào vị trí cách ly (Quarantine).");
+        }
+        else if (detail.Condition == ProductCondition.Ok)
+        {
+            if (toLocationType.HasValue && toLocationType.Value == LocationType.Quarantine)
+                throw new InvalidOperationException("Hàng đạt chuẩn không được phép cất vào vị trí cách ly (Quarantine).");
+        }
+        else
+        {
+            throw new InvalidOperationException("Chỉ có thể cất hàng cho sản phẩm có tình trạng đạt yêu cầu hoặc hư hỏng chờ cách ly.");
+        }
     }
 
     private async Task ValidateAvailableQuantityAsync(ReceivingDetail detail, int requestedQuantity, Guid? excludeTaskId = null)
