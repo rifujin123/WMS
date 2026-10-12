@@ -10,6 +10,7 @@ public class SaleOrderService : ISaleOrderService
 {
     private readonly ISaleOrderRepository _repo;
     private readonly IProductRepository _productRepo;
+    private readonly ICustomerRepository _customerRepo;
     private readonly IPickingService _pickingService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
@@ -18,6 +19,7 @@ public class SaleOrderService : ISaleOrderService
     public SaleOrderService(
         ISaleOrderRepository repo,
         IProductRepository productRepo,
+        ICustomerRepository customerRepo,
         IPickingService pickingService,
         IMapper mapper,
         IUnitOfWork unitOfWork,
@@ -25,6 +27,7 @@ public class SaleOrderService : ISaleOrderService
     {
         _repo = repo;
         _productRepo = productRepo;
+        _customerRepo = customerRepo;
         _pickingService = pickingService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
@@ -63,11 +66,43 @@ public class SaleOrderService : ISaleOrderService
         if (await _repo.GetByOrderNoAsync(orderNo) != null)
             throw new InvalidOperationException($"Số đơn bán hàng '{orderNo}' đã tồn tại trong hệ thống.");
 
+        string? customerName = dto.CustomerName;
+        if (dto.CustomerId.HasValue)
+        {
+            var customer = await _customerRepo.GetByIdAsync(dto.CustomerId.Value);
+            if (customer == null)
+                throw new InvalidOperationException("Khách hàng không tồn tại trong hệ thống.");
+            customerName = customer.Name;
+        }
+
         var createdDate = DateTime.UtcNow;
         var saleOrder = _mapper.Map<SaleOrder>(dto);
         saleOrder.OrderNo = orderNo;
-        saleOrder.Status = SaleOrderStatus.New;
+        saleOrder.CustomerId = dto.CustomerId;
+        saleOrder.CustomerName = customerName;
+        saleOrder.TotalAmount = dto.SaleOrderDetails.Sum(d => d.Quantity * d.UnitPrice);
         saleOrder.CreatedDate = createdDate;
+
+        if (dto.IsPreOrder)
+        {
+            saleOrder.IsPreOrder = true;
+            saleOrder.RequiredDeposit = dto.RequiredDeposit;
+            saleOrder.PaidDeposit = dto.PaidDeposit;
+            saleOrder.DepositDeadline = dto.DepositDeadline;
+            saleOrder.DepositNotes = dto.DepositNotes;
+            saleOrder.Status = dto.PaidDeposit >= dto.RequiredDeposit
+                ? SaleOrderStatus.Backorder
+                : SaleOrderStatus.AwaitingDeposit;
+        }
+        else
+        {
+            saleOrder.IsPreOrder = false;
+            saleOrder.RequiredDeposit = 0;
+            saleOrder.PaidDeposit = 0;
+            saleOrder.DepositDeadline = null;
+            saleOrder.DepositNotes = null;
+            saleOrder.Status = SaleOrderStatus.New;
+        }
 
         foreach (var detail in saleOrder.SaleOrderDetails)
         {
@@ -79,7 +114,7 @@ public class SaleOrderService : ISaleOrderService
         await _repo.AddAsync(saleOrder);
         await _unitOfWork.SaveChangesAsync();
 
-        if (dto.WarehouseId.HasValue && dto.WarehouseId.Value != Guid.Empty)
+        if (!dto.IsPreOrder && dto.WarehouseId.HasValue && dto.WarehouseId.Value != Guid.Empty)
         {
             try
             {
@@ -119,9 +154,20 @@ public class SaleOrderService : ISaleOrderService
         if (duplicate != null && duplicate.Id != id)
             throw new InvalidOperationException($"Số đơn bán hàng '{orderNo}' đã tồn tại trong hệ thống.");
 
+        string? customerName = dto.CustomerName;
+        if (dto.CustomerId.HasValue)
+        {
+            var customer = await _customerRepo.GetByIdAsync(dto.CustomerId.Value);
+            if (customer == null)
+                throw new InvalidOperationException("Khách hàng không tồn tại trong hệ thống.");
+            customerName = customer.Name;
+        }
+
         saleOrder.OrderNo = orderNo;
-        saleOrder.CustomerName = dto.CustomerName;
+        saleOrder.CustomerId = dto.CustomerId;
+        saleOrder.CustomerName = customerName;
         saleOrder.OrderDate = dto.OrderDate;
+        saleOrder.TotalAmount = dto.SaleOrderDetails.Sum(d => d.Quantity * d.UnitPrice);
 
         await _repo.RemoveDetailsAsync(id);
         saleOrder.SaleOrderDetails = _mapper.Map<List<SaleOrderDetail>>(dto.SaleOrderDetails);
@@ -131,6 +177,36 @@ public class SaleOrderService : ISaleOrderService
             detail.AllocatedQty = 0;
             detail.Status = SaleOrderDetailStatus.Pending;
             detail.CreatedDate = DateTime.UtcNow;
+        }
+
+        await _repo.UpdateAsync(saleOrder);
+        await _unitOfWork.SaveChangesAsync();
+        return await GetByIdAsync(id);
+    }
+
+    public async Task<SaleOrderDto?> ConfirmDepositAsync(Guid id, ConfirmDepositDto dto)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        if (dto.PaidDeposit <= 0)
+            throw new InvalidOperationException("Số tiền cọc thực nhận phải lớn hơn 0.");
+
+        var saleOrder = await _repo.GetByIdAsync(id);
+        if (saleOrder == null)
+            return null;
+
+        if (saleOrder.Status != SaleOrderStatus.AwaitingDeposit)
+            throw new InvalidOperationException(
+                $"Chỉ có thể xác nhận cọc cho đơn ở trạng thái 'Chờ cọc' (AwaitingDeposit). Trạng thái hiện tại: '{saleOrder.Status}'.");
+
+        saleOrder.PaidDeposit += dto.PaidDeposit;
+        if (!string.IsNullOrWhiteSpace(dto.DepositNotes))
+        {
+            saleOrder.DepositNotes = dto.DepositNotes;
+        }
+
+        if (saleOrder.PaidDeposit >= saleOrder.RequiredDeposit)
+        {
+            saleOrder.Status = SaleOrderStatus.Backorder;
         }
 
         await _repo.UpdateAsync(saleOrder);
@@ -155,6 +231,17 @@ public class SaleOrderService : ISaleOrderService
 
     private static void ValidateBusinessRules(CreateSaleOrderDto dto)
     {
+        if (dto.IsPreOrder)
+        {
+            if (dto.RequiredDeposit <= 0)
+                throw new InvalidOperationException("Tiền cọc yêu cầu phải lớn hơn 0 đối với đơn đặt trước.");
+            if (dto.PaidDeposit < 0)
+                throw new InvalidOperationException("Số tiền cọc đã nhận không được âm.");
+        }
+
+        if (dto.SaleOrderDetails.Any(d => d.UnitPrice < 0))
+            throw new InvalidOperationException("Đơn giá sản phẩm không được âm.");
+
         var productIds = dto.SaleOrderDetails
             .Select(d => d.ProductId)
             .ToList();

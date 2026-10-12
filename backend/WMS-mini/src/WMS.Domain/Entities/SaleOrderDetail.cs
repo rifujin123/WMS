@@ -17,6 +17,7 @@ public class SaleOrderDetail : BaseAuditableEntity
     public Product Product { get; set; } = null!;
 
     public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
     public int AllocatedQty { get; set; }
     public SaleOrderDetailStatus Status { get; set; }
 

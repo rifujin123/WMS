@@ -19,7 +19,7 @@ const detailColumns: TableColumnsType<SaleOrderDetailDto> = [
     title: 'SKU',
     dataIndex: 'productSku',
     key: 'productSku',
-    width: 140,
+    width: 130,
     render: (sku: string) => (
       <Tag color="blue" style={{ fontFamily: 'monospace' }}>
         {sku}
@@ -33,18 +33,34 @@ const detailColumns: TableColumnsType<SaleOrderDetailDto> = [
     render: (name: string) => <span style={{ fontWeight: 600 }}>{name}</span>,
   },
   {
-    title: 'SL đặt',
+    title: 'SL',
     dataIndex: 'quantity',
     key: 'quantity',
     align: 'right',
-    width: 90,
+    width: 70,
+  },
+  {
+    title: 'Đơn giá',
+    dataIndex: 'unitPrice',
+    key: 'unitPrice',
+    align: 'right',
+    width: 110,
+    render: (price: number) => `${(price || 0).toLocaleString('vi-VN')} đ`,
+  },
+  {
+    title: 'Thành tiền',
+    key: 'subtotal',
+    align: 'right',
+    width: 120,
+    render: (_, row) =>
+      `${((row.quantity || 0) * (row.unitPrice || 0)).toLocaleString('vi-VN')} đ`,
   },
   {
     title: 'Đã phân bổ',
     dataIndex: 'allocatedQty',
     key: 'allocatedQty',
     align: 'right',
-    width: 110,
+    width: 100,
     render: (qty: number, row) => (
       <span style={{ color: qty >= row.quantity ? '#52c41a' : '#1677ff', fontWeight: 600 }}>
         {qty}
@@ -74,6 +90,9 @@ export function SaleOrderDetailDrawer({ saleOrder, onClose }: SaleOrderDetailDra
             <Tag color="blue" style={{ fontFamily: 'monospace' }}>
               {saleOrder.orderNo}
             </Tag>
+            {saleOrder.isPreOrder && (
+              <span style={{ fontSize: 13, color: '#722ed1', fontWeight: 500 }}>(Đặt trước)</span>
+            )}
           </div>
         ) : (
           'Chi tiết đơn bán'
@@ -81,7 +100,7 @@ export function SaleOrderDetailDrawer({ saleOrder, onClose }: SaleOrderDetailDra
       }
       open={!!saleOrder}
       onClose={onClose}
-      width={680}
+      width={780}
       styles={{ body: { padding: '20px 24px' } }}
     >
       {saleOrder ? (
@@ -112,13 +131,65 @@ export function SaleOrderDetailDrawer({ saleOrder, onClose }: SaleOrderDetailDra
               {
                 key: 'customerName',
                 label: 'Khách hàng',
-                children: saleOrder.customerName || '—',
+                children: saleOrder.customerName || 'Khách lẻ',
               },
               {
                 key: 'orderDate',
                 label: 'Ngày đặt',
                 children: formatDateTime(saleOrder.orderDate),
               },
+              {
+                key: 'totalAmount',
+                label: 'Tổng tiền đơn',
+                children: (
+                  <strong style={{ color: '#1677ff', fontSize: 14 }}>
+                    {(saleOrder.totalAmount || 0).toLocaleString('vi-VN')} đ
+                  </strong>
+                ),
+              },
+              {
+                key: 'orderType',
+                label: 'Hình thức',
+                children: saleOrder.isPreOrder ? 'Đặt trước (Pre-order)' : 'Đơn bán thông thường',
+              },
+              ...(saleOrder.isPreOrder
+                ? [
+                    {
+                      key: 'requiredDeposit',
+                      label: 'Tiền cọc yêu cầu',
+                      children: `${(saleOrder.requiredDeposit || 0).toLocaleString('vi-VN')} đ`,
+                    },
+                    {
+                      key: 'paidDeposit',
+                      label: 'Tiền cọc đã nhận',
+                      children: (
+                        <span
+                          style={{
+                            color:
+                              saleOrder.paidDeposit >= saleOrder.requiredDeposit
+                                ? '#52c41a'
+                                : '#fa8c16',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {(saleOrder.paidDeposit || 0).toLocaleString('vi-VN')} đ
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'depositDeadline',
+                      label: 'Hạn chót cọc',
+                      children: saleOrder.depositDeadline
+                        ? formatDateTime(saleOrder.depositDeadline)
+                        : 'Không giới hạn',
+                    },
+                    {
+                      key: 'depositNotes',
+                      label: 'Ghi chú cọc',
+                      children: saleOrder.depositNotes || '—',
+                    },
+                  ]
+                : []),
             ]}
           />
 
@@ -127,10 +198,16 @@ export function SaleOrderDetailDrawer({ saleOrder, onClose }: SaleOrderDetailDra
               <Typography.Text strong style={{ fontSize: 14 }}>
                 Danh sách mặt hàng ({saleOrder.saleOrderDetails.length})
               </Typography.Text>
+              <Typography.Text strong style={{ fontSize: 14 }}>
+                Tổng cộng:{' '}
+                <span style={{ color: '#1677ff' }}>
+                  {(saleOrder.totalAmount || 0).toLocaleString('vi-VN')} đ
+                </span>
+              </Typography.Text>
             </div>
 
             <Table<SaleOrderDetailDto>
-              rowKey="id"
+              rowKey="productId"
               columns={detailColumns}
               dataSource={saleOrder.saleOrderDetails}
               pagination={false}

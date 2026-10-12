@@ -1,5 +1,5 @@
 import api from '../lib/axios'
-import type { CreateSaleOrderDto, SaleOrderDto } from '../types/saleOrder'
+import type { ConfirmDepositDto, CreateSaleOrderDto, SaleOrderDto } from '../types/saleOrder'
 
 export const getSaleOrders = (): Promise<SaleOrderDto[]> => api.get('/SaleOrders')
 
@@ -14,3 +14,6 @@ export const updateSaleOrder = (id: string, dto: CreateSaleOrderDto): Promise<Sa
 
 export const deleteSaleOrder = (id: string): Promise<void> =>
   api.delete(`/SaleOrders/${id}`)
+
+export const confirmDeposit = (id: string, dto: ConfirmDepositDto): Promise<SaleOrderDto> =>
+  api.post(`/SaleOrders/${id}/confirm-deposit`, dto)

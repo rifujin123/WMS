@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
+  CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
@@ -10,7 +11,9 @@ import {
   Button,
   Card,
   Empty,
+  Form,
   Input,
+  InputNumber,
   Modal,
   Select,
   Table,
@@ -25,7 +28,7 @@ import { SaleOrderDetailDrawer } from './components/SaleOrderDetailDrawer'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
 import type { ShipmentDto } from '../../types/shipment'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
-import { useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
+import { useConfirmDeposit, useDeleteSaleOrder, useSaleOrders } from '../../hooks/useSaleOrders'
 import { useCreateShipment, useMarkShipped, useShipments } from '../../hooks/useShipments'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { toast } from '../../lib/toast'
@@ -35,11 +38,15 @@ function SaleOrders() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<SaleOrderDto | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<SaleOrderDto | null>(null)
+  const [confirmDepositOrder, setConfirmDepositOrder] = useState<SaleOrderDto | null>(null)
+  const [depositForm] = Form.useForm<{ paidDeposit: number; depositNotes?: string }>()
+
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<SaleOrderStatus | undefined>(undefined)
   const { data: saleOrders, isPending } = useSaleOrders()
   const { data: shipments } = useShipments()
   const deleteMutation = useDeleteSaleOrder()
+  const confirmDepositMutation = useConfirmDeposit()
   const createShipmentMutation = useCreateShipment()
   const markShippedMutation = useMarkShipped()
   const { user } = useAuthContext()
@@ -50,6 +57,19 @@ function SaleOrders() {
     for (const shipment of shipments ?? []) map.set(shipment.saleOrderId, shipment)
     return map
   })()
+
+  useEffect(() => {
+    if (confirmDepositOrder) {
+      const remaining = Math.max(
+        0,
+        (confirmDepositOrder.requiredDeposit || 0) - (confirmDepositOrder.paidDeposit || 0),
+      )
+      depositForm.setFieldsValue({
+        paidDeposit: remaining > 0 ? remaining : confirmDepositOrder.requiredDeposit,
+        depositNotes: '',
+      })
+    }
+  }, [confirmDepositOrder, depositForm])
 
   const filtered = (() => {
     if (!saleOrders) return []
@@ -104,6 +124,30 @@ function SaleOrders() {
     })
   }
 
+  const handleConfirmDepositOk = async () => {
+    try {
+      const values = await depositForm.validateFields()
+      if (!confirmDepositOrder) return
+      const updated = await confirmDepositMutation.mutateAsync({
+        id: confirmDepositOrder.id,
+        dto: {
+          paidDeposit: values.paidDeposit,
+          depositNotes: values.depositNotes?.trim() || undefined,
+        },
+      })
+      const isBackorder = updated?.status === 'Backorder'
+      toast.success(
+        isBackorder
+          ? `Đã nhận đủ cọc cho đơn "${confirmDepositOrder.orderNo}". Đơn chuyển sang Chờ hàng (Backorder).`
+          : `Đã ghi nhận thêm cọc cho đơn "${confirmDepositOrder.orderNo}". Đơn vẫn ở trạng thái Chờ cọc.`,
+      )
+      setConfirmDepositOrder(null)
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'errorFields' in err) return
+      toast.error(err as Error, 'Xác nhận cọc thất bại.')
+    }
+  }
+
   const openEdit = (row: SaleOrderDto) => {
     setEditing(row)
     setModalOpen(true)
@@ -115,40 +159,61 @@ function SaleOrders() {
       dataIndex: 'orderNo',
       key: 'orderNo',
       render: (orderNo: string, row: SaleOrderDto) => (
-        <Typography.Link
-          style={{ fontFamily: 'monospace', fontWeight: 600 }}
-          onClick={(e) => {
-            e.stopPropagation()
-            setSelectedOrder(row)
-          }}
-        >
-          {orderNo}
-        </Typography.Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Typography.Link
+            style={{ fontFamily: 'monospace', fontWeight: 600 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setSelectedOrder(row)
+            }}
+          >
+            {orderNo}
+          </Typography.Link>
+          {row.isPreOrder && (
+            <span style={{ fontSize: 12, color: '#722ed1', fontWeight: 500 }}>
+              (Đặt trước)
+            </span>
+          )}
+        </div>
       ),
     },
     {
       title: 'Khách hàng',
       dataIndex: 'customerName',
       key: 'customerName',
-      render: (customerName?: string) => customerName ?? '—',
+      render: (customerName?: string) => customerName ?? 'Khách lẻ',
     },
     {
       title: 'Kho',
       dataIndex: 'warehouseName',
       key: 'warehouseName',
-      render: (wh?: string) => wh ? <Tag color="geekblue">{wh}</Tag> : <Tag>Toàn hệ thống</Tag>,
+      render: (wh?: string) => (wh ? <Tag color="geekblue">{wh}</Tag> : <Tag>Toàn hệ thống</Tag>),
     },
     {
-      title: 'Số mặt hàng',
-      key: 'itemCount',
-      render: (_, row) => row.saleOrderDetails.length,
+      title: 'Tổng tiền',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      align: 'right',
+      render: (amount: number) => (
+        <span style={{ fontWeight: 600 }}>
+          {(amount || 0).toLocaleString('vi-VN')} đ
+        </span>
+      ),
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (status: SaleOrderStatus) => (
-        <Tag color={SALE_ORDER_STATUS_COLOR[status]}>{SALE_ORDER_STATUS_LABEL[status]}</Tag>
+      render: (status: SaleOrderStatus, row: SaleOrderDto) => (
+        <div>
+          <Tag color={SALE_ORDER_STATUS_COLOR[status]}>{SALE_ORDER_STATUS_LABEL[status]}</Tag>
+          {row.isPreOrder && (status === 'AwaitingDeposit' || status === 'Backorder') && (
+            <div style={{ fontSize: 11, color: '#8c8c8c', marginTop: 2 }}>
+              Cọc: {(row.paidDeposit || 0).toLocaleString('vi-VN')} /{' '}
+              {(row.requiredDeposit || 0).toLocaleString('vi-VN')} đ
+            </div>
+          )}
+        </div>
       ),
     },
     {
@@ -161,12 +226,22 @@ function SaleOrders() {
 
   const actionsColumn: TableColumnsType<SaleOrderDto>[number] = {
     key: 'actions',
-    width: 180,
+    width: 200,
     render: (_, row) => (
       <div
-        style={{ display: 'flex', gap: 4, alignItems: 'center' }}
+        style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}
         onClick={(e) => e.stopPropagation()}
       >
+        {row.status === 'AwaitingDeposit' && canManage && (
+          <Button
+            type="primary"
+            size="small"
+            icon={<CheckCircleOutlined />}
+            onClick={() => setConfirmDepositOrder(row)}
+          >
+            Xác nhận cọc
+          </Button>
+        )}
         {row.status === 'New' && (
           <>
             <Tooltip title="Sửa">
@@ -218,7 +293,7 @@ function SaleOrders() {
             Đơn bán
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Quản lý đơn xuất hàng cho khách. Nhấp vào đơn bán để xem danh sách mặt hàng chi tiết.
+            Quản lý đơn xuất hàng và đơn đặt trước. Nhấp vào đơn bán để xem chi tiết.
           </Typography.Text>
         </div>
         {canManage && (
@@ -248,8 +323,11 @@ function SaleOrders() {
         <Select
           placeholder="Trạng thái"
           allowClear
-          style={{ width: 180 }}
-          options={Object.entries(SALE_ORDER_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+          style={{ width: 200 }}
+          options={Object.entries(SALE_ORDER_STATUS_LABEL).map(([value, label]) => ({
+            value,
+            label,
+          }))}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}
         />
@@ -262,7 +340,7 @@ function SaleOrders() {
           dataSource={filtered}
           loading={isPending}
           pagination={{ pageSize: 10, showSizeChanger: false }}
-          scroll={{ x: 720 }}
+          scroll={{ x: 780 }}
           onRow={(record) => ({
             onClick: () => setSelectedOrder(record),
             style: { cursor: 'pointer' },
@@ -284,6 +362,90 @@ function SaleOrders() {
         saleOrder={selectedOrder}
         onClose={() => setSelectedOrder(null)}
       />
+
+      <Modal
+        title="Xác nhận nhận tiền cọc"
+        open={!!confirmDepositOrder}
+        onOk={handleConfirmDepositOk}
+        onCancel={() => setConfirmDepositOrder(null)}
+        confirmLoading={confirmDepositMutation.isPending}
+        okText="Xác nhận cọc"
+        cancelText="Huỷ"
+        centered
+        destroyOnHidden
+      >
+        {confirmDepositOrder && (
+          <Form form={depositForm} layout="vertical" style={{ marginTop: 16 }}>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: 12,
+                background: '#f9f9f9',
+                borderRadius: 8,
+                border: '1px solid #f0f0f0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                fontSize: 13,
+              }}
+            >
+              <div>
+                Số đơn:{' '}
+                <strong style={{ fontFamily: 'monospace' }}>
+                  {confirmDepositOrder.orderNo}
+                </strong>
+              </div>
+              <div>
+                Khách hàng: <strong>{confirmDepositOrder.customerName || 'Khách lẻ'}</strong>
+              </div>
+              <div>
+                Tổng tiền đơn hàng:{' '}
+                <strong>
+                  {(confirmDepositOrder.totalAmount || 0).toLocaleString('vi-VN')} đ
+                </strong>
+              </div>
+              <div>
+                Tiền cọc yêu cầu:{' '}
+                <strong style={{ color: '#1677ff' }}>
+                  {(confirmDepositOrder.requiredDeposit || 0).toLocaleString('vi-VN')} đ
+                </strong>
+              </div>
+              <div>
+                Tiền cọc đã ghi nhận:{' '}
+                <span>
+                  {(confirmDepositOrder.paidDeposit || 0).toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+            </div>
+
+            <Form.Item
+              name="paidDeposit"
+              label="Số tiền cọc thực nhận (VND)"
+              rules={[
+                { required: true, message: 'Vui lòng nhập số tiền cọc thực nhận.' },
+                {
+                  validator: async (_, val) => {
+                    if (!val || val <= 0) {
+                      throw new Error('Số tiền cọc phải lớn hơn 0.')
+                    }
+                  },
+                },
+              ]}
+            >
+              <InputNumber
+                style={{ width: '100%' }}
+                min={1}
+                placeholder="Nhập số tiền thực nhận"
+                formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              />
+            </Form.Item>
+
+            <Form.Item name="depositNotes" label="Ghi chú cọc / Mã giao dịch ngân hàng">
+              <Input placeholder="vd: Chuyển khoản Techcombank, Ref #123456" />
+            </Form.Item>
+          </Form>
+        )}
+      </Modal>
     </div>
   )
 }

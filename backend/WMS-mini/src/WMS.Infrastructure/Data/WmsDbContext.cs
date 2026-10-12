@@ -99,6 +99,12 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasForeignKey(s => s.WarehouseId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<SaleOrder>()
+            .HasOne(s => s.Customer)
+            .WithMany()
+            .HasForeignKey(s => s.CustomerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         modelBuilder.Entity<Shipment>()
             .HasOne(s => s.SaleOrder)
             .WithOne(o => o.Shipment)
@@ -152,6 +158,22 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<SaleOrder>()
             .HasIndex(s => new { s.TenantId, s.OrderNo })
             .IsUnique();
+
+        modelBuilder.Entity<SaleOrder>()
+            .Property(s => s.TotalAmount)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<SaleOrder>()
+            .Property(s => s.RequiredDeposit)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<SaleOrder>()
+            .Property(s => s.PaidDeposit)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<SaleOrderDetail>()
+            .Property(d => d.UnitPrice)
+            .HasColumnType("decimal(18,2)");
 
         modelBuilder.Entity<Receiving>()
             .HasIndex(r => new { r.TenantId, r.ReceivingNo })

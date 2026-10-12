@@ -100,7 +100,8 @@ public class MappingProfile : Profile
 
         CreateMap<SaleOrder, SaleOrderDto>()
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null))
-            .ForMember(d => d.WarehouseCode, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Code : null));
+            .ForMember(d => d.WarehouseCode, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Code : null))
+            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer != null ? s.Customer.Name : s.CustomerName));
         CreateMap<CreateSaleOrderDto, SaleOrder>();
         CreateMap<CreateSaleOrderDetailDto, SaleOrderDetail>();
         CreateMap<SaleOrderDetail, SaleOrderDetailDto>()

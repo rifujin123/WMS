@@ -12,6 +12,9 @@ export const SALE_ORDER_STATUS_LABEL: Record<SaleOrderStatus, string> = {
   Picking: 'Đang lấy hàng',
   Packed: 'Đã đóng gói',
   Shipped: 'Đã giao',
+  AwaitingDeposit: 'Chờ cọc',
+  Backorder: 'Đã cọc - Chờ hàng',
+  Cancelled: 'Đã hủy',
 }
 
 export const SALE_ORDER_STATUS_COLOR: Record<SaleOrderStatus, string> = {
@@ -20,6 +23,9 @@ export const SALE_ORDER_STATUS_COLOR: Record<SaleOrderStatus, string> = {
   Picking: 'blue',
   Packed: 'green',
   Shipped: 'green',
+  AwaitingDeposit: 'orange',
+  Backorder: 'cyan',
+  Cancelled: 'red',
 }
 
 export const SALE_ORDER_DETAIL_STATUS_LABEL: Record<string, string> = {
@@ -76,4 +82,11 @@ export const PURCHASE_ORDER_STATUS_COLOR: Record<PurchaseOrderStatus, string> = 
   PartiallyReceived: 'processing',
   Received: 'blue',
   Closed: 'default',
+}
+
+export function computePreOrderStatus(
+  requiredDeposit: number,
+  paidDeposit: number,
+): SaleOrderStatus {
+  return paidDeposit >= requiredDeposit ? 'Backorder' : 'AwaitingDeposit'
 }

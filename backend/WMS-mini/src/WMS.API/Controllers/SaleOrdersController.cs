@@ -53,4 +53,12 @@ public class SaleOrdersController : ControllerBase
         var deleted = await _service.DeleteAsync(id);
         return deleted ? Ok(new { message = "Deleted successfully" }) : NotFound();
     }
+
+    [HttpPost("{id}/confirm-deposit")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> ConfirmDeposit([FromRoute] Guid id, [FromBody] ConfirmDepositDto dto)
+    {
+        var result = await _service.ConfirmDepositAsync(id, dto);
+        return result == null ? NotFound() : Ok(result);
+    }
 }

@@ -18,6 +18,7 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
     {
         return await _db.SaleOrders
             .Include(s => s.Warehouse)
+            .Include(s => s.Customer)
             .Include(s => s.SaleOrderDetails)
                 .ThenInclude(d => d.Product)
             .OrderByDescending(s => s.CreatedDate)
@@ -28,6 +29,7 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
     {
         return await _db.SaleOrders
             .Include(s => s.Warehouse)
+            .Include(s => s.Customer)
             .Include(s => s.SaleOrderDetails)
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(s => s.Id == id);

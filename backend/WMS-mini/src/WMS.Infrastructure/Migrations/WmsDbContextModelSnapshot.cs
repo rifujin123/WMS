@@ -1245,6 +1245,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("CustomerName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -1255,7 +1258,17 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DepositDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DepositNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPreOrder")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("OrderDate")
@@ -1272,11 +1285,20 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("PackedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("PaidDeposit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RequiredDeposit")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("UpdatedById")
                         .HasColumnType("uniqueidentifier");
@@ -1290,6 +1312,8 @@ namespace WMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("DeletedById");
 
@@ -1343,6 +1367,9 @@ namespace WMS.Infrastructure.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("UpdatedById")
                         .HasColumnType("uniqueidentifier");
@@ -2787,6 +2814,11 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
                         .WithMany()
                         .HasForeignKey("DeletedById")
@@ -2814,6 +2846,8 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("Customer");
 
                     b.Navigation("DeletedBy");
 
