@@ -1,12 +1,32 @@
-import { Button, Card, Descriptions, Empty, Result, Skeleton, Table, Tag, Typography } from 'antd'
+import {
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Empty,
+  Result,
+  Row,
+  Skeleton,
+  Table,
+  Tag,
+  Typography,
+} from 'antd'
 import type { TableColumnsType } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import {
+  ArrowLeftOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons'
 import dayjs from 'dayjs'
+import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useReceiving } from '../../hooks/useReceivings'
 import { usePutAwayTasks } from '../../hooks/usePutAwayTasks'
+import { usePurchaseOrder } from '../../hooks/usePurchaseOrders'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
-import type { ProductCondition, ReceivingDetailDto } from '../../types/receiving'
+import { InvoiceImageReviewPanel } from './components/InvoiceImageReviewPanel'
+import { ThreeWayMatchingReviewTable } from './components/ThreeWayMatchingReviewTable'
+import { buildMatchingMatrixFromReceiving } from '../../lib/threeWayMatching'
 
 const putAwayStatusLabel: Record<PutAwayTaskStatus, string> = {
   Open: 'Mở',
@@ -22,18 +42,6 @@ const putAwayStatusColor: Record<PutAwayTaskStatus, string> = {
   Completed: 'success',
 }
 
-const conditionColor: Record<ProductCondition, string> = {
-  Ok: 'green',
-  Damaged: 'red',
-  Missing: 'orange',
-}
-
-const conditionLabel: Record<ProductCondition, string> = {
-  Ok: 'OK',
-  Damaged: 'Hỏng',
-  Missing: 'Thiếu',
-}
-
 function ReceivingDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -41,29 +49,19 @@ function ReceivingDetail() {
   const putAwayQuery = usePutAwayTasks()
 
   const receiving = receivingQuery.data
-  const receivingDetailIds = new Set(receiving?.details.map((detail) => detail.id))
-  const relatedTasks = (putAwayQuery.data ?? []).filter((task) => receivingDetailIds.has(task.receivingDetailId))
+  const { data: purchaseOrder } = usePurchaseOrder(receiving?.purchaseOrderId)
 
-  const detailColumns: TableColumnsType<ReceivingDetailDto> = [
-    {
-      title: 'SKU',
-      dataIndex: 'productSku',
-      key: 'productSku',
-      width: 140,
-      render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
-    },
-    { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
-    { title: 'Dự kiến', dataIndex: 'expectedQuantity', key: 'expectedQuantity', align: 'right' },
-    { title: 'Thực nhận', dataIndex: 'actualQuantity', key: 'actualQuantity', align: 'right' },
-    {
-      title: 'Tình trạng',
-      dataIndex: 'condition',
-      key: 'condition',
-      render: (condition: ProductCondition) => (
-        <Tag color={conditionColor[condition]}>{conditionLabel[condition]}</Tag>
-      ),
-    },
-  ]
+  const receivingDetailIds = new Set(receiving?.details.map((detail) => detail.id))
+  const relatedTasks = (putAwayQuery.data ?? []).filter((task) =>
+    receivingDetailIds.has(task.receivingDetailId),
+  )
+
+  const matchingRows = useMemo(() => {
+    return buildMatchingMatrixFromReceiving(
+      receiving?.details ?? [],
+      purchaseOrder?.purchaseOrderDetails ?? [],
+    )
+  }, [receiving, purchaseOrder])
 
   const taskColumns: TableColumnsType<PutAwayTaskDto> = [
     {
@@ -71,7 +69,11 @@ function ReceivingDetail() {
       dataIndex: 'productSku',
       key: 'productSku',
       width: 140,
-      render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
+      render: (sku: string) => (
+        <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+          {sku}
+        </Tag>
+      ),
     },
     { title: 'Sản phẩm', dataIndex: 'productName', key: 'productName' },
     { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' },
@@ -79,13 +81,14 @@ function ReceivingDetail() {
       title: 'Vị trí đích',
       dataIndex: 'toLocationCode',
       key: 'toLocationCode',
-      render: (code?: string) => (
+      render: (code?: string) =>
         code ? (
-          <Tag color="blue" style={{ fontFamily: 'monospace' }}>{code}</Tag>
+          <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+            {code}
+          </Tag>
         ) : (
           <Tag color="red">Chưa set</Tag>
-        )
-      ),
+        ),
     },
     {
       title: 'Nhân viên',
@@ -133,9 +136,14 @@ function ReceivingDetail() {
         bordered
         size="middle"
         title="Thông tin phiếu nhận"
-        column={2}
-        style={{ marginBottom: 24 }}
+        column={{ xs: 1, sm: 2, md: 3 }}
+        style={{ marginBottom: 20 }}
       >
+        <Descriptions.Item label="Số phiếu">
+          <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+            {receiving.receivingNo}
+          </Tag>
+        </Descriptions.Item>
         <Descriptions.Item label="Số PO">{receiving.poNumber ?? '—'}</Descriptions.Item>
         <Descriptions.Item label="Người nhận">{receiving.receivedByName ?? '—'}</Descriptions.Item>
         <Descriptions.Item label="Ngày nhận">
@@ -146,25 +154,50 @@ function ReceivingDetail() {
             {receiving.status === 'Draft' ? 'Nháp' : 'Đã xác nhận'}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Ghi chú" span={2}>
-          {receiving.notes ?? '—'}
+        <Descriptions.Item label="Đối soát">
+          {receiving.hasDiscrepancy ? (
+            <span style={{ color: '#ff4d4f', fontWeight: 600 }}>
+              <ExclamationCircleOutlined style={{ marginRight: 4 }} />
+              Có chênh lệch
+            </span>
+          ) : (
+            <span style={{ color: '#52c41a', fontWeight: 600 }}>
+              <CheckCircleOutlined style={{ marginRight: 4 }} />
+              Khớp hoàn toàn
+            </span>
+          )}
         </Descriptions.Item>
+        <Descriptions.Item label="Số HĐ">{receiving.invoiceNumber ?? '—'}</Descriptions.Item>
+        <Descriptions.Item label="Ngày HĐ">
+          {receiving.invoiceDate ? dayjs(receiving.invoiceDate).format('DD/MM/YYYY') : '—'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Tổng tiền HĐ">
+          {receiving.invoiceTotalAmount
+            ? `${receiving.invoiceTotalAmount.toLocaleString('vi-VN')} đ`
+            : '—'}
+        </Descriptions.Item>
+        {receiving.notes && (
+          <Descriptions.Item label="Ghi chú" span={3}>
+            {receiving.notes}
+          </Descriptions.Item>
+        )}
       </Descriptions>
 
-      <Typography.Title level={5} style={{ marginTop: 8 }}>
-        Dòng hàng đã nhận
-      </Typography.Title>
-      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        <Table<ReceivingDetailDto>
-          rowKey="id"
-          columns={detailColumns}
-          dataSource={receiving.details}
-          pagination={false}
-          locale={{ emptyText: <Empty image={null} description="Chưa có dòng hàng" /> }}
-        />
-      </Card>
+      {/* Side-by-Side Review Section */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={10}>
+          <Card title="Ảnh hóa đơn gốc đính kèm" variant="borderless" style={{ height: '100%' }}>
+            <InvoiceImageReviewPanel url={receiving.invoiceImageUrl} height={480} />
+          </Card>
+        </Col>
+        <Col xs={24} lg={14}>
+          <Card title="Đối soát 3 bên & Dòng hàng đã nhận" variant="borderless">
+            <ThreeWayMatchingReviewTable rows={matchingRows} showSummary />
+          </Card>
+        </Col>
+      </Row>
 
-      <Typography.Title level={5} style={{ marginTop: 24 }}>
+      <Typography.Title level={5} style={{ marginTop: 16 }}>
         PutAway Tasks sinh ra
       </Typography.Title>
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>

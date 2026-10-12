@@ -22,6 +22,7 @@ export interface ProductMatch {
   unitPrice?: number
   totalAmount?: number
   suggestions: ProductSuggestion[]
+  confidenceScore?: number
 }
 
 export interface InvoiceScanResult {

@@ -1,81 +1,30 @@
-import { Modal, Table, Tag } from 'antd'
-import type { TableColumnsType } from 'antd'
+import { Col, Modal, Row, Tag } from 'antd'
+import {
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { useAuthContext } from '../../../contexts/useAuthContext'
-import type { ProductCondition, ReceivingDetailDto, ReceivingDto } from '../../../types/receiving'
+import { useMemo } from 'react'
+import type { ReceivingDto } from '../../../types/receiving'
+import { InvoiceImageReviewPanel } from './InvoiceImageReviewPanel'
+import { ThreeWayMatchingReviewTable } from './ThreeWayMatchingReviewTable'
+import { buildMatchingMatrixFromReceiving } from '../../../lib/threeWayMatching'
+import { usePurchaseOrder } from '../../../hooks/usePurchaseOrders'
 
 interface ReceivingDetailModalProps {
   receiving: ReceivingDto | null
   onClose: () => void
 }
 
-const conditionMap: Record<ProductCondition, { label: string; color: string }> = {
-  Ok: { label: 'Tốt', color: 'green' },
-  Damaged: { label: 'Hư hại', color: 'red' },
-  Missing: { label: 'Thiếu', color: 'orange' },
-}
-
 export function ReceivingDetailModal({ receiving, onClose }: ReceivingDetailModalProps) {
-  const { user } = useAuthContext()
-  const hasExpiry = user?.hasExpiryManagement === true
+  const { data: purchaseOrder } = usePurchaseOrder(receiving?.purchaseOrderId)
 
-  const columns: TableColumnsType<ReceivingDetailDto> = [
-    {
-      title: 'SKU',
-      dataIndex: 'productSku',
-      key: 'productSku',
-      width: 140,
-      render: (sku: string) => <Tag color="blue" style={{ fontFamily: 'monospace' }}>{sku}</Tag>,
-    },
-    {
-      title: 'Sản phẩm',
-      dataIndex: 'productName',
-      key: 'productName',
-    },
-    ...(hasExpiry
-      ? [
-          {
-            title: 'Lô',
-            dataIndex: 'lotNumber',
-            key: 'lotNumber',
-            width: 110,
-            render: (lot?: string) => (lot ? <Tag color="blue" style={{ fontFamily: 'monospace' }}>{lot}</Tag> : '—'),
-          },
-          {
-            title: 'Hạn dùng',
-            dataIndex: 'expiryDate',
-            key: 'expiryDate',
-            width: 110,
-            render: (dateStr?: string) => (dateStr ? dayjs(dateStr).format('DD/MM/YYYY') : '—'),
-          },
-        ]
-      : []),
-    {
-      title: 'SL dự kiến',
-      dataIndex: 'expectedQuantity',
-      key: 'expectedQuantity',
-      align: 'right',
-      width: 100,
-    },
-    {
-      title: 'SL thực nhận',
-      dataIndex: 'actualQuantity',
-      key: 'actualQuantity',
-      align: 'right',
-      width: 100,
-      render: (qty: number) => <span style={{ color: '#1677ff', fontWeight: 600 }}>{qty}</span>,
-    },
-    {
-      title: 'Tình trạng',
-      dataIndex: 'condition',
-      key: 'condition',
-      width: 100,
-      render: (condition: ProductCondition) => {
-        const item = conditionMap[condition] ?? { label: condition, color: 'default' }
-        return <Tag color={item.color}>{item.label}</Tag>
-      },
-    },
-  ]
+  const matchingRows = useMemo(() => {
+    return buildMatchingMatrixFromReceiving(
+      receiving?.details ?? [],
+      purchaseOrder?.purchaseOrderDetails ?? [],
+    )
+  }, [receiving, purchaseOrder])
 
   return (
     <Modal
@@ -83,7 +32,9 @@ export function ReceivingDetailModal({ receiving, onClose }: ReceivingDetailModa
         receiving ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>Chi tiết phiếu nhận</span>
-            <Tag color="blue" style={{ fontFamily: 'monospace' }}>{receiving.receivingNo}</Tag>
+            <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+              {receiving.receivingNo}
+            </Tag>
             <Tag color={receiving.status === 'Draft' ? 'orange' : 'green'}>
               {receiving.status === 'Draft' ? 'Nháp' : 'Đã xác nhận'}
             </Tag>
@@ -95,25 +46,83 @@ export function ReceivingDetailModal({ receiving, onClose }: ReceivingDetailModa
       open={receiving !== null}
       onCancel={onClose}
       footer={null}
-      width={hasExpiry ? 860 : 750}
+      width={1280}
+      style={{ maxWidth: '96vw', top: 20 }}
       destroyOnHidden
     >
       {receiving && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', gap: 24, marginBottom: 12, fontSize: 13, color: '#595959' }}>
-            <div>Số PO: <b>{receiving.poNumber ?? '—'}</b></div>
-            <div>Người nhận: <b>{receiving.receivedByName ?? '—'}</b></div>
-            {receiving.notes && <div>Ghi chú: <i>{receiving.notes}</i></div>}
-          </div>
-          <Table<ReceivingDetailDto>
-            rowKey="id"
-            columns={columns}
-            dataSource={receiving.details ?? []}
-            pagination={false}
-            size="small"
-            bordered
-          />
-        </div>
+        <Row gutter={16} style={{ marginTop: 16 }}>
+          {/* Cột trái: Xem ảnh/PDF hóa đơn gốc */}
+          <Col xs={24} lg={10}>
+            <InvoiceImageReviewPanel
+              url={receiving.invoiceImageUrl}
+              height={480}
+            />
+          </Col>
+
+          {/* Cột phải: Thông tin chứng từ & Bảng đối soát 3 bên */}
+          <Col xs={24} lg={14}>
+            <div
+              style={{
+                marginBottom: 12,
+                padding: '10px 14px',
+                background: '#fafafa',
+                borderRadius: 6,
+                border: '1px solid #f0f0f0',
+                fontSize: 13,
+              }}
+            >
+              <Row gutter={[16, 6]}>
+                <Col span={12}>
+                  Số PO: <b>{receiving.poNumber ?? '—'}</b>
+                </Col>
+                <Col span={12}>
+                  Người nhận: <b>{receiving.receivedByName ?? '—'}</b>
+                </Col>
+                <Col span={12}>
+                  Số HĐ: <b>{receiving.invoiceNumber ?? '—'}</b>
+                </Col>
+                <Col span={12}>
+                  Ngày HĐ:{' '}
+                  <b>
+                    {receiving.invoiceDate
+                      ? dayjs(receiving.invoiceDate).format('DD/MM/YYYY')
+                      : '—'}
+                  </b>
+                </Col>
+                <Col span={12}>
+                  Tổng tiền HĐ:{' '}
+                  <b>
+                    {receiving.invoiceTotalAmount
+                      ? `${receiving.invoiceTotalAmount.toLocaleString('vi-VN')} đ`
+                      : '—'}
+                  </b>
+                </Col>
+                <Col span={12}>
+                  Đối soát:{' '}
+                  {receiving.hasDiscrepancy ? (
+                    <span style={{ color: '#ff4d4f', fontWeight: 600 }}>
+                      <ExclamationCircleOutlined style={{ marginRight: 4 }} />
+                      Có chênh lệch
+                    </span>
+                  ) : (
+                    <span style={{ color: '#52c41a', fontWeight: 600 }}>
+                      <CheckCircleOutlined style={{ marginRight: 4 }} />
+                      Khớp hoàn toàn
+                    </span>
+                  )}
+                </Col>
+                {receiving.notes && (
+                  <Col span={24}>
+                    Ghi chú: <i>{receiving.notes}</i>
+                  </Col>
+                )}
+              </Row>
+            </div>
+
+            <ThreeWayMatchingReviewTable rows={matchingRows} showSummary />
+          </Col>
+        </Row>
       )}
     </Modal>
   )

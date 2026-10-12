@@ -98,3 +98,12 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 3-Way Matching row discrepancy highlights */
+.ant-table-row-danger > td {
+  background-color: #fff1f0 !important;
+}
+
+.ant-table-row-warning > td {
+  background-color: #fffbe6 !important;
+}
