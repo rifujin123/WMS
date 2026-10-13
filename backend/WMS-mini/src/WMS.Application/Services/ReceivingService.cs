@@ -15,6 +15,7 @@ public class ReceivingService : IReceivingService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IVendorDebtRepository? _vendorDebtRepo;
 
     public ReceivingService(
         IReceivingRepository repo,
@@ -23,7 +24,8 @@ public class ReceivingService : IReceivingService
         ILocationRepository locationRepo,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
-        IMapper mapper)
+        IMapper mapper,
+        IVendorDebtRepository? vendorDebtRepo = null)
     {
         _repo = repo;
         _putAwayRepo = putAwayRepo;
@@ -32,6 +34,7 @@ public class ReceivingService : IReceivingService
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _vendorDebtRepo = vendorDebtRepo;
     }
 
     public ReceivingService(
@@ -40,8 +43,9 @@ public class ReceivingService : IReceivingService
         IPurchaseOrderRepository poRepo,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
-        IMapper mapper)
-        : this(repo, putAwayRepo, poRepo, null!, unitOfWork, currentUser, mapper)
+        IMapper mapper,
+        IVendorDebtRepository? vendorDebtRepo = null)
+        : this(repo, putAwayRepo, poRepo, null!, unitOfWork, currentUser, mapper, vendorDebtRepo)
     {
     }
 
@@ -382,6 +386,77 @@ public class ReceivingService : IReceivingService
         }
 
         await _repo.UpdateDiscrepancyReportAsync(report);
+
+        if (dto.IsApproved && _vendorDebtRepo != null)
+        {
+            var receiving = report.Receiving ?? await _repo.GetByIdAsync(report.ReceivingId);
+            var po = report.PurchaseOrder ?? (receiving != null ? await _poRepo.GetByIdAsync(receiving.PurchaseOrderId) : null);
+            var poDetailsByProduct = po?.PurchaseOrderDetails
+                .GroupBy(p => p.ProductId)
+                .ToDictionary(g => g.Key, g => g.First())
+                ?? new Dictionary<Guid, PurchaseOrderDetail>();
+
+            var vendorId = report.VendorId ?? po?.VendorId;
+            var vendorName = report.VendorName ?? po?.VendorName;
+
+            if (receiving?.ReceivingDetails != null)
+            {
+                foreach (var d in receiving.ReceivingDetails)
+                {
+                    if (!d.DiscrepancyAction.HasValue) continue;
+
+                    var deficitQuantity = d.Condition == ProductCondition.Damaged
+                        ? d.ActualQuantity
+                        : Math.Max(0, d.ExpectedQuantity - d.ActualQuantity);
+
+                    if (d.DiscrepancyAction == DiscrepancyAction.BacklogDeliverLater)
+                    {
+                        if (deficitQuantity > 0)
+                        {
+                            var debt = new VendorDebtLedger
+                            {
+                                TenantId = report.TenantId,
+                                VendorId = vendorId,
+                                VendorName = vendorName,
+                                SourceReceivingId = receiving.Id,
+                                DebtType = VendorDebtType.GoodsBacklog,
+                                ProductId = d.ProductId,
+                                Quantity = deficitQuantity,
+                                Amount = null,
+                                IsResolved = false,
+                                CreatedDate = DateTime.UtcNow
+                            };
+                            await _vendorDebtRepo.AddAsync(debt);
+                        }
+                    }
+                    else if (d.DiscrepancyAction == DiscrepancyAction.CreditOffset)
+                    {
+                        var unitPrice = d.UnitPrice
+                            ?? (poDetailsByProduct.TryGetValue(d.ProductId, out var poDetail) ? poDetail.UnitPrice : 0m);
+
+                        var amount = deficitQuantity * unitPrice;
+                        if (amount > 0)
+                        {
+                            var debt = new VendorDebtLedger
+                            {
+                                TenantId = report.TenantId,
+                                VendorId = vendorId,
+                                VendorName = vendorName,
+                                SourceReceivingId = receiving.Id,
+                                DebtType = VendorDebtType.CreditBalance,
+                                ProductId = d.ProductId,
+                                Quantity = deficitQuantity,
+                                Amount = amount,
+                                IsResolved = false,
+                                CreatedDate = DateTime.UtcNow
+                            };
+                            await _vendorDebtRepo.AddAsync(debt);
+                        }
+                    }
+                }
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<DiscrepancyReportDto>(report);

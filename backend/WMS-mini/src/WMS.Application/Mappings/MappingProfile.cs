@@ -65,6 +65,14 @@ public class MappingProfile : Profile
             .ForMember(d => d.VendorName, o => o.MapFrom(s => s.Vendor != null ? s.Vendor.Name : (s.PurchaseOrder != null ? s.PurchaseOrder.VendorName : s.VendorName)))
             .ForMember(d => d.ApprovedByName, o => o.MapFrom(s => s.ApprovedBy != null ? s.ApprovedBy.FullName : null));
 
+        CreateMap<VendorDebtLedger, VendorDebtLedgerDto>()
+            .ForMember(d => d.VendorName, o => o.MapFrom(s => s.Vendor != null ? s.Vendor.Name : s.VendorName))
+            .ForMember(d => d.SourceReceivingNo, o => o.MapFrom(s => s.SourceReceiving != null ? s.SourceReceiving.ReceivingNo : null))
+            .ForMember(d => d.SourcePoNumber, o => o.MapFrom(s => s.SourceReceiving != null && s.SourceReceiving.PurchaseOrder != null ? s.SourceReceiving.PurchaseOrder.PoNumber : null))
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product != null ? s.Product.Sku : null))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : null))
+            .ForMember(d => d.ResolvedInPoNumber, o => o.MapFrom(s => s.ResolvedInPo != null ? s.ResolvedInPo.PoNumber : null));
+
         CreateMap<PutAwayTask, PutAwayTaskDto>()
             .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.Product.Sku))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))

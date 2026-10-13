@@ -45,6 +45,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Receiving> Receivings => Set<Receiving>();
     public DbSet<ReceivingDetail> ReceivingDetails => Set<ReceivingDetail>();
     public DbSet<DiscrepancyReport> DiscrepancyReports => Set<DiscrepancyReport>();
+    public DbSet<VendorDebtLedger> VendorDebtLedgers => Set<VendorDebtLedger>();
     public DbSet<PutAwayTask> PutAwayTasks => Set<PutAwayTask>();
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
@@ -92,6 +93,12 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasOne(p => p.Warehouse)
             .WithMany()
             .HasForeignKey(p => p.WarehouseId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<PurchaseOrder>()
+            .HasOne(p => p.Vendor)
+            .WithMany()
+            .HasForeignKey(p => p.VendorId)
             .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<SaleOrder>()
@@ -142,6 +149,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.Entity<PurchaseOrder>()
             .Property(p => p.TotalAmount)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<PurchaseOrder>()
+            .Property(p => p.CreditOffsetAmount)
             .HasColumnType("decimal(18,2)");
 
         modelBuilder.Entity<PurchaseOrderDetail>()
@@ -215,6 +226,34 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<DiscrepancyReport>()
             .HasIndex(d => new { d.TenantId, d.ReceivingId })
             .IsUnique();
+
+        modelBuilder.Entity<VendorDebtLedger>()
+            .HasOne(v => v.Vendor)
+            .WithMany()
+            .HasForeignKey(v => v.VendorId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VendorDebtLedger>()
+            .HasOne(v => v.SourceReceiving)
+            .WithMany()
+            .HasForeignKey(v => v.SourceReceivingId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<VendorDebtLedger>()
+            .HasOne(v => v.Product)
+            .WithMany()
+            .HasForeignKey(v => v.ProductId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VendorDebtLedger>()
+            .HasOne(v => v.ResolvedInPo)
+            .WithMany()
+            .HasForeignKey(v => v.ResolvedInPoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<VendorDebtLedger>()
+            .Property(v => v.Amount)
+            .HasColumnType("decimal(18,2)");
 
         modelBuilder.Entity<StockAdjustment>()
             .HasIndex(a => new { a.TenantId, a.AdjustmentNo })

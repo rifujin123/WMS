@@ -69,6 +69,12 @@ export const navConfig: NavConfigItem[] = [
         label: 'Cất hàng',
         allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
       },
+      {
+        key: '/vendor-debts',
+        icon: <AuditOutlined />,
+        label: 'Sổ nợ NCC',
+        allowedRoles: ['Admin', 'WarehouseManager'],
+      },
     ],
   },
   {

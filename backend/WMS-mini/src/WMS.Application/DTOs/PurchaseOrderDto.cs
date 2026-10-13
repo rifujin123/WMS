@@ -5,13 +5,16 @@ namespace WMS.Application.DTOs;
 public class PurchaseOrderDto {
     public Guid Id { get; set; }
     public string PoNumber { get; set; } = string.Empty;
+    public Guid? VendorId { get; set; }
     public string? VendorName { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal CreditOffsetAmount { get; set; }
     public PurchaseOrderStatus Status { get; set; }
     public Guid? WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     public string? WarehouseCode { get; set; }
     public DateTime? ApprovedDate { get; set; }
     public DateTime CreatedDate { get; set; }
+    public List<Guid> ResolvedDebtIds { get; set; } = new();
     public List<PurchaseOrderDetailDto> PurchaseOrderDetails { get; set; } = new();
 }

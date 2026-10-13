@@ -124,7 +124,10 @@ public class SqlReceivingRepository : IReceivingRepository
     {
         return await _db.DiscrepancyReports
             .Include(d => d.Receiving)
+                .ThenInclude(r => r.ReceivingDetails)
+                    .ThenInclude(rd => rd.Product)
             .Include(d => d.PurchaseOrder)
+                .ThenInclude(po => po.PurchaseOrderDetails)
             .Include(d => d.Vendor)
             .Include(d => d.ApprovedBy)
             .FirstOrDefaultAsync(d => d.ReceivingId == receivingId);

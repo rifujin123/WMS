@@ -9,10 +9,15 @@ public class PurchaseOrder : BaseAuditableEntity
     [MaxLength(50)]
     public string PoNumber { get; set; } = string.Empty;
 
+    public Guid? VendorId { get; set; }
+    public Vendor? Vendor { get; set; }
+
     [MaxLength(200)]
     public string? VendorName { get; set; }
 
     public decimal TotalAmount { get; set; }
+
+    public decimal CreditOffsetAmount { get; set; }
 
     public PurchaseOrderStatus Status { get; set; }
 

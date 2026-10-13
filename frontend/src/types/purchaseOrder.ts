@@ -14,11 +14,14 @@ export interface PurchaseOrderDetailDto {
 export interface PurchaseOrderDto {
   id: string
   poNumber: string
+  vendorId?: string
   vendorName?: string
   warehouseId?: string
   warehouseName?: string
   warehouseCode?: string
   totalAmount?: number
+  creditOffsetAmount?: number
+  resolvedDebtIds?: string[]
   status: PurchaseOrderStatus
   approvedDate?: string
   createdDate?: string
@@ -34,7 +37,10 @@ export interface CreatePurchaseOrderDetailDto {
 
 export interface CreatePurchaseOrderDto {
   poNumber: string
+  vendorId?: string
   vendorName?: string
+  creditOffsetAmount?: number
   warehouseId?: string
+  resolvedDebtIds?: string[]
   purchaseOrderDetails: CreatePurchaseOrderDetailDto[]
 }

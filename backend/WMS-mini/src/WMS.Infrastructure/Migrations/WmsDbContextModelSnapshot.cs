@@ -808,6 +808,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("CreditOffsetAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<Guid?>("DeletedById")
                         .HasColumnType("uniqueidentifier");
 
@@ -837,6 +840,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("VendorId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("VendorName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -855,6 +861,8 @@ namespace WMS.Infrastructure.Migrations
                     b.HasIndex("DeletedById");
 
                     b.HasIndex("UpdatedById");
+
+                    b.HasIndex("VendorId");
 
                     b.HasIndex("WarehouseId");
 
@@ -2078,6 +2086,92 @@ namespace WMS.Infrastructure.Migrations
                     b.ToTable("Vendors");
                 });
 
+            modelBuilder.Entity("WMS.Domain.Entities.VendorDebtLedger", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DebtType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResolvedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ResolvedInPoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceReceivingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("VendorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("VendorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ResolvedInPoId");
+
+                    b.HasIndex("SourceReceivingId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.HasIndex("VendorId");
+
+                    b.ToTable("VendorDebtLedgers");
+                });
+
             modelBuilder.Entity("WMS.Domain.Entities.Warehouse", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2615,6 +2709,11 @@ namespace WMS.Infrastructure.Migrations
                         .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("WMS.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("WMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -2631,6 +2730,8 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("Tenant");
 
                     b.Navigation("UpdatedBy");
+
+                    b.Navigation("Vendor");
 
                     b.Navigation("Warehouse");
                 });
@@ -3361,6 +3462,67 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("Tenant");
 
                     b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("WMS.Domain.Entities.VendorDebtLedger", b =>
+                {
+                    b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WMS.Domain.Entities.PurchaseOrder", "ResolvedInPo")
+                        .WithMany()
+                        .HasForeignKey("ResolvedInPoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WMS.Domain.Entities.Receiving", "SourceReceiving")
+                        .WithMany()
+                        .HasForeignKey("SourceReceivingId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("WMS.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ResolvedInPo");
+
+                    b.Navigation("SourceReceiving");
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("UpdatedBy");
+
+                    b.Navigation("Vendor");
                 });
 
             modelBuilder.Entity("WMS.Domain.Entities.Warehouse", b =>

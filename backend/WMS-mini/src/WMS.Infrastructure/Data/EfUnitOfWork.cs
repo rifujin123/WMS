@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using WMS.Application.Interfaces;
 
 namespace WMS.Infrastructure.Data;
@@ -16,8 +17,15 @@ public class EfUnitOfWork : IUnitOfWork
 
     public async Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
-        await action();
-        await transaction.CommitAsync(cancellationToken);
+        if (_db.Database.IsRelational())
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            await action();
+            await transaction.CommitAsync(cancellationToken);
+        }
+        else
+        {
+            await action();
+        }
     }
 }

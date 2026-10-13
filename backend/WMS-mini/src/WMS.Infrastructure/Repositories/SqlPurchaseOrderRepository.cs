@@ -51,8 +51,10 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
             {
                 Id = po.Id,
                 PoNumber = po.PoNumber,
+                VendorId = po.VendorId,
                 VendorName = po.VendorName,
                 TotalAmount = po.TotalAmount,
+                CreditOffsetAmount = po.CreditOffsetAmount,
                 Status = po.Status,
                 WarehouseId = po.WarehouseId,
                 WarehouseName = po.Warehouse != null ? po.Warehouse.Name : null,
