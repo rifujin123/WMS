@@ -138,6 +138,15 @@ public class MappingProfile : Profile
             .ForMember(d => d.SaleOrderNo, o => o.MapFrom(s => s.SaleOrder.OrderNo));
         CreateMap<CreateShipmentDto, Shipment>();
 
+        CreateMap<BackorderLink, BackorderLinkDto>()
+            .ForMember(d => d.SaleOrderNo, o => o.MapFrom(s => s.SaleOrderDetail.SaleOrder.OrderNo))
+            .ForMember(d => d.SaleOrderId, o => o.MapFrom(s => s.SaleOrderDetail.SaleOrderId))
+            .ForMember(d => d.PurchaseOrderNo, o => o.MapFrom(s => s.PurchaseOrderDetail.PurchaseOrder.PoNumber))
+            .ForMember(d => d.PurchaseOrderId, o => o.MapFrom(s => s.PurchaseOrderDetail.PurchaseOrderId))
+            .ForMember(d => d.ProductId, o => o.MapFrom(s => s.SaleOrderDetail.ProductId))
+            .ForMember(d => d.ProductSku, o => o.MapFrom(s => s.SaleOrderDetail.Product.Sku))
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.SaleOrderDetail.Product.Name));
+
 
         CreateMap<AuditLog, AuditLogDto>()
             .ForMember(d => d.ActorDisplayName, o => o.MapFrom(s => s.ActorUser!.FullName))

@@ -61,4 +61,12 @@ public class SaleOrdersController : ControllerBase
         var result = await _service.ConfirmDepositAsync(id, dto);
         return result == null ? NotFound() : Ok(result);
     }
+
+    [HttpPost("{id}/cancel")]
+    [Authorize(Roles = "Admin,WarehouseManager")]
+    public async Task<IActionResult> Cancel([FromRoute] Guid id, [FromBody] CancelSaleOrderDto? dto)
+    {
+        var result = await _service.CancelAsync(id, dto?.Reason);
+        return result == null ? NotFound() : Ok(result);
+    }
 }

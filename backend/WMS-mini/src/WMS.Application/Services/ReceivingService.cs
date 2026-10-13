@@ -16,6 +16,8 @@ public class ReceivingService : IReceivingService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly IVendorDebtRepository? _vendorDebtRepo;
+    private readonly IBackorderLinkRepository? _backorderLinkRepo;
+    private readonly ISaleOrderRepository? _saleOrderRepo;
 
     public ReceivingService(
         IReceivingRepository repo,
@@ -25,7 +27,9 @@ public class ReceivingService : IReceivingService
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
         IMapper mapper,
-        IVendorDebtRepository? vendorDebtRepo = null)
+        IVendorDebtRepository? vendorDebtRepo = null,
+        IBackorderLinkRepository? backorderLinkRepo = null,
+        ISaleOrderRepository? saleOrderRepo = null)
     {
         _repo = repo;
         _putAwayRepo = putAwayRepo;
@@ -35,6 +39,8 @@ public class ReceivingService : IReceivingService
         _currentUser = currentUser;
         _mapper = mapper;
         _vendorDebtRepo = vendorDebtRepo;
+        _backorderLinkRepo = backorderLinkRepo;
+        _saleOrderRepo = saleOrderRepo;
     }
 
     public ReceivingService(
@@ -45,7 +51,7 @@ public class ReceivingService : IReceivingService
         ICurrentUserService currentUser,
         IMapper mapper,
         IVendorDebtRepository? vendorDebtRepo = null)
-        : this(repo, putAwayRepo, poRepo, null!, unitOfWork, currentUser, mapper, vendorDebtRepo)
+        : this(repo, putAwayRepo, poRepo, null!, unitOfWork, currentUser, mapper, vendorDebtRepo, null, null)
     {
     }
 
@@ -162,6 +168,41 @@ public class ReceivingService : IReceivingService
             }
         }
 
+        // Check if any Ok item has unfulfilled BackorderLink requiring CrossDock
+        List<BackorderLink> unfulfilledLinks = new();
+        if (_backorderLinkRepo != null)
+        {
+            unfulfilledLinks = await _backorderLinkRepo.GetUnfulfilledByPurchaseOrderIdAsync(po.Id);
+        }
+
+        var okDetails = receiving.ReceivingDetails
+            .Where(d => d.Condition == ProductCondition.Ok && d.ActualQuantity > 0)
+            .ToList();
+
+        var okProductIds = okDetails.Select(d => d.ProductId).ToHashSet();
+        var relevantBackorderLinks = unfulfilledLinks
+            .Where(l => okProductIds.Contains(l.SaleOrderDetail.ProductId))
+            .ToList();
+
+        Location? crossDockLocation = null;
+        if (relevantBackorderLinks.Count > 0)
+        {
+            if (_locationRepo != null)
+            {
+                var locations = po.WarehouseId.HasValue
+                    ? await _locationRepo.GetByWarehouseIdAsync(po.WarehouseId.Value)
+                    : await _locationRepo.GetAllAsync();
+
+                crossDockLocation = locations.FirstOrDefault(l => l.LocationType == LocationType.CrossDock)
+                    ?? locations.FirstOrDefault(l => l.LocationType == LocationType.Shipping);
+            }
+
+            if (crossDockLocation == null)
+            {
+                throw new InvalidOperationException("Kho chưa cấu hình vị trí trung chuyển (CrossDock) hoặc bến xuất (Shipping). Vui lòng cấu hình trước.");
+            }
+        }
+
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             ApplyReceivedQuantities(receiving, po);
@@ -172,16 +213,73 @@ public class ReceivingService : IReceivingService
             receiving.ConfirmedById = _currentUser.UserId;
             receiving.ConfirmedDate = DateTime.UtcNow;
 
-            // 1. Ok goods -> create standard PutAwayTask
-            foreach (var detail in receiving.ReceivingDetails.Where(d => d.Condition == ProductCondition.Ok && d.ActualQuantity > 0))
+            // 1. Ok goods -> split between CrossDock and standard PutAwayTask
+            foreach (var detail in okDetails)
             {
-                await _putAwayRepo.AddAsync(new PutAwayTask
+                var matchingLinks = relevantBackorderLinks
+                    .Where(l => l.SaleOrderDetail.ProductId == detail.ProductId && !l.IsFulfilled && l.Quantity > l.FulfilledQuantity)
+                    .OrderBy(l => l.CreatedDate)
+                    .ToList();
+
+                var remainingActualQty = detail.ActualQuantity;
+
+                foreach (var link in matchingLinks)
                 {
-                    ReceivingDetailId = detail.Id,
-                    ProductId = detail.ProductId,
-                    Quantity = detail.ActualQuantity,
-                    Status = PutAwayTaskStatus.Open
-                });
+                    if (remainingActualQty <= 0) break;
+
+                    var allocatable = Math.Min(remainingActualQty, link.Quantity - link.FulfilledQuantity);
+                    if (allocatable > 0)
+                    {
+                        link.FulfilledQuantity += allocatable;
+                        link.IsFulfilled = (link.FulfilledQuantity >= link.Quantity);
+                        remainingActualQty -= allocatable;
+
+                        link.SaleOrderDetail.AllocatedQty += allocatable;
+
+                        var saleOrder = link.SaleOrderDetail.SaleOrder;
+                        if (saleOrder != null)
+                        {
+                            if (saleOrder.SaleOrderDetails.All(d => d.AllocatedQty >= d.Quantity))
+                            {
+                                saleOrder.Status = SaleOrderStatus.Allocated;
+                            }
+
+                            if (_saleOrderRepo != null)
+                            {
+                                await _saleOrderRepo.UpdateAsync(saleOrder);
+                            }
+                        }
+
+                        await _putAwayRepo.AddAsync(new PutAwayTask
+                        {
+                            ReceivingDetailId = detail.Id,
+                            ProductId = detail.ProductId,
+                            Quantity = allocatable,
+                            ToLocationId = crossDockLocation!.Id,
+                            Status = PutAwayTaskStatus.Open,
+                            IsCrossDock = true,
+                            Notes = $"⚡ CrossDock giao ngay cho đơn SO: {saleOrder?.OrderNo ?? string.Empty}".Trim(),
+                            SaleOrderId = saleOrder?.Id
+                        });
+
+                        if (_backorderLinkRepo != null)
+                        {
+                            await _backorderLinkRepo.UpdateAsync(link);
+                        }
+                    }
+                }
+
+                if (remainingActualQty > 0)
+                {
+                    await _putAwayRepo.AddAsync(new PutAwayTask
+                    {
+                        ReceivingDetailId = detail.Id,
+                        ProductId = detail.ProductId,
+                        Quantity = remainingActualQty,
+                        Status = PutAwayTaskStatus.Open,
+                        IsCrossDock = false
+                    });
+                }
             }
 
             // 2. Damaged goods with QuarantineAndHold -> create PutAwayTask targeting Quarantine location

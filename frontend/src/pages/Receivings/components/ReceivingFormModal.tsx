@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Col,
   DatePicker,
@@ -34,6 +35,7 @@ import type { InvoiceScanResult, ProductSuggestion } from '../../../types/invoic
 import { useCreateReceiving, useReceiving, useUpdateReceiving } from '../../../hooks/useReceivings'
 import { useInvoiceScan } from '../../../hooks/useInvoiceScan'
 import { usePurchaseOrders } from '../../../hooks/usePurchaseOrders'
+import { useBackorderLinks } from '../../../hooks/useCrossDock'
 import type { PurchaseOrderDto } from '../../../types/purchaseOrder'
 import { toast } from '../../../lib/toast'
 import { InvoiceImageReviewPanel } from './InvoiceImageReviewPanel'
@@ -126,6 +128,11 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
   const selectedPurchaseOrder = approvedPurchaseOrders.find(
     (purchaseOrder) => purchaseOrder.id === selectedPurchaseOrderId,
   )
+
+  const { data: backorderLinks = [] } = useBackorderLinks(
+    selectedPurchaseOrderId ? { purchaseOrderId: selectedPurchaseOrderId } : undefined,
+  )
+  const unfulfilledCrossDockLinks = backorderLinks.filter((l) => !l.isFulfilled)
 
   // Sản phẩm trong PO
   const poProductOptions = selectedPurchaseOrder?.purchaseOrderDetails.map((detail) => {
@@ -460,6 +467,25 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
 
         {/* Panel phải (50%): Thông tin PO, HĐ tài chính và Bảng đối soát 3 bên */}
         <Col xs={24} lg={12}>
+          {unfulfilledCrossDockLinks.length > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              icon={<span style={{ fontSize: 16 }}>⚡</span>}
+              message="CẢNH BÁO HÀNG CROSS-DOCKING"
+              description={
+                <span>
+                  Sản phẩm trong PO này đã có khách đặt cọc trước (Đơn SO:{' '}
+                  <strong>
+                    {[...new Set(unfulfilledCrossDockLinks.map((l) => l.saleOrderNo))].join(', ')}
+                  </strong>
+                  ). Vui lòng chuẩn bị điều chuyển thẳng ra Cửa xuất hàng (CrossDock)!
+                </span>
+              }
+              style={{ marginBottom: 12 }}
+            />
+          )}
+
           <Form<FormValues>
             form={form}
             layout="vertical"

@@ -107,6 +107,7 @@ public class SqlStockRepository : IStockRepository
             .Where(s => s.ProductId == productId
                 && s.Location.WarehouseId == warehouseId
                 && s.Location.LocationType != LocationType.Quarantine
+                && s.Location.LocationType != LocationType.CrossDock
                 && s.OnhandQty - s.ReservedQty > 0);
 
         if (hasExpiry)

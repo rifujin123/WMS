@@ -44,7 +44,6 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
 
   useEffect(() => {
     if (open) {
-      setResolvedDebtIds([])
       if (po) {
         form.setFieldsValue({
           poNumber: po.poNumber,
@@ -184,6 +183,7 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
       width={760}
       centered
       destroyOnHidden
+      afterClose={() => setResolvedDebtIds([])}
       okText={isEdit ? 'Lưu thay đổi' : 'Tạo đơn hàng'}
       cancelText="Huỷ"
       confirmLoading={createMutation.isPending || updateMutation.isPending}

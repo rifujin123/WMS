@@ -14,6 +14,9 @@ export interface PutAwayTaskDto {
   warehouseId?: string
   warehouseName?: string
   status: PutAwayTaskStatus
+  isCrossDock?: boolean
+  notes?: string
+  saleOrderId?: string
   assignToId?: string
   assignToName?: string
   assignToAvatarUrl?: string

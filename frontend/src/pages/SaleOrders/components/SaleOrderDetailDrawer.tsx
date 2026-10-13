@@ -1,6 +1,8 @@
 import { Descriptions, Drawer, Empty, Table, Tag, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import type { SaleOrderDetailDto, SaleOrderDto } from '../../../types/saleOrder'
+import type { BackorderLinkDto } from '../../../types/crossDock'
+import { useBackorderLinks } from '../../../hooks/useCrossDock'
 import {
   SALE_ORDER_DETAIL_STATUS_COLOR,
   SALE_ORDER_DETAIL_STATUS_LABEL,
@@ -80,7 +82,58 @@ const detailColumns: TableColumnsType<SaleOrderDetailDto> = [
   },
 ]
 
+const backorderLinkColumns: TableColumnsType<BackorderLinkDto> = [
+  {
+    title: 'Mã PO',
+    dataIndex: 'purchaseOrderNo',
+    key: 'purchaseOrderNo',
+    render: (poNo: string) => (
+      <Tag color="cyan" style={{ fontFamily: 'monospace' }}>
+        {poNo}
+      </Tag>
+    ),
+  },
+  {
+    title: 'SKU',
+    dataIndex: 'productSku',
+    key: 'productSku',
+    render: (sku: string) => (
+      <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+        {sku}
+      </Tag>
+    ),
+  },
+  {
+    title: 'SL liên kết',
+    dataIndex: 'quantity',
+    key: 'quantity',
+    align: 'right',
+  },
+  {
+    title: 'Đã nhận',
+    key: 'fulfilled',
+    align: 'right',
+    render: (_, row) => (
+      <span style={{ color: row.isFulfilled ? '#52c41a' : '#faad14', fontWeight: 600 }}>
+        {row.fulfilledQuantity} / {row.quantity}
+      </span>
+    ),
+  },
+  {
+    title: 'Trạng thái',
+    key: 'isFulfilled',
+    render: (_, row) => (
+      <Tag color={row.isFulfilled ? 'success' : 'processing'}>
+        {row.isFulfilled ? 'Đã đủ hàng' : 'Chờ hàng về'}
+      </Tag>
+    ),
+  },
+]
+
 export function SaleOrderDetailDrawer({ saleOrder, onClose }: SaleOrderDetailDrawerProps) {
+  const { data: backorderLinks = [] } = useBackorderLinks(
+    saleOrder ? { saleOrderId: saleOrder.id } : undefined
+  )
   return (
     <Drawer
       title={
@@ -215,6 +268,24 @@ export function SaleOrderDetailDrawer({ saleOrder, onClose }: SaleOrderDetailDra
               locale={{ emptyText: <Empty image={null} description="Đơn hàng chưa có mặt hàng nào" /> }}
             />
           </div>
+
+          {saleOrder.isPreOrder && (
+            <div>
+              <div style={{ marginBottom: 12 }}>
+                <Typography.Text strong style={{ fontSize: 14 }}>
+                  Nguồn hàng PO liên kết (Cross-Docking) ({backorderLinks.length})
+                </Typography.Text>
+              </div>
+              <Table<BackorderLinkDto>
+                rowKey="id"
+                columns={backorderLinkColumns}
+                dataSource={backorderLinks}
+                pagination={false}
+                size="small"
+                locale={{ emptyText: <Empty image={null} description="Chưa có liên kết nguồn hàng PO nào" /> }}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <Empty image={null} description="Không có dữ liệu đơn bán" />

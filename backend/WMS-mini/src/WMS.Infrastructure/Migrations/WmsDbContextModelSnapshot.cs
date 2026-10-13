@@ -268,6 +268,70 @@ namespace WMS.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("WMS.Domain.Entities.BackorderLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FulfilledQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsFulfilled")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("PurchaseOrderDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SaleOrderDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UpdatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("DeletedById");
+
+                    b.HasIndex("PurchaseOrderDetailId");
+
+                    b.HasIndex("SaleOrderDetailId");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.HasIndex("TenantId", "PurchaseOrderDetailId");
+
+                    b.HasIndex("TenantId", "SaleOrderDetailId");
+
+                    b.ToTable("BackorderLinks");
+                });
+
             modelBuilder.Entity("WMS.Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -979,8 +1043,15 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<Guid?>("FromLocationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsCrossDock")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
@@ -989,6 +1060,9 @@ namespace WMS.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<Guid>("ReceivingDetailId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SaleOrderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("StartedById")
@@ -1029,6 +1103,8 @@ namespace WMS.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ReceivingDetailId");
+
+                    b.HasIndex("SaleOrderId");
 
                     b.HasIndex("StartedById");
 
@@ -2340,6 +2416,54 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("WMS.Domain.Entities.BackorderLink", b =>
+                {
+                    b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.User", "DeletedBy")
+                        .WithMany()
+                        .HasForeignKey("DeletedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WMS.Domain.Entities.PurchaseOrderDetail", "PurchaseOrderDetail")
+                        .WithMany("BackorderLinks")
+                        .HasForeignKey("PurchaseOrderDetailId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("WMS.Domain.Entities.SaleOrderDetail", "SaleOrderDetail")
+                        .WithMany("BackorderLinks")
+                        .HasForeignKey("SaleOrderDetailId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("WMS.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("WMS.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("DeletedBy");
+
+                    b.Navigation("PurchaseOrderDetail");
+
+                    b.Navigation("SaleOrderDetail");
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("UpdatedBy");
+                });
+
             modelBuilder.Entity("WMS.Domain.Entities.Category", b =>
                 {
                     b.HasOne("WMS.Domain.Entities.User", "CreatedBy")
@@ -2828,6 +2952,11 @@ namespace WMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("WMS.Domain.Entities.SaleOrder", "SaleOrder")
+                        .WithMany()
+                        .HasForeignKey("SaleOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("WMS.Domain.Entities.User", "StartedBy")
                         .WithMany()
                         .HasForeignKey("StartedById")
@@ -2864,6 +2993,8 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("ReceivingDetail");
+
+                    b.Navigation("SaleOrder");
 
                     b.Navigation("StartedBy");
 
@@ -3571,6 +3702,11 @@ namespace WMS.Infrastructure.Migrations
                     b.Navigation("Receivings");
                 });
 
+            modelBuilder.Entity("WMS.Domain.Entities.PurchaseOrderDetail", b =>
+                {
+                    b.Navigation("BackorderLinks");
+                });
+
             modelBuilder.Entity("WMS.Domain.Entities.Receiving", b =>
                 {
                     b.Navigation("DiscrepancyReport");
@@ -3599,6 +3735,8 @@ namespace WMS.Infrastructure.Migrations
 
             modelBuilder.Entity("WMS.Domain.Entities.SaleOrderDetail", b =>
                 {
+                    b.Navigation("BackorderLinks");
+
                     b.Navigation("PickingDetails");
                 });
 

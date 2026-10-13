@@ -19,18 +19,20 @@ public class PutAwayService : IPutAwayService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly ISaleOrderRepository? _saleOrderRepo;
 
     public PutAwayService(
-        IPutAwayTaskRepository repo, 
-        IReceivingRepository receivingRepo, 
+        IPutAwayTaskRepository repo,
+        IReceivingRepository receivingRepo,
         IPurchaseOrderRepository poRepo,
-        IStockRepository stockRepo, 
-        IStockMovementRepository movementRepo, 
-        ILocationRepository locationRepo, 
+        IStockRepository stockRepo,
+        IStockMovementRepository movementRepo,
+        ILocationRepository locationRepo,
         UserManager<User> userManager,
-        IUnitOfWork unitOfWork, 
-        ICurrentUserService currentUser, 
-        IMapper mapper)
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser,
+        IMapper mapper,
+        ISaleOrderRepository? saleOrderRepo = null)
     {
         _repo = repo;
         _receivingRepo = receivingRepo;
@@ -42,6 +44,7 @@ public class PutAwayService : IPutAwayService
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _saleOrderRepo = saleOrderRepo;
     }
 
     public async Task<List<PutAwayTaskDto>> GetAllAsync(Guid? assignToId = null)
@@ -210,6 +213,23 @@ public class PutAwayService : IPutAwayService
             task.CompletedDate = DateTime.UtcNow;
             await _repo.UpdateAsync(task);
             await _unitOfWork.SaveChangesAsync();
+
+            // Auto transition SaleOrder to Packed when CrossDock task completes
+            if (task.IsCrossDock && task.SaleOrderId.HasValue && _saleOrderRepo != null)
+            {
+                var saleOrder = await _saleOrderRepo.GetByIdAsync(task.SaleOrderId.Value);
+                if (saleOrder != null
+                    && (saleOrder.Status == SaleOrderStatus.Allocated || saleOrder.Status == SaleOrderStatus.Backorder)
+                    && saleOrder.SaleOrderDetails.Count > 0
+                    && saleOrder.SaleOrderDetails.All(d => d.AllocatedQty >= d.Quantity))
+                {
+                    saleOrder.Status = SaleOrderStatus.Packed;
+                    saleOrder.PackedById = _currentUser.UserId;
+                    saleOrder.PackedDate = DateTime.UtcNow;
+                    await _saleOrderRepo.UpdateAsync(saleOrder);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+            }
 
             // Auto-close the PO when every put-away task of the purchase order is completed.
             var purchaseOrderId = task.ReceivingDetail.Receiving?.PurchaseOrderId;

@@ -87,6 +87,14 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
             .FirstOrDefaultAsync(po => po.Id == id);
     }
 
+    public async Task<PurchaseOrderDetail?> GetDetailByIdAsync(Guid detailId)
+    {
+        return await _db.PurchaseOrderDetails
+            .Include(d => d.PurchaseOrder)
+            .Include(d => d.Product)
+            .FirstOrDefaultAsync(d => d.Id == detailId);
+    }
+
     public Task<bool> ExistsByPoNumberAsync(string poNumber) =>
         _db.PurchaseOrders.AnyAsync(po => po.PoNumber == poNumber);
 
@@ -102,6 +110,16 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task DeleteAsync(PurchaseOrder purchaseOrder)
     {
+        var detailIds = purchaseOrder.PurchaseOrderDetails.Select(d => d.Id).ToList();
+        if (detailIds.Count > 0)
+        {
+            var links = await _db.BackorderLinks.Where(b => detailIds.Contains(b.PurchaseOrderDetailId)).ToListAsync();
+            if (links.Count > 0)
+            {
+                _db.BackorderLinks.RemoveRange(links);
+            }
+        }
+
         _db.PurchaseOrders.Remove(purchaseOrder);
     }
 
@@ -110,6 +128,16 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
         var details = await _db.PurchaseOrderDetails
             .Where(d => d.PurchaseOrderId == purchaseOrderId)
             .ToListAsync();
+
+        var detailIds = details.Select(d => d.Id).ToList();
+        if (detailIds.Count > 0)
+        {
+            var links = await _db.BackorderLinks.Where(b => detailIds.Contains(b.PurchaseOrderDetailId)).ToListAsync();
+            if (links.Count > 0)
+            {
+                _db.BackorderLinks.RemoveRange(links);
+            }
+        }
 
         _db.PurchaseOrderDetails.RemoveRange(details);
     }

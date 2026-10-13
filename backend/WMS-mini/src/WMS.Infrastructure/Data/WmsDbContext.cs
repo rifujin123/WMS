@@ -46,6 +46,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ReceivingDetail> ReceivingDetails => Set<ReceivingDetail>();
     public DbSet<DiscrepancyReport> DiscrepancyReports => Set<DiscrepancyReport>();
     public DbSet<VendorDebtLedger> VendorDebtLedgers => Set<VendorDebtLedger>();
+    public DbSet<BackorderLink> BackorderLinks => Set<BackorderLink>();
     public DbSet<PutAwayTask> PutAwayTasks => Set<PutAwayTask>();
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
@@ -254,6 +255,30 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<VendorDebtLedger>()
             .Property(v => v.Amount)
             .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<BackorderLink>()
+            .HasOne(b => b.SaleOrderDetail)
+            .WithMany(s => s.BackorderLinks)
+            .HasForeignKey(b => b.SaleOrderDetailId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<BackorderLink>()
+            .HasOne(b => b.PurchaseOrderDetail)
+            .WithMany(p => p.BackorderLinks)
+            .HasForeignKey(b => b.PurchaseOrderDetailId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<BackorderLink>()
+            .HasIndex(b => new { b.TenantId, b.SaleOrderDetailId });
+
+        modelBuilder.Entity<BackorderLink>()
+            .HasIndex(b => new { b.TenantId, b.PurchaseOrderDetailId });
+
+        modelBuilder.Entity<PutAwayTask>()
+            .HasOne(p => p.SaleOrder)
+            .WithMany()
+            .HasForeignKey(p => p.SaleOrderId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<StockAdjustment>()
             .HasIndex(a => new { a.TenantId, a.AdjustmentNo })

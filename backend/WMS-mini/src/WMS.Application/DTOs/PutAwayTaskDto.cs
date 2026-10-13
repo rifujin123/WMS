@@ -17,6 +17,9 @@ public class PutAwayTaskDto
     public Guid? WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     public PutAwayTaskStatus Status { get; set; }
+    public bool IsCrossDock { get; set; }
+    public string? Notes { get; set; }
+    public Guid? SaleOrderId { get; set; }
     public Guid? AssignToId { get; set; }
     public string? AssignToName { get; set; }
     public string? AssignToAvatarUrl { get; set; }

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -27,6 +28,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useApproveDiscrepancyReport, useDiscrepancyReport, useReceiving } from '../../hooks/useReceivings'
 import { usePutAwayTasks } from '../../hooks/usePutAwayTasks'
 import { usePurchaseOrder } from '../../hooks/usePurchaseOrders'
+import { useBackorderLinks } from '../../hooks/useCrossDock'
 import { useAuthContext } from '../../contexts/useAuthContext'
 import { toast } from '../../lib/toast'
 import type { PutAwayTaskDto, PutAwayTaskStatus } from '../../types/putAwayTask'
@@ -69,6 +71,11 @@ function ReceivingDetail() {
   const discrepancyReport = reportQuery.data ?? receiving?.discrepancyReport
   const { data: purchaseOrder } = usePurchaseOrder(receiving?.purchaseOrderId)
   const isManager = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+
+  const { data: backorderLinks = [] } = useBackorderLinks(
+    receiving?.purchaseOrderId ? { purchaseOrderId: receiving.purchaseOrderId } : undefined,
+  )
+  const unfulfilledCrossDockLinks = backorderLinks.filter((l) => !l.isFulfilled)
 
   const handleApproveSubmit = async () => {
     if (!receiving) return
@@ -118,14 +125,24 @@ function ReceivingDetail() {
       title: 'Vị trí đích',
       dataIndex: 'toLocationCode',
       key: 'toLocationCode',
-      render: (code?: string) =>
-        code ? (
-          <Tag color="blue" style={{ fontFamily: 'monospace' }}>
-            {code}
-          </Tag>
-        ) : (
-          <Tag color="red">Chưa set</Tag>
-        ),
+      render: (code?: string, row?: PutAwayTaskDto) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {code ? (
+            <Tag color="blue" style={{ fontFamily: 'monospace' }}>
+              {code}
+            </Tag>
+          ) : (
+            <Tag color="red">Chưa set</Tag>
+          )}
+          {row?.isCrossDock && <Tag color="purple">CrossDock</Tag>}
+        </div>
+      ),
+    },
+    {
+      title: 'Ghi chú',
+      dataIndex: 'notes',
+      key: 'notes',
+      render: (notes?: string) => notes ?? '—',
     },
     {
       title: 'Nhân viên',
@@ -168,6 +185,36 @@ function ReceivingDetail() {
       >
         Quay lại
       </Button>
+
+      {receiving.status === 'Draft' && unfulfilledCrossDockLinks.length > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<span style={{ fontSize: 16 }}>⚡</span>}
+          message="HÀNG CROSS-DOCKING CHỜ XỬ LÝ"
+          description={
+            <span>
+              Phát hiện hàng về khớp với đơn đặt trước của khách (Đơn SO:{' '}
+              <strong>
+                {[...new Set(unfulfilledCrossDockLinks.map((l) => l.saleOrderNo))].join(', ')}
+              </strong>
+              ). Khi xác nhận phiếu nhận hàng, hệ thống sẽ tự động tách tác vụ cất hàng sang vị trí CrossDock để xuất giao ngay!
+            </span>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {relatedTasks.some((t) => t.isCrossDock) && (
+        <Alert
+          type="info"
+          showIcon
+          icon={<span style={{ fontSize: 16 }}>⚡</span>}
+          message="LƯU Ý ĐIỀU PHỐI CROSS-DOCKING"
+          description="Phiếu nhận hàng này có tác vụ Cross-Docking. Vui lòng chuyển hàng thẳng ra vị trí CrossDock / Bến xuất để đóng gói giao ngay cho khách đặt trước!"
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       <Descriptions
         bordered

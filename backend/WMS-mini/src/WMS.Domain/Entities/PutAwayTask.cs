@@ -22,6 +22,14 @@ public class PutAwayTask : BaseAuditableEntity
     public Guid? ToLocationId { get; set; }
     public Location? ToLocation { get; set; }
     public PutAwayTaskStatus Status { get; set; }
+    public bool IsCrossDock { get; set; }
+
+    [MaxLength(500)]
+    public string? Notes { get; set; }
+
+    public Guid? SaleOrderId { get; set; }
+    public SaleOrder? SaleOrder { get; set; }
+
     public Guid? AssignToId { get; set; }
     public User? AssignTo { get; set; }
     public Guid? AssignedById { get; set; }

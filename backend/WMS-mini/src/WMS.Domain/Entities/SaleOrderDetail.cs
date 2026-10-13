@@ -22,4 +22,5 @@ public class SaleOrderDetail : BaseAuditableEntity
     public SaleOrderDetailStatus Status { get; set; }
 
     public ICollection<PickingDetail> PickingDetails { get; set; } = new List<PickingDetail>();
+    public ICollection<BackorderLink> BackorderLinks { get; set; } = new List<BackorderLink>();
 }

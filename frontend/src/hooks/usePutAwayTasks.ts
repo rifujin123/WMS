@@ -81,9 +81,10 @@ export function useCompletePutAwayTask() {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] })
       queryClient.invalidateQueries({ queryKey: ['putAwayTasksPage'] })
-      // Hoàn thành task có thể làm PO chuyển sang Closed
+      // Hoàn thành task có thể làm PO chuyển sang Closed hoặc SO chuyển sang Packed
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] })
       queryClient.invalidateQueries({ queryKey: ['purchaseOrdersPage'] })
+      queryClient.invalidateQueries({ queryKey: ['saleOrders'] })
       await invalidateInventoryQueries(queryClient)
     },
   })

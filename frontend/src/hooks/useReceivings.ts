@@ -81,6 +81,8 @@ export function useConfirmReceiving() {
       // confirm sinh ra PutAwayTasks mới
       queryClient.invalidateQueries({ queryKey: ['putAwayTasks'] })
       queryClient.invalidateQueries({ queryKey: ['putAwayTasksPage'] })
+      queryClient.invalidateQueries({ queryKey: ['saleOrders'] })
+      queryClient.invalidateQueries({ queryKey: ['backorderLinks'] })
     },
   })
 }

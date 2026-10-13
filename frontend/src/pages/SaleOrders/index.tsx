@@ -3,6 +3,7 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
+  LinkOutlined,
   PlusOutlined,
   SearchOutlined,
   SendOutlined,
@@ -25,6 +26,7 @@ import type { TableColumnsType } from 'antd'
 import dayjs from 'dayjs'
 import SaleOrderFormModal from './components/SaleOrderFormModal'
 import { SaleOrderDetailDrawer } from './components/SaleOrderDetailDrawer'
+import { SaleOrderBackorderLinkModal } from './components/SaleOrderBackorderLinkModal'
 import type { SaleOrderDto, SaleOrderStatus } from '../../types/saleOrder'
 import type { ShipmentDto } from '../../types/shipment'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
@@ -39,6 +41,7 @@ function SaleOrders() {
   const [editing, setEditing] = useState<SaleOrderDto | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<SaleOrderDto | null>(null)
   const [confirmDepositOrder, setConfirmDepositOrder] = useState<SaleOrderDto | null>(null)
+  const [linkModalOrder, setLinkModalOrder] = useState<SaleOrderDto | null>(null)
   const [depositForm] = Form.useForm<{ paidDeposit: number; depositNotes?: string }>()
 
   const [search, setSearch] = useState('')
@@ -242,6 +245,16 @@ function SaleOrders() {
             Xác nhận cọc
           </Button>
         )}
+        {row.status === 'Backorder' && canManage && (
+          <Button
+            type="primary"
+            size="small"
+            icon={<LinkOutlined />}
+            onClick={() => setLinkModalOrder(row)}
+          >
+            Gán PO
+          </Button>
+        )}
         {row.status === 'New' && (
           <>
             <Tooltip title="Sửa">
@@ -361,6 +374,12 @@ function SaleOrders() {
       <SaleOrderDetailDrawer
         saleOrder={selectedOrder}
         onClose={() => setSelectedOrder(null)}
+      />
+
+      <SaleOrderBackorderLinkModal
+        open={Boolean(linkModalOrder)}
+        saleOrder={linkModalOrder}
+        onClose={() => setLinkModalOrder(null)}
       />
 
       <Modal

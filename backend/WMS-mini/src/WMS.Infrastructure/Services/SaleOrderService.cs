@@ -15,6 +15,7 @@ public class SaleOrderService : ISaleOrderService
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
+    private readonly IBackorderLinkRepository? _backorderLinkRepo;
 
     public SaleOrderService(
         ISaleOrderRepository repo,
@@ -23,7 +24,8 @@ public class SaleOrderService : ISaleOrderService
         IPickingService pickingService,
         IMapper mapper,
         IUnitOfWork unitOfWork,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IBackorderLinkRepository? backorderLinkRepo = null)
     {
         _repo = repo;
         _productRepo = productRepo;
@@ -32,6 +34,7 @@ public class SaleOrderService : ISaleOrderService
         _mapper = mapper;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _backorderLinkRepo = backorderLinkRepo;
     }
 
     public async Task<List<SaleOrderDto>> GetAllAsync()
@@ -207,6 +210,41 @@ public class SaleOrderService : ISaleOrderService
         if (saleOrder.PaidDeposit >= saleOrder.RequiredDeposit)
         {
             saleOrder.Status = SaleOrderStatus.Backorder;
+        }
+
+        await _repo.UpdateAsync(saleOrder);
+        await _unitOfWork.SaveChangesAsync();
+        return await GetByIdAsync(id);
+    }
+
+    public async Task<SaleOrderDto?> CancelAsync(Guid id, string? reason = null)
+    {
+        var saleOrder = await _repo.GetByIdAsync(id);
+        if (saleOrder == null)
+            return null;
+
+        if (saleOrder.Status == SaleOrderStatus.Shipped || saleOrder.Status == SaleOrderStatus.Cancelled)
+            throw new InvalidOperationException($"Không thể hủy đơn hàng ở trạng thái '{saleOrder.Status}'.");
+
+        saleOrder.Status = SaleOrderStatus.Cancelled;
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            saleOrder.DepositNotes = string.IsNullOrWhiteSpace(saleOrder.DepositNotes)
+                ? $"[Đã hủy: {reason}]"
+                : $"{saleOrder.DepositNotes} | [Đã hủy: {reason}]";
+        }
+
+        if (_backorderLinkRepo != null)
+        {
+            var detailIds = saleOrder.SaleOrderDetails.Select(d => d.Id).ToList();
+            if (detailIds.Count > 0)
+            {
+                var links = await _backorderLinkRepo.GetBySaleOrderDetailIdsAsync(detailIds);
+                if (links.Count > 0)
+                {
+                    await _backorderLinkRepo.DeleteRangeAsync(links);
+                }
+            }
         }
 
         await _repo.UpdateAsync(saleOrder);

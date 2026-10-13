@@ -53,6 +53,16 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
 
     public async Task DeleteAsync(SaleOrder saleOrder)
     {
+        var detailIds = saleOrder.SaleOrderDetails.Select(d => d.Id).ToList();
+        if (detailIds.Count > 0)
+        {
+            var links = await _db.BackorderLinks.Where(b => detailIds.Contains(b.SaleOrderDetailId)).ToListAsync();
+            if (links.Count > 0)
+            {
+                _db.BackorderLinks.RemoveRange(links);
+            }
+        }
+
         _db.SaleOrderDetails.RemoveRange(saleOrder.SaleOrderDetails);
         _db.SaleOrders.Remove(saleOrder);
     }
@@ -63,12 +73,25 @@ public class SqlSaleOrderRepository : ISaleOrderRepository
             .Where(d => d.SaleOrderId == saleOrderId)
             .ToListAsync();
 
+        var detailIds = details.Select(d => d.Id).ToList();
+        if (detailIds.Count > 0)
+        {
+            var links = await _db.BackorderLinks.Where(b => detailIds.Contains(b.SaleOrderDetailId)).ToListAsync();
+            if (links.Count > 0)
+            {
+                _db.BackorderLinks.RemoveRange(links);
+            }
+        }
+
         _db.SaleOrderDetails.RemoveRange(details);
     }
 
     public async Task<SaleOrderDetail?> GetDetailByIdAsync(Guid detailId)
     {
-        return await _db.SaleOrderDetails.FirstOrDefaultAsync(d => d.Id == detailId);
+        return await _db.SaleOrderDetails
+            .Include(d => d.SaleOrder)
+            .Include(d => d.Product)
+            .FirstOrDefaultAsync(d => d.Id == detailId);
     }
 
     public async Task<List<SaleOrderDetail>> GetDetailsWithOrdersByIdsAsync(List<Guid> detailIds)

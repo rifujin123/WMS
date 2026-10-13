@@ -10,4 +10,5 @@ public interface ISaleOrderService
     Task<SaleOrderDto?> UpdateAsync(Guid id, CreateSaleOrderDto dto);
     Task<bool> DeleteAsync(Guid id);
     Task<SaleOrderDto?> ConfirmDepositAsync(Guid id, ConfirmDepositDto dto);
+    Task<SaleOrderDto?> CancelAsync(Guid id, string? reason = null);
 }

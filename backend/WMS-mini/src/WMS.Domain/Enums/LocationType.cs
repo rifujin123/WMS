@@ -6,5 +6,6 @@ public enum LocationType
     Picking,
     Receiving,
     Shipping,
-    Quarantine
+    Quarantine,
+    CrossDock
 }

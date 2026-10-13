@@ -10,6 +10,7 @@ using WMS.Application.Services;
 using WMS.Infrastructure.Data;
 using WMS.Infrastructure.Repositories;
 using WMS.Infrastructure.Services;
+using WMS.Infrastructure.Workers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -168,6 +169,7 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IVendorDebtService, VendorDebtService>();
+builder.Services.AddScoped<IBackorderLinkService, BackorderLinkService>();
 builder.Services.AddScoped<IPutAwayService, PutAwayService>();
 builder.Services.AddScoped<IReceivingService, ReceivingService>();
 builder.Services.AddScoped<IStockService, StockService>();
@@ -198,6 +200,7 @@ builder.Services.AddScoped<ILocationRepository, SqlLocationRepository>();
 builder.Services.AddScoped<IPurchaseOrderRepository, SqlPurchaseOrderRepository>();
 builder.Services.AddScoped<IStockRepository, SqlStockRepository>();
 builder.Services.AddScoped<IStockMovementRepository, SqlStockMovementRepository>();
+builder.Services.AddScoped<IBackorderLinkRepository, SqlBackorderLinkRepository>();
 builder.Services.AddScoped<ISaleOrderRepository, SqlSaleOrderRepository>();
 builder.Services.AddScoped<IPickingRepository, SqlPickingRepository>();
 builder.Services.AddScoped<IReceivingRepository, SqlReceivingRepository>();
@@ -207,6 +210,8 @@ builder.Services.AddScoped<IRmaRepository, SqlRmaRepository>();
 builder.Services.AddScoped<IAssociationRuleRepository, SqlAssociationRuleRepository>();
 builder.Services.AddScoped<IStockAdjustmentRepository, SqlStockAdjustmentRepository>();
 builder.Services.AddScoped<IAuditLogRepository, SqlAuditLogRepository>();
+
+builder.Services.AddHostedService<ReservationTimeoutWorker>();
 
 var app = builder.Build();
 

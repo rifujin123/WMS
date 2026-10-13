@@ -20,4 +20,6 @@ public class PurchaseOrderDetail : BaseAuditableEntity
     public decimal UnitPrice { get; set; }
     public decimal TaxRate { get; set; }
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    public ICollection<BackorderLink> BackorderLinks { get; set; } = new List<BackorderLink>();
 }
