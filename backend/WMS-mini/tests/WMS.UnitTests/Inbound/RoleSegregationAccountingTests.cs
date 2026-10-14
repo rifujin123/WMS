@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using Microsoft.AspNetCore.Authorization;
+using WMS.API.Controllers;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -254,5 +256,40 @@ public class RoleSegregationAccountingTests
 
         Assert.Equal(1, paged.TotalCount);
         Assert.Equal("PO-CREATOR-A", paged.Items[0].PoNumber);
+    }
+
+    [Fact]
+    public void Controller_Endpoint_Authorization_Attributes_Enforce_Role_Segregation()
+    {
+        // 1. VendorDebtsController: only Admin, ChiefAccountant, Accountant
+        var debtAttr = typeof(VendorDebtsController).GetCustomAttributes(typeof(AuthorizeAttribute), false)
+            .Cast<AuthorizeAttribute>()
+            .FirstOrDefault();
+        Assert.NotNull(debtAttr);
+        Assert.Equal("Admin,ChiefAccountant,Accountant", debtAttr.Roles);
+
+        // 2. SaleOrdersController.ConfirmDeposit: only Admin, ChiefAccountant, Accountant
+        var confirmDepositMethod = typeof(SaleOrdersController).GetMethod("ConfirmDeposit");
+        var confirmDepositAttr = confirmDepositMethod?.GetCustomAttributes(typeof(AuthorizeAttribute), false)
+            .Cast<AuthorizeAttribute>()
+            .FirstOrDefault();
+        Assert.NotNull(confirmDepositAttr);
+        Assert.Equal("Admin,ChiefAccountant,Accountant", confirmDepositAttr.Roles);
+
+        // 3. PurchaseOrdersController.Approve: only Admin, ChiefAccountant
+        var approveMethod = typeof(PurchaseOrdersController).GetMethod("Approve");
+        var approveAttr = approveMethod?.GetCustomAttributes(typeof(AuthorizeAttribute), false)
+            .Cast<AuthorizeAttribute>()
+            .FirstOrDefault();
+        Assert.NotNull(approveAttr);
+        Assert.Equal("Admin,ChiefAccountant", approveAttr.Roles);
+
+        // 4. PurchaseOrdersController.Close: Admin, ChiefAccountant, WarehouseManager
+        var closeMethod = typeof(PurchaseOrdersController).GetMethod("Close");
+        var closeAttr = closeMethod?.GetCustomAttributes(typeof(AuthorizeAttribute), false)
+            .Cast<AuthorizeAttribute>()
+            .FirstOrDefault();
+        Assert.NotNull(closeAttr);
+        Assert.Equal("Admin,ChiefAccountant,WarehouseManager", closeAttr.Roles);
     }
 }

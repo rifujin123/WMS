@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WMS.API.Configuration;
@@ -72,7 +72,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPatch("{id}/approve")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ChiefAccountant")]
     public async Task<IActionResult> Approve([FromRoute] Guid id)
     {
         var result = await _service.ApproveAsync(id);
@@ -81,7 +81,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPatch("{id}/close")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,ChiefAccountant,WarehouseManager")]
     public async Task<IActionResult> Close([FromRoute] Guid id)
     {
         var result = await _service.CloseAsync(id);

@@ -45,6 +45,8 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
   const handleOk = async () => {
     try {
       const values = await form.validateFields()
+      const isCompanyWide = values.role === 'Admin' || values.role === 'ChiefAccountant'
+      const assignedWarehouseId = isCompanyWide ? undefined : (values.warehouseId || undefined)
       if (isEdit && user) {
         updateMutation.mutate(
           {
@@ -53,7 +55,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
               fullName: values.fullName,
               email: values.email,
               role: values.role as UserRole,
-              warehouseId: values.warehouseId || undefined,
+              warehouseId: assignedWarehouseId,
             },
           },
           {
@@ -76,7 +78,7 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
           email: values.email,
           password: values.password,
           role: values.role,
-          warehouseId: values.warehouseId || undefined,
+          warehouseId: assignedWarehouseId,
         },
         {
           onSuccess: () => {
@@ -114,6 +116,11 @@ function UserFormModal({ open, user, onClose }: UserFormModalProps) {
         size="large"
         requiredMark
         style={{ marginTop: 24 }}
+        onValuesChange={(changedValues) => {
+          if (changedValues.role === 'Admin' || changedValues.role === 'ChiefAccountant') {
+            form.setFieldValue('warehouseId', undefined)
+          }
+        }}
       >
         <Form.Item
           name="fullName"

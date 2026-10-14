@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
@@ -55,7 +55,7 @@ public class SaleOrdersController : ControllerBase
     }
 
     [HttpPost("{id}/confirm-deposit")]
-    [Authorize(Roles = "Admin,WarehouseManager")]
+    [Authorize(Roles = "Admin,ChiefAccountant,Accountant")]
     public async Task<IActionResult> ConfirmDeposit([FromRoute] Guid id, [FromBody] ConfirmDepositDto dto)
     {
         var result = await _service.ConfirmDepositAsync(id, dto);
