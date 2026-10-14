@@ -144,7 +144,7 @@ interface LocationPreviewPopoverProps {
 }
 
 export function LocationPreviewPopover({ location, children }: LocationPreviewPopoverProps) {
-  const percent = Math.min(100, Math.round(((location.currentQuantity ?? 0) / Math.max(1, location.maxQuantity)) * 100))
+  const percent = Math.max(0, Math.min(100, Math.round(((location.currentQuantity ?? 0) / Math.max(1, location.maxQuantity)) * 100)))
 
   const content = (
     <div style={{ width: 240, fontSize: 12 }}>

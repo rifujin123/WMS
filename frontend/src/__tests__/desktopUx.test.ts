@@ -136,14 +136,15 @@ describe('Desktop UX Ergonomics & Workflow Fast-Lane', () => {
       expect(previewItems[0].productSku).toBe('SKU-1')
     })
 
-    it('Popover Vị trí kho tính chính xác tỷ lệ lấp đầy theo phần trăm', () => {
+    it('Popover Vị trí kho tính chính xác tỷ lệ lấp đầy theo phần trăm và chặn 2 đầu [0, 100]', () => {
       const calcPercent = (current: number, max: number) =>
-        Math.min(100, Math.round((current / Math.max(1, max)) * 100))
+        Math.max(0, Math.min(100, Math.round((current / Math.max(1, max)) * 100)))
 
       expect(calcPercent(50, 100)).toBe(50)
       expect(calcPercent(95, 100)).toBe(95)
       expect(calcPercent(120, 100)).toBe(100) // Capped at 100%
       expect(calcPercent(0, 50)).toBe(0)
+      expect(calcPercent(-5, 100)).toBe(0) // Capped at 0% cho tồn kho âm
     })
   })
 })
