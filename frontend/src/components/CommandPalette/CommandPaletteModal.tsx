@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useState, useCallback } from 'react'
 import { Command } from 'cmdk'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -32,16 +32,21 @@ export default function CommandPaletteModal({ open, onClose }: CommandPaletteMod
   const { user } = useAuthContext()
   const [search, setSearch] = useState('')
 
+  const handleClose = useCallback(() => {
+    setSearch('')
+    onClose()
+  }, [onClose])
+
   // Đóng khi bấm ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) {
-        onClose()
+        handleClose()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, onClose])
+  }, [open, handleClose])
 
   // Lấy dữ liệu tra cứu
   const { data: pos } = usePurchaseOrders()
@@ -56,7 +61,7 @@ export default function CommandPaletteModal({ open, onClose }: CommandPaletteMod
 
   const handleSelect = (url: string) => {
     navigate(url)
-    onClose()
+    handleClose()
   }
 
   if (!open) return null
@@ -65,7 +70,7 @@ export default function CommandPaletteModal({ open, onClose }: CommandPaletteMod
     <div
       className="wms-command-backdrop"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+        if (e.target === e.currentTarget) handleClose()
       }}
     >
       <div className="wms-command-dialog" role="dialog" aria-modal="true">
@@ -160,7 +165,17 @@ export default function CommandPaletteModal({ open, onClose }: CommandPaletteMod
             {/* Đơn mua hàng */}
             {(pos ?? []).length > 0 && (
               <Command.Group heading="📥 Đơn mua hàng (Purchase Orders)">
-                {(pos ?? []).slice(0, 8).map((po) => (
+                {(pos ?? [])
+                  .filter((po) => {
+                    if (!search.trim()) return true
+                    const q = search.toLowerCase()
+                    return (
+                      po.poNumber.toLowerCase().includes(q) ||
+                      (po.vendorName ?? '').toLowerCase().includes(q)
+                    )
+                  })
+                  .slice(0, 8)
+                  .map((po) => (
                   <Command.Item
                     key={po.id}
                     value={`${po.poNumber} ${po.vendorName} ${po.status} ${po.totalAmount ?? 0}`}
@@ -181,7 +196,17 @@ export default function CommandPaletteModal({ open, onClose }: CommandPaletteMod
             {/* Đơn bán hàng */}
             {(sos ?? []).length > 0 && (
               <Command.Group heading="📤 Đơn bán hàng (Sale Orders)">
-                {(sos ?? []).slice(0, 8).map((so) => (
+                {(sos ?? [])
+                  .filter((so) => {
+                    if (!search.trim()) return true
+                    const q = search.toLowerCase()
+                    return (
+                      so.orderNo.toLowerCase().includes(q) ||
+                      (so.customerName ?? '').toLowerCase().includes(q)
+                    )
+                  })
+                  .slice(0, 8)
+                  .map((so) => (
                   <Command.Item
                     key={so.id}
                     value={`${so.orderNo} ${so.customerName} ${so.status} ${so.totalAmount}`}
@@ -202,7 +227,14 @@ export default function CommandPaletteModal({ open, onClose }: CommandPaletteMod
             {/* Sản phẩm SKU */}
             {(products ?? []).length > 0 && (
               <Command.Group heading="📦 Sản phẩm (SKU)">
-                {(products ?? []).slice(0, 10).map((prod) => (
+                {(products ?? [])
+                  .filter((p) => {
+                    if (!search.trim()) return true
+                    const q = search.toLowerCase()
+                    return p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
+                  })
+                  .slice(0, 10)
+                  .map((prod) => (
                   <Command.Item
                     key={prod.id}
                     value={`${prod.sku} ${prod.name} ${prod.price}`}

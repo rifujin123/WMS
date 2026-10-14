@@ -32,6 +32,22 @@ describe('Desktop UX Ergonomics & Workflow Fast-Lane', () => {
       expect(filterFn('PO-2026-001 Công ty ABC Pending 15000000', 'SO-999')).toBe(0)
       expect(filterFn('IP15-PRO-128 iPhone 15 Pro 25000000', 'ip15')).toBe(1)
     })
+
+    it('Lọc mảng danh sách trước khi cắt slice(0, 8) đảm bảo tìm thấy phần tử ở vị trí sâu', () => {
+      const items = Array.from({ length: 20 }, (_, i) => ({
+        poNumber: `PO-2026-${String(i + 1).padStart(3, '0')}`,
+        vendorName: `Nhà cung cấp ${i + 1}`,
+      }))
+
+      const q = 'PO-2026-015'.toLowerCase()
+      const filtered = items.filter(
+        (po) => po.poNumber.toLowerCase().includes(q) || po.vendorName.toLowerCase().includes(q)
+      )
+      const sliced = filtered.slice(0, 8)
+
+      expect(sliced.length).toBe(1)
+      expect(sliced[0].poNumber).toBe('PO-2026-015')
+    })
   })
 
   describe('Next Best Action Flow Routing', () => {
