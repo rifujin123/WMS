@@ -195,6 +195,7 @@ public class PutAwayService : IPutAwayService
                     LocationId = task.ToLocationId.Value,
                     LotNumber = detail.LotNumber,
                     ExpiryDate = detail.ExpiryDate,
+                    InboundDate = DateTime.UtcNow,
                     OnhandQty = task.Quantity,
                     ReservedQty = 0
                 });
@@ -202,6 +203,7 @@ public class PutAwayService : IPutAwayService
             else
             {
                 stock.OnhandQty += task.Quantity;
+                stock.InboundDate ??= DateTime.UtcNow;
                 await _stockRepo.UpdateAsync(stock);
             }
 

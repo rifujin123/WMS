@@ -2,10 +2,12 @@ import { Typography, Tabs, Skeleton } from 'antd'
 import {
   ShopOutlined,
   RobotOutlined,
+  AlertOutlined,
 } from '@ant-design/icons'
 import { useTenantConfig } from '../../hooks/useTenant'
 import BrandingTab from './components/BrandingTab'
 import AiIntegrationTab from './components/AiIntegrationTab'
+import AlertConfigTab from './components/AlertConfigTab'
 
 export default function SettingsPage() {
   const { data: config, isLoading } = useTenantConfig()
@@ -46,6 +48,16 @@ export default function SettingsPage() {
                 </span>
               ),
               children: <AiIntegrationTab config={config} />,
+            },
+            {
+              key: 'alertConfig',
+              label: (
+                <span>
+                  <AlertOutlined />
+                  Cảnh báo & Vốn lưu động
+                </span>
+              ),
+              children: <AlertConfigTab config={config} />,
             },
           ]}
         />

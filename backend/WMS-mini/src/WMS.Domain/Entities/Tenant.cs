@@ -25,6 +25,15 @@ public class Tenant
 
     public bool IsActive { get; set; } = false;
 
+    // Cấu hình Cảnh báo & Vốn lưu động
+    public int NearExpiryDays { get; set; } = 30;
+
+    public int DeadStockDays { get; set; } = 90;
+
+    public int FrozenCapitalDays { get; set; } = 60;
+
+    public bool EnableExpiryAlertBanner { get; set; } = true;
+
     // Tùy biến thương hiệu (White-label Branding)
     [MaxLength(500)]
     public string? LogoUrl { get; set; }

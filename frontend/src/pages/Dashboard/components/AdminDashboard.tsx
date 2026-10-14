@@ -14,6 +14,7 @@ import AuditLogTable from './AuditLogTable'
 import StatusHistoryTable from './StatusHistoryTable'
 import { getPeriodRange, PERIOD_OPTIONS } from './period'
 import type { PeriodKey } from './period'
+import WorkingCapitalRadarWidget from './WorkingCapitalRadarWidget'
 import { useStocks } from '../../../hooks/useStocks'
 import { useWarehouses } from '../../../hooks/useWarehouses'
 import { useAllLocations } from '../../../hooks/useLocations'
@@ -38,6 +39,7 @@ function AdminDashboard() {
     queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
     queryClient.invalidateQueries({ queryKey: ['auditLogs'] })
     queryClient.invalidateQueries({ queryKey: ['statusHistories'] })
+    queryClient.invalidateQueries({ queryKey: ['workingCapitalRadar'] })
   }
 
   return (
@@ -110,6 +112,8 @@ function AdminDashboard() {
           onClick={() => navigate('/warehouses')}
         />
       </div>
+
+      <WorkingCapitalRadarWidget />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <StockMovementTable fromUtc={range.fromUtc} toUtc={range.toUtc} />

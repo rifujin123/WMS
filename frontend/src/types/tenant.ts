@@ -11,6 +11,10 @@ export interface TenantConfig {
   hasAiKeyConfigured: boolean
   maskedAiApiKey?: string
   aiModel?: string
+  nearExpiryDays?: number
+  deadStockDays?: number
+  frozenCapitalDays?: number
+  enableExpiryAlertBanner?: boolean
 }
 
 export interface UpdateTenantConfigInput {
@@ -22,6 +26,10 @@ export interface UpdateTenantConfigInput {
   footerText?: string
   aiApiKey?: string
   aiModel?: string
+  nearExpiryDays?: number
+  deadStockDays?: number
+  frozenCapitalDays?: number
+  enableExpiryAlertBanner?: boolean
 }
 
 export interface TestAiKeyInput {

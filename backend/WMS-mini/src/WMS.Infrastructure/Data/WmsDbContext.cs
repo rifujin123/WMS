@@ -136,6 +136,10 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .HasIndex(p => new { p.TenantId, p.Sku })
             .IsUnique();
 
+        modelBuilder.Entity<Product>()
+            .Property(p => p.PurchasePrice)
+            .HasColumnType("decimal(18,2)");
+
         modelBuilder.Entity<Customer>()
             .HasIndex(c => new { c.TenantId, c.Name })
             .IsUnique();

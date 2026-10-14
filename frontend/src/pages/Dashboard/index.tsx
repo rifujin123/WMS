@@ -8,7 +8,7 @@ function Dashboard() {
   const { user } = useAuthContext()
   const role = user?.role
 
-  if (role === 'Admin') return <AdminDashboard />
+  if (role === 'Admin' || role === 'ChiefAccountant' || role === 'Accountant') return <AdminDashboard />
   if (role === 'WarehouseManager') return <ManagerDashboard />
   if (role === 'WarehouseStaff') return <StaffDashboard />
 

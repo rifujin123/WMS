@@ -22,4 +22,6 @@ public class Stock : BaseAuditableEntity
     public string? LotNumber { get; set; }
 
     public DateTime? ExpiryDate { get; set; }
+
+    public DateTime? InboundDate { get; set; }
 }

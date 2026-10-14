@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import {
+  BellOutlined,
   DownOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
-import { Avatar, Button, Dropdown, Layout, Menu, theme } from 'antd'
+import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Popover, Tag, theme } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../Logo'
 import { useAuthContext } from '../../contexts/useAuthContext'
@@ -14,6 +15,7 @@ import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import { getGroupKeyForPath, getMenuItems, navConfig } from './navConfig'
 import { AppFooter } from './AppFooter'
 import { useTenantConfig } from '../../hooks/useTenant'
+import { useWorkingCapitalRadar } from '../../hooks/useWorkingCapitalRadar'
 
 const { Header, Content, Sider } = Layout
 
@@ -27,6 +29,12 @@ function AppLayout() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
+
+  const canViewRadar = user?.role === 'Admin' || user?.role === 'ChiefAccountant' || user?.role === 'WarehouseManager'
+  const { data: radarData } = useWorkingCapitalRadar(undefined, {
+    enabled: canViewRadar,
+    refetchInterval: canViewRadar ? 60000 : undefined,
+  })
 
   // Tìm key item và nhóm khớp với đường dẫn hiện tại (hỗ trợ cả sub-path như /receivings/:id)
   let selectedKey = location.pathname
@@ -175,9 +183,66 @@ function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
+            gap: 20,
             borderBottom: '1px solid #EDF1F5',
           }}
         >
+          {canViewRadar && (
+            <Popover
+              placement="bottomRight"
+              title={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Cảnh báo cận date (FEFO)</span>
+                  <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate('/dashboard')}>
+                    Chi tiết
+                  </Button>
+                </div>
+              }
+              content={
+                <div style={{ width: 320, maxHeight: 360, overflowY: 'auto' }}>
+                  {(radarData?.fefoAlerts ?? []).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '16px 0', color: '#8c8c8c' }}>
+                      Không có lô hàng nào cận hạn sử dụng
+                    </div>
+                  ) : (
+                    <List
+                      size="small"
+                      dataSource={(radarData?.fefoAlerts ?? []).slice(0, 5)}
+                      renderItem={(item) => {
+                        const color = item.alertLevel === 'Red' ? '#cf1322' : item.alertLevel === 'Orange' ? '#fa8c16' : '#faad14'
+                        return (
+                          <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                            <div style={{ width: '100%' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Tag color="blue" style={{ fontFamily: 'monospace', margin: 0 }}>{item.productSku}</Tag>
+                                <span style={{ color, fontWeight: 600, fontSize: 12 }}>{item.statusText}</span>
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 500, margin: '4px 0', color: '#262626' }}>{item.productName}</div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8c8c8c' }}>
+                                <span>Vị trí: <Tag color="default" style={{ margin: 0, fontFamily: 'monospace' }}>{item.locationCode}</Tag></span>
+                                <span>SL: <b>{item.onhandQty}</b></span>
+                              </div>
+                            </div>
+                          </List.Item>
+                        )
+                      }}
+                    />
+                  )}
+                </div>
+              }
+              trigger="click"
+            >
+              <Badge count={radarData?.nearExpiryStockCount ?? 0} offset={[-2, 4]} overflowCount={99}>
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={<BellOutlined style={{ fontSize: 18, color: '#595959' }} />}
+                  aria-label="Thông báo hàng cận date"
+                />
+              </Badge>
+            </Popover>
+          )}
+
           <Dropdown menu={userMenu} trigger={['click']} placement="bottomRight">
             <div
               style={{

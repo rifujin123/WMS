@@ -23,6 +23,9 @@ public class Product : BaseAuditableEntity
     [Column(TypeName = "decimal(18,2)")]
     public decimal Price { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal PurchasePrice { get; set; }
+
     [MaxLength(100)]
     public string? Dimension { get; set; }
 

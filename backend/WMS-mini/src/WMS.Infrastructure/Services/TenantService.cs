@@ -177,7 +177,11 @@ public class TenantService : ITenantService
             FooterText = tenant.FooterText,
             HasAiKeyConfigured = hasAiKey,
             MaskedAiApiKey = maskedKey,
-            AiModel = tenant.AiModel ?? "gemini-1.5-flash"
+            AiModel = tenant.AiModel ?? "gemini-1.5-flash",
+            NearExpiryDays = tenant.NearExpiryDays,
+            DeadStockDays = tenant.DeadStockDays,
+            FrozenCapitalDays = tenant.FrozenCapitalDays,
+            EnableExpiryAlertBanner = tenant.EnableExpiryAlertBanner
         };
     }
 
@@ -225,6 +229,37 @@ public class TenantService : ITenantService
         if (!string.IsNullOrWhiteSpace(dto.AiModel))
         {
             tenant.AiModel = dto.AiModel.Trim();
+        }
+
+        if (dto.NearExpiryDays.HasValue)
+        {
+            if (dto.NearExpiryDays.Value <= 0)
+                throw new InvalidOperationException("Số ngày cảnh báo cận hạn phải là số nguyên dương lớn hơn hoặc bằng 1.");
+            tenant.NearExpiryDays = dto.NearExpiryDays.Value;
+        }
+
+        if (dto.DeadStockDays.HasValue)
+        {
+            if (dto.DeadStockDays.Value <= 0)
+                throw new InvalidOperationException("Số ngày tính hàng đọng vốn (Dead Stock) phải là số nguyên dương lớn hơn hoặc bằng 1.");
+            tenant.DeadStockDays = dto.DeadStockDays.Value;
+        }
+
+        if (dto.FrozenCapitalDays.HasValue)
+        {
+            if (dto.FrozenCapitalDays.Value <= 0)
+                throw new InvalidOperationException("Số ngày tính vốn đóng băng phải là số nguyên dương lớn hơn hoặc bằng 1.");
+            tenant.FrozenCapitalDays = dto.FrozenCapitalDays.Value;
+        }
+
+        if (dto.EnableExpiryAlertBanner.HasValue)
+        {
+            tenant.EnableExpiryAlertBanner = dto.EnableExpiryAlertBanner.Value;
+        }
+
+        if (tenant.FrozenCapitalDays > tenant.DeadStockDays)
+        {
+            throw new InvalidOperationException("Số ngày tính vốn đóng băng không được lớn hơn số ngày tính hàng đọng vốn (Dead Stock).");
         }
 
         await _db.SaveChangesAsync();

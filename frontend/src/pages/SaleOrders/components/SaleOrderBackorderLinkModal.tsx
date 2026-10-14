@@ -45,14 +45,13 @@ export function SaleOrderBackorderLinkModal({
 
   useEffect(() => {
     if (open && saleOrder) {
-      const firstDetailId = saleOrder.saleOrderDetails[0]?.id ?? null
-      setSelectedDetailId(firstDetailId)
       form.resetFields()
+      const firstDetailId = saleOrder.saleOrderDetails[0]?.id ?? null
       if (firstDetailId) {
         form.setFieldsValue({ saleOrderDetailId: firstDetailId })
       }
     }
-  }, [open, saleOrder?.id, form])
+  }, [open, saleOrder, form])
 
   const { data: links = [], isPending: linksLoading } = useBackorderLinks(
     saleOrder ? { saleOrderId: saleOrder.id } : undefined
@@ -62,6 +61,7 @@ export function SaleOrderBackorderLinkModal({
   const createMutation = useCreateBackorderLink()
   const deleteMutation = useDeleteBackorderLink()
 
+  const watchedDetailId = Form.useWatch('saleOrderDetailId', form)
   const selectedPoDetailId = Form.useWatch('purchaseOrderDetailId', form)
 
   if (!saleOrder) return null
@@ -74,9 +74,8 @@ export function SaleOrderBackorderLinkModal({
   })
 
   // Tìm chi tiết dòng SO đang được chọn
-  const activeDetail = saleOrder.saleOrderDetails.find(
-    (d) => d.id === (selectedDetailId ?? saleOrder.saleOrderDetails[0]?.id)
-  )
+  const activeDetailId = watchedDetailId ?? selectedDetailId ?? saleOrder.saleOrderDetails[0]?.id
+  const activeDetail = saleOrder.saleOrderDetails.find((d) => d.id === activeDetailId)
 
   // Tính số lượng đã được liên kết trong các link chưa hoàn tất (tránh trừ 2 lần)
   const existingUnfulfilledQty = links

@@ -21,6 +21,7 @@ import { usePickings } from '../../../hooks/usePickings'
 import { useSaleOrders } from '../../../hooks/useSaleOrders'
 import { SALE_ORDER_STATUS_COLOR, SALE_ORDER_STATUS_LABEL } from '../../../lib/statusMaps'
 import type { SaleOrderStatus } from '../../../types/saleOrder'
+import WorkingCapitalRadarWidget from './WorkingCapitalRadarWidget'
 
 function isInRange(date: string, range: { fromUtc?: string; toUtc?: string }) {
   const d = dayjs(date)
@@ -63,6 +64,7 @@ function ManagerDashboard() {
     queryClient.invalidateQueries({ queryKey: ['pickings'] })
     queryClient.invalidateQueries({ queryKey: ['saleOrders'] })
     queryClient.invalidateQueries({ queryKey: ['stockMovements'] })
+    queryClient.invalidateQueries({ queryKey: ['workingCapitalRadar'] })
   }
 
   return (
@@ -153,6 +155,8 @@ function ManagerDashboard() {
           </div>
         )}
       </Card>
+
+      <WorkingCapitalRadarWidget />
 
       <StockMovementTable fromUtc={range.fromUtc} toUtc={range.toUtc} />
     </div>

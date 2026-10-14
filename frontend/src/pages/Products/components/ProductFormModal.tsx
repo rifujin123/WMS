@@ -129,7 +129,7 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
           <Col span={12}>
             <Form.Item
               name="price"
-              label="Giá"
+              label="Giá bán"
               rules={[{ required: true, message: 'Vui lòng nhập giá.' }]}
             >
               <InputNumber<number>
@@ -144,9 +144,25 @@ function ProductFormModal({ open, product, onClose }: ProductFormModalProps) {
           </Col>
         </Row>
 
-        <Form.Item name="dimension" label="Kích thước (tùy chọn)">
-          <Input placeholder="vd: 30x20x15 cm" />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="purchasePrice" label="Giá vốn (tùy chọn)">
+              <InputNumber<number>
+                style={{ width: '100%' }}
+                min={0}
+                addonAfter="₫"
+                placeholder="0"
+                formatter={(value) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={(value) => Number(value?.replace(/,/g, '')) || 0}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="dimension" label="Kích thước (tùy chọn)">
+              <Input placeholder="vd: 30x20x15 cm" />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item
           label={isEdit ? 'Đổi ảnh (tùy chọn)' : 'Ảnh sản phẩm (bắt buộc)'}

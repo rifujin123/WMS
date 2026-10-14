@@ -53,6 +53,7 @@ public class SqlProductRepository : IProductRepository
                 CategoryId = p.CategoryId,
                 Unit = p.Unit,
                 Price = p.Price,
+                PurchasePrice = p.PurchasePrice,
                 Dimension = p.Dimension,
                 ImageUrl = p.ImageUrl,
             })

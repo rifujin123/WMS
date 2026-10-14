@@ -814,6 +814,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("PurchasePrice")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1708,6 +1711,9 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime?>("ExpiryDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("InboundDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -1977,9 +1983,18 @@ namespace WMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DeadStockDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("EnableExpiryAlertBanner")
+                        .HasColumnType("bit");
+
                     b.Property<string>("FooterText")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("FrozenCapitalDays")
+                        .HasColumnType("int");
 
                     b.Property<bool>("HasExpiryManagement")
                         .HasColumnType("bit");
@@ -1999,6 +2014,9 @@ namespace WMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("NearExpiryDays")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("VerifiedDate")
                         .HasColumnType("datetime2");

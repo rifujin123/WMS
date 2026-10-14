@@ -5,6 +5,7 @@ export interface ProductDto {
   categoryId: string
   unit?: string
   price: number
+  purchasePrice?: number
   dimension?: string
   imageUrl?: string
 }
@@ -15,5 +16,6 @@ export interface CreateProductDto {
   categoryId: string
   unit?: string
   price: number
+  purchasePrice?: number
   dimension?: string
 }

@@ -16,6 +16,10 @@ public class TenantConfigDto
     public bool HasAiKeyConfigured { get; set; }
     public string? MaskedAiApiKey { get; set; }
     public string? AiModel { get; set; }
+    public int NearExpiryDays { get; set; } = 30;
+    public int DeadStockDays { get; set; } = 90;
+    public int FrozenCapitalDays { get; set; } = 60;
+    public bool EnableExpiryAlertBanner { get; set; } = true;
 }
 
 public class UpdateTenantConfigDto
@@ -43,6 +47,14 @@ public class UpdateTenantConfigDto
 
     [MaxLength(100)]
     public string? AiModel { get; set; }
+
+    public int? NearExpiryDays { get; set; }
+
+    public int? DeadStockDays { get; set; }
+
+    public int? FrozenCapitalDays { get; set; }
+
+    public bool? EnableExpiryAlertBanner { get; set; }
 }
 
 public class TestAiKeyDto
