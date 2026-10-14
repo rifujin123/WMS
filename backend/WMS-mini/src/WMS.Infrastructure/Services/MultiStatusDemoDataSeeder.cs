@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -306,6 +306,9 @@ public class MultiStatusDemoDataSeeder : IDemoDataSeeder
             ("manager2", "Quản lý Kho HN",       "manager2@wms.local", "WarehouseManager", "Manager@123", whHn?.Id),
             ("staff1",   "Nhân viên Kho HCM",    "staff1@wms.local",   "WarehouseStaff",   "Staff1@123",  whHcm?.Id),
             ("staff2",   "Nhân viên Kho HN",     "staff2@wms.local",   "WarehouseStaff",   "Staff2@123",  whHn?.Id),
+            ("chief_accountant", "Kế toán trưởng HQ", "chief_accountant@wms.local", "ChiefAccountant", "Accountant@123", null),
+            ("accountant_hcm",   "Kế toán Kho HCM",   "accountant_hcm@wms.local",   "Accountant",      "Accountant@123", whHcm?.Id),
+            ("accountant_hn",    "Kế toán Kho HN",    "accountant_hn@wms.local",    "Accountant",      "Accountant@123", whHn?.Id),
         };
 
         var created = 0;

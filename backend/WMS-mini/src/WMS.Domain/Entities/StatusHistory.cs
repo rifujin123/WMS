@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WMS.Domain.Entities;
 
@@ -17,7 +17,7 @@ public class StatusHistory
         DateTime occurredAtUtc,
         string? notes = null,
         string? metadataJson = null)
-        : this(id, Guid.Empty, entityType, entityId, fromStatus, toStatus, action, actorUserId, occurredAtUtc, notes, metadataJson)
+        : this(id, Guid.Parse("11111111-1111-1111-1111-111111111111"), entityType, entityId, fromStatus, toStatus, action, actorUserId, occurredAtUtc, notes, metadataJson)
     {
     }
 
@@ -49,7 +49,7 @@ public class StatusHistory
 
     public Guid Id { get; private set; }
 
-    public Guid TenantId { get; private set; }
+    public Guid TenantId { get; set; }
     public Tenant? Tenant { get; private set; }
 
     [MaxLength(200)]

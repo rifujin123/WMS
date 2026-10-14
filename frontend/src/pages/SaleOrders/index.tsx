@@ -23,6 +23,8 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
+import { useNavigate } from 'react-router-dom'
+import { SoPreviewPopover } from '../../components/Common/HoverPreviewPopover'
 import dayjs from 'dayjs'
 import SaleOrderFormModal from './components/SaleOrderFormModal'
 import { SaleOrderDetailDrawer } from './components/SaleOrderDetailDrawer'
@@ -37,6 +39,7 @@ import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 
 function SaleOrders() {
+  const navigate = useNavigate()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<SaleOrderDto | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<SaleOrderDto | null>(null)
@@ -141,12 +144,19 @@ function SaleOrders() {
         },
       })
       const isBackorder = updated?.status === 'Backorder'
-      toast.success(
-        isBackorder
-          ? `Đã nhận đủ cọc cho đơn "${confirmDepositOrder.orderNo}". Đơn chuyển sang Chờ hàng (Backorder).`
-          : `Đã ghi nhận thêm cọc cho đơn "${confirmDepositOrder.orderNo}". Đơn vẫn ở trạng thái Chờ cọc.`,
-      )
       setConfirmDepositOrder(null)
+      if (isBackorder) {
+        Modal.confirm({
+          title: 'Đã nhận đủ cọc — Chuyển sang Chờ hàng',
+          icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+          content: `Đơn "${confirmDepositOrder.orderNo}" đã nhận đủ cọc và chuyển sang trạng thái Chờ hàng (Backorder). Bạn có muốn mở Danh sách Đơn mua hàng để lập đơn mua hàng ngay không?`,
+          okText: 'Mở Đơn mua hàng (PO)',
+          cancelText: 'Để sau',
+          onOk: () => navigate('/purchase-orders'),
+        })
+      } else {
+        toast.success(`Đã ghi nhận thêm cọc cho đơn "${confirmDepositOrder.orderNo}". Đơn vẫn ở trạng thái Chờ cọc.`)
+      }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errorFields' in err) return
       toast.error(err as Error, 'Xác nhận cọc thất bại.')
@@ -165,15 +175,17 @@ function SaleOrders() {
       key: 'orderNo',
       render: (orderNo: string, row: SaleOrderDto) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Typography.Link
-            style={{ fontFamily: 'monospace', fontWeight: 600 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              setSelectedOrder(row)
-            }}
-          >
-            {orderNo}
-          </Typography.Link>
+          <SoPreviewPopover so={row}>
+            <Typography.Link
+              style={{ fontFamily: 'monospace', fontWeight: 600 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedOrder(row)
+              }}
+            >
+              {orderNo}
+            </Typography.Link>
+          </SoPreviewPopover>
           {row.isPreOrder && (
             <span style={{ fontSize: 12, color: '#722ed1', fontWeight: 500 }}>
               (Đặt trước)
@@ -472,3 +484,4 @@ function SaleOrders() {
 }
 
 export default SaleOrders
+

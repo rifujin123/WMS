@@ -1,10 +1,11 @@
-import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   BellOutlined,
   DownOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Popover, Tag, theme } from 'antd'
@@ -16,11 +17,13 @@ import { getGroupKeyForPath, getMenuItems, navConfig } from './navConfig'
 import { AppFooter } from './AppFooter'
 import { useTenantConfig } from '../../hooks/useTenant'
 import { useWorkingCapitalRadar } from '../../hooks/useWorkingCapitalRadar'
+import CommandPaletteModal from '../CommandPalette/CommandPaletteModal'
 
 const { Header, Content, Sider } = Layout
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const { user, logout } = useAuthContext()
   const menuItems = getMenuItems(user?.role)
   const navigate = useNavigate()
@@ -29,6 +32,18 @@ function AppLayout() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
+
+  // Phím tắt Ctrl + K / Cmd + K mở Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const canViewRadar = user?.role === 'Admin' || user?.role === 'ChiefAccountant' || user?.role === 'WarehouseManager'
   const { data: radarData } = useWorkingCapitalRadar(undefined, {
@@ -183,10 +198,44 @@ function AppLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: 20,
+            gap: 16,
             borderBottom: '1px solid #EDF1F5',
           }}
         >
+          {/* Nút mở nhanh Command Palette */}
+          <Button
+            type="default"
+            icon={<SearchOutlined style={{ color: '#8c8c8c' }} />}
+            onClick={() => setCommandPaletteOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              color: '#8c8c8c',
+              background: '#f8fafc',
+              border: '1px solid #d9d9d9',
+              borderRadius: 6,
+              height: 34,
+              padding: '0 12px',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 13 }}>Tìm kiếm nhanh...</span>
+            <span
+              style={{
+                background: '#ffffff',
+                border: '1px solid #d9d9d9',
+                borderRadius: 4,
+                padding: '0 5px',
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: '#595959',
+              }}
+            >
+              Ctrl + K
+            </span>
+          </Button>
+
           {canViewRadar && (
             <Popover
               placement="bottomRight"
@@ -232,7 +281,7 @@ function AppLayout() {
               }
               trigger="click"
             >
-              <Badge count={radarData?.nearExpiryStockCount ?? 0} offset={[-2, 4]} overflowCount={99}>
+              <Badge count={(radarData?.fefoAlerts ?? []).length} size="small" offset={[-2, 2]}>
                 <Button
                   type="text"
                   shape="circle"
@@ -275,8 +324,15 @@ function AppLayout() {
         </Content>
         <AppFooter />
       </Layout>
+
+      {/* Command Palette Modal */}
+      <CommandPaletteModal
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </Layout>
   )
 }
 
 export default AppLayout
+

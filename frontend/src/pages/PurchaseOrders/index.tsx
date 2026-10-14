@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react'
 import {
+  CheckCircleOutlined,
   CheckOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -20,6 +21,7 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
+import { useNavigate } from 'react-router-dom'
 import PurchaseOrderFormModal from './components/PurchaseOrderFormModal'
 import { PurchaseOrderDetailModal } from './components/PurchaseOrderDetailModal'
 import type { PurchaseOrderDto, PurchaseOrderStatus } from '../../types/purchaseOrder'
@@ -32,6 +34,7 @@ import { useAuthContext } from '../../contexts/useAuthContext'
 import { PURCHASE_ORDER_STATUS_COLOR, PURCHASE_ORDER_STATUS_LABEL } from '../../lib/statusMaps'
 import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
+import { PoPreviewPopover } from '../../components/Common/HoverPreviewPopover'
 
 function PurchaseOrders() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -40,6 +43,7 @@ function PurchaseOrders() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
+  const navigate = useNavigate()
   const { user } = useAuthContext()
   const canApprove = user?.role === 'Admin' || user?.role === 'ChiefAccountant'
   const purchaseOrderParams = {
@@ -59,7 +63,17 @@ function PurchaseOrders() {
       cancelText: 'Huỷ',
       onOk: () =>
         approveMutation.mutate(row.id, {
-          onSuccess: () => toast.success('Đã duyệt đơn hàng.'),
+          onSuccess: () => {
+            toast.success('Đã duyệt đơn hàng.')
+            Modal.confirm({
+              title: 'Duyệt đơn hàng thành công',
+              icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+              content: `Đơn hàng "${row.poNumber}" đã sẵn sàng để nhập kho. Bạn có muốn tạo phiếu nhận hàng ngay bây giờ không?`,
+              okText: 'Tạo phiếu nhận ngay',
+              cancelText: 'Để sau',
+              onOk: () => navigate(`/receivings?createFromPo=${row.id}`),
+            })
+          },
           onError: (err: Error) => toast.error(err, 'Duyệt đơn hàng thất bại.'),
         }),
     })
@@ -90,8 +104,10 @@ function PurchaseOrders() {
       title: 'Số PO',
       dataIndex: 'poNumber',
       key: 'poNumber',
-      render: (poNumber: string) => (
-        <Tag color="blue" style={{ fontFamily: 'monospace' }}>{poNumber}</Tag>
+      render: (poNumber: string, row: PurchaseOrderDto) => (
+        <PoPreviewPopover po={row}>
+          <Tag color="blue" style={{ fontFamily: 'monospace' }}>{poNumber}</Tag>
+        </PoPreviewPopover>
       ),
     },
     {
@@ -104,7 +120,7 @@ function PurchaseOrders() {
       title: 'Kho',
       dataIndex: 'warehouseName',
       key: 'warehouseName',
-      render: (wh?: string) => wh ? <Tag color="geekblue">{wh}</Tag> : <Tag>Toàn hệ thống</Tag>,
+      render: (wh?: string) => <span>{wh ?? 'Toàn hệ thống'}</span>,
     },
     {
       title: 'Số mặt hàng',

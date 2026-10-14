@@ -93,3 +93,10 @@ scratch/
 _bmad/
 _bmad-output/
 _bmad.setup-*/
+
+## Python & Test Artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+e2e_screenshots/
+*.png

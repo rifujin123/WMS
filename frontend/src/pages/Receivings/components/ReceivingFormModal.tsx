@@ -45,6 +45,7 @@ import { buildThreeWayMatchingMatrix } from '../../../lib/threeWayMatching'
 interface ReceivingFormModalProps {
   open: boolean
   receiving: ReceivingDto | null
+  initialPurchaseOrderId?: string
   onClose: () => void
 }
 
@@ -91,7 +92,7 @@ function FieldErrorDot({ message }: { message?: string }) {
   )
 }
 
-function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProps) {
+function ReceivingFormModal({ open, receiving, initialPurchaseOrderId, onClose }: ReceivingFormModalProps) {
   const [form] = Form.useForm<FormValues>()
   const isEdit = receiving !== null
   const { data: purchaseOrders, isPending: purchaseOrdersPending } = usePurchaseOrders()
@@ -234,7 +235,7 @@ function ReceivingFormModal({ open, receiving, onClose }: ReceivingFormModalProp
         }
       }),
     })
-  }, [open, isEdit, receivingDetail, form, purchaseOrders])
+  }, [open, isEdit, receivingDetail, form, purchaseOrders, initialPurchaseOrderId])
 
   const handlePOChange = () => {
     setSuggestionMap({})

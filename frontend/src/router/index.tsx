@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+﻿/* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Spin } from 'antd'
@@ -104,14 +104,19 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager']} />,
+            element: <ProtectedRoute allowedRoles={['Admin', 'ChiefAccountant', 'Accountant']} />,
             children: [
-              { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
               { path: 'vendor-debts', element: <Suspense fallback={<PageFallback />}><VendorDebts /></Suspense> },
             ],
           },
           {
-            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'WarehouseStaff']} />,
+            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'ChiefAccountant', 'Accountant']} />,
+            children: [
+              { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
+            ],
+          },
+          {
+            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'WarehouseStaff', 'ChiefAccountant', 'Accountant']} />,
             children: [
               {
                 path: 'purchase-orders',
@@ -122,6 +127,11 @@ export const router = createBrowserRouter([
                 path: 'receivings/:id',
                 element: <Suspense fallback={<PageFallback />}><ReceivingDetail /></Suspense>,
               },
+            ],
+          },
+          {
+            element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'WarehouseStaff']} />,
+            children: [
               {
                 path: 'putaway-tasks',
                 element: <Suspense fallback={<PageFallback />}><PutAwayTasks /></Suspense>,

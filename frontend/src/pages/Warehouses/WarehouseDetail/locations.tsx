@@ -9,6 +9,7 @@ import type { LocationDto } from '../../../types/location'
 import { useWarehouse } from '../../../hooks/useWarehouses'
 import { useDeleteLocation, useLocationsByWarehouse, useLocationsPage } from '../../../hooks/useLocations'
 import { toast } from '../../../lib/toast'
+import { LocationPreviewPopover } from '../../../components/Common/HoverPreviewPopover'
 
 function WarehouseLocations() {
   const { id: warehouseId } = useParams<{ id: string }>()
@@ -145,9 +146,11 @@ function WarehouseLocationsContent({ warehouseId }: { warehouseId: string }) {
                   style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Tag color="blue" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                      {loc.code}
-                    </Tag>
+                    <LocationPreviewPopover location={loc}>
+                      <Tag color="blue" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                        {loc.code}
+                      </Tag>
+                    </LocationPreviewPopover>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                       {loc.currentQuantity}/{loc.maxQuantity}
                     </Typography.Text>

@@ -360,6 +360,7 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
                           style={{ width: '100%' }}
                           min={1}
                           placeholder="SL đặt"
+                          onFocus={(e) => e.target.select()}
                         />
                       </Form.Item>
                     </Col>
@@ -374,6 +375,13 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
                           min={0}
                           placeholder="Đơn giá"
                           formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              add({ orderedQuantity: 1, unitPrice: 0, taxRate: 0 })
+                            }
+                          }}
                         />
                       </Form.Item>
                     </Col>
@@ -460,3 +468,4 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
 }
 
 export default PurchaseOrderFormModal
+

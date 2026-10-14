@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -19,7 +19,7 @@ import {
   Typography,
 } from 'antd'
 import type { TableColumnsType } from 'antd'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import ReceivingFormModal from './components/ReceivingFormModal'
 import { ReceivingDetailModal } from './components/ReceivingDetailModal'
 import type { ReceivingDto, ReceivingStatus } from '../../types/receiving'
@@ -32,12 +32,19 @@ import { toast } from '../../lib/toast'
 import { formatDateTime } from '../../lib/date'
 
 function Receivings() {
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modalOpenState, setModalOpenState] = useState(false)
   const [editing, setEditing] = useState<ReceivingDto | null>(null)
   const [viewingReceiving, setViewingReceiving] = useState<ReceivingDto | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [initialPoId, setInitialPoId] = useState<string | undefined>(undefined)
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const createFromPo = searchParams.get('createFromPo')
+
+  const modalOpen = modalOpenState || !!createFromPo
+  const effectivePoId = initialPoId || createFromPo || undefined
+
   const receivingParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -49,13 +56,21 @@ function Receivings() {
   const handleConfirm = (row: ReceivingDto) => {
     Modal.confirm({
       title: 'Xác nhận phiếu nhận',
-      content: `Xác nhận phiếu nhận của PO "${row.poNumber ?? '—'}"? Sau khi xác nhận, phiếu không thể sửa hoặc xóa và phiếu cất sẽ được sinh tự động.`,
+      content: `Xác nhận phiếu nhận của PO "${row.poNumber ?? '—'}"? Sau khi xác nhận, phiếu không thể sửa hoặc xóa và nhiệm vụ cất hàng sẽ được sinh tự động.`,
       okText: 'Xác nhận',
       cancelText: 'Huỷ',
       onOk: async () => {
         try {
           await confirmMutation.mutateAsync(row.id)
           toast.success('Đã xác nhận phiếu nhận.')
+          Modal.confirm({
+            title: 'Xác nhận nhận hàng thành công',
+            icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+            content: `Nhiệm vụ cất hàng (PutAway) cho PO "${row.poNumber ?? ''}" đã được sinh tự động. Bạn có muốn chuyển sang màn hình Cất hàng ngay không?`,
+            okText: 'Xem nhiệm vụ cất hàng',
+            cancelText: 'Để sau',
+            onOk: () => navigate('/putaway-tasks'),
+          })
         } catch (error) {
           toast.error(error, 'Xác nhận phiếu nhận thất bại.')
         }
@@ -140,7 +155,7 @@ function Receivings() {
                   icon={<EditOutlined />}
                   onClick={() => {
                     setEditing(row)
-                    setModalOpen(true)
+                    setModalOpenState(true)
                   }}
                 />
               </Tooltip>
@@ -193,7 +208,8 @@ function Receivings() {
           size="large"
           onClick={() => {
             setEditing(null)
-            setModalOpen(true)
+            setInitialPoId(undefined)
+            setModalOpenState(true)
           }}
         >
           Tạo phiếu nhận
@@ -240,9 +256,21 @@ function Receivings() {
         <ReceivingFormModal
           open
           receiving={editing}
+          initialPurchaseOrderId={effectivePoId}
           onClose={() => {
-            setModalOpen(false)
+            setModalOpenState(false)
             setEditing(null)
+            setInitialPoId(undefined)
+            if (createFromPo) {
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev)
+                  next.delete('createFromPo')
+                  return next
+                },
+                { replace: true }
+              )
+            }
           }}
         />
       )}
