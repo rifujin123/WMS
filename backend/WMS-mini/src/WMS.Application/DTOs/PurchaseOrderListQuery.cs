@@ -8,4 +8,5 @@ public class PurchaseOrderListQuery
     public string? Search { get; init; }
     public PurchaseOrderStatus? Status { get; init; }
     public Guid? WarehouseId { get; set; }
+    public Guid? CreatedById { get; set; }
 }

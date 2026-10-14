@@ -25,7 +25,7 @@ namespace WMS.Infrastructure.Services;
 /// </summary>
 public class MultiStatusDemoDataSeeder : IDemoDataSeeder
 {
-    private static readonly string[] DemoRoles = { "Admin", "WarehouseManager", "WarehouseStaff" };
+    private static readonly string[] DemoRoles = { "Admin", "WarehouseManager", "WarehouseStaff", "ChiefAccountant", "Accountant" };
 
     // (code, name, address, aisles, racks, levels) — HCM 4×3×2=24, HN 5×4×2=40
     private static readonly (string Code, string Name, string Address, int Aisles, int Racks, int Levels)[] DemoWarehouses =

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   Avatar,
@@ -23,16 +23,14 @@ import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import { toast } from '../../lib/toast'
 
 const roleLabel: Record<UserListItem['role'], string> = {
+  ChiefAccountant: 'Kế toán trưởng',
+  Accountant: 'Kế toán viên',
   Admin: 'Admin',
   WarehouseManager: 'Quản lý kho',
   WarehouseStaff: 'Nhân viên kho',
 }
 
-const roleColor: Record<UserListItem['role'], string> = {
-  Admin: 'blue',
-  WarehouseManager: 'cyan',
-  WarehouseStaff: 'default',
-}
+
 
 function Users() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -125,7 +123,7 @@ function Users() {
       dataIndex: 'role',
       key: 'role',
       render: (role: UserListItem['role']) => (
-        <Tag color={roleColor[role]}>{roleLabel[role]}</Tag>
+        <span>{roleLabel[role] ?? role}</span>
       ),
     },
     {

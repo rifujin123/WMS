@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   CheckOutlined,
   DeleteOutlined,
@@ -41,7 +41,7 @@ function PurchaseOrders() {
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
   const { user } = useAuthContext()
-  const canApprove = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+  const canApprove = user?.role === 'Admin' || user?.role === 'ChiefAccountant'
   const purchaseOrderParams = {
     page,
     ...(search.trim() ? { search: search.trim() } : {}),

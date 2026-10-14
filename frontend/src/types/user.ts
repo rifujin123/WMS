@@ -1,4 +1,4 @@
-export type UserRole = 'Admin' | 'WarehouseManager' | 'WarehouseStaff'
+export type UserRole = 'Admin' | 'WarehouseManager' | 'WarehouseStaff' | 'ChiefAccountant' | 'Accountant'
 export type UserStatus = 'active' | 'locked'
 
 export interface UserListItem {

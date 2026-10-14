@@ -1,4 +1,4 @@
-import { Alert, Button, Col, Form, Input, InputNumber, Modal, Row, Select, Typography } from 'antd'
+﻿import { Alert, Button, Col, Form, Input, InputNumber, Modal, Row, Select, Typography } from 'antd'
 import { CheckCircleOutlined, DeleteOutlined, InfoCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { useEffect, useMemo, useState } from 'react'
 import type {
@@ -18,6 +18,7 @@ import {
   validateCreditOffset,
 } from '../../../lib/vendorDebtOffset'
 import { toast } from '../../../lib/toast'
+import { useAuthContext } from '../../../contexts/useAuthContext'
 
 const { Text } = Typography
 
@@ -33,6 +34,8 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
   const { data: vendors } = useVendorLookup()
   const createMutation = useCreatePurchaseOrder()
   const updateMutation = useUpdatePurchaseOrder()
+  const { user } = useAuthContext()
+  const isWarehouseManager = user?.role === 'WarehouseManager'
   const isEdit = po !== null
 
   const selectedVendorId = Form.useWatch('vendorId', form)
@@ -228,7 +231,7 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
         </Row>
 
         {/* Smart Debt & Credit Alert Banner */}
-        {!isEdit && selectedVendorId && (goodsDebts.length > 0 || creditDebts.length > 0) && (
+        {!isEdit && !isWarehouseManager && selectedVendorId && (goodsDebts.length > 0 || creditDebts.length > 0) && (
           <Alert
             type="warning"
             showIcon
@@ -419,22 +422,24 @@ function PurchaseOrderFormModal({ open, po, onClose }: PurchaseOrderFormModalPro
             </Col>
           </Row>
 
-          <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-            <Col span={14}>
-              <Text>Giảm trừ công nợ (Credit Offset):</Text>
-            </Col>
-            <Col span={10} style={{ textAlign: 'right' }}>
-              <Form.Item name="creditOffsetAmount" style={{ marginBottom: 0 }}>
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={0}
-                  max={rawTotalAmount}
-                  placeholder="0"
-                  formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          {!isWarehouseManager && (
+            <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
+              <Col span={14}>
+                <Text>Giảm trừ công nợ (Credit Offset):</Text>
+              </Col>
+              <Col span={10} style={{ textAlign: 'right' }}>
+                <Form.Item name="creditOffsetAmount" style={{ marginBottom: 0 }}>
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    min={0}
+                    max={rawTotalAmount}
+                    placeholder="0"
+                    formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
 
           <Row justify="space-between" align="middle" style={{ borderTop: '1px solid #e8e8e8', paddingTop: 8 }}>
             <Col>

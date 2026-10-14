@@ -23,7 +23,9 @@ export interface PurchaseOrderDto {
   creditOffsetAmount?: number
   resolvedDebtIds?: string[]
   status: PurchaseOrderStatus
+  approvedById?: string
   approvedDate?: string
+  createdById?: string
   createdDate?: string
   purchaseOrderDetails: PurchaseOrderDetailDto[]
 }

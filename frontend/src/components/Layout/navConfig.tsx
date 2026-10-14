@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+﻿import { type ReactNode } from 'react'
 import {
   AppstoreOutlined,
   AuditOutlined,
@@ -44,7 +44,7 @@ export const navConfig: NavConfigItem[] = [
     key: '/dashboard',
     icon: <DashboardOutlined />,
     label: 'Dashboard',
-    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+    allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff', 'ChiefAccountant', 'Accountant'],
   },
   {
     key: 'inbound',
@@ -55,13 +55,13 @@ export const navConfig: NavConfigItem[] = [
         key: '/purchase-orders',
         icon: <FileTextOutlined />,
         label: 'Đơn đặt hàng',
-        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+        allowedRoles: ['Admin', 'ChiefAccountant', 'Accountant', 'WarehouseManager', 'WarehouseStaff'],
       },
       {
         key: '/receivings',
         icon: <InboxOutlined />,
         label: 'Nhận hàng',
-        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff', 'ChiefAccountant', 'Accountant'],
       },
       {
         key: '/putaway-tasks',
@@ -73,7 +73,7 @@ export const navConfig: NavConfigItem[] = [
         key: '/vendor-debts',
         icon: <AuditOutlined />,
         label: 'Sổ nợ NCC',
-        allowedRoles: ['Admin', 'WarehouseManager'],
+        allowedRoles: ['Admin', 'ChiefAccountant', 'Accountant'],
       },
     ],
   },
@@ -86,7 +86,7 @@ export const navConfig: NavConfigItem[] = [
         key: '/sale-orders',
         icon: <ShoppingOutlined />,
         label: 'Đơn bán',
-        allowedRoles: ['Admin', 'WarehouseManager'],
+        allowedRoles: ['Admin', 'ChiefAccountant', 'Accountant', 'WarehouseManager'],
       },
       {
         key: '/pickings',
@@ -105,13 +105,13 @@ export const navConfig: NavConfigItem[] = [
         key: '/stock',
         icon: <DatabaseOutlined />,
         label: 'Tồn kho',
-        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff', 'ChiefAccountant', 'Accountant'],
       },
       {
         key: '/stock-adjustments',
         icon: <AuditOutlined />,
         label: 'Điều chỉnh tồn',
-        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff'],
+        allowedRoles: ['Admin', 'WarehouseManager', 'WarehouseStaff', 'ChiefAccountant', 'Accountant'],
       },
     ],
   },

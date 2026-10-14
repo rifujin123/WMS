@@ -6,7 +6,7 @@ using WMS.Domain.Enums;
 namespace WMS.API.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "Admin,ChiefAccountant,Accountant")]
 [Route("api/[controller]")]
 [Route("api/vendor-debts")]
 public class VendorDebtsController : ControllerBase

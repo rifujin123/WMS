@@ -38,6 +38,8 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
             orders = orders.Where(po => po.Status == query.Status.Value);
         if (query.WarehouseId.HasValue)
             orders = orders.Where(po => po.WarehouseId == query.WarehouseId.Value);
+        if (query.CreatedById.HasValue)
+            orders = orders.Where(po => po.CreatedById == query.CreatedById.Value);
 
         var totalCount = await orders.CountAsync(cancellationToken);
         var page = query.Page;
@@ -59,7 +61,9 @@ public class SqlPurchaseOrderRepository : IPurchaseOrderRepository
                 WarehouseId = po.WarehouseId,
                 WarehouseName = po.Warehouse != null ? po.Warehouse.Name : null,
                 WarehouseCode = po.Warehouse != null ? po.Warehouse.Code : null,
+                ApprovedById = po.ApprovedById,
                 ApprovedDate = po.ApprovedDate,
+                CreatedById = po.CreatedById,
                 CreatedDate = po.CreatedDate,
                 PurchaseOrderDetails = po.PurchaseOrderDetails.Select(d => new PurchaseOrderDetailDto
                 {

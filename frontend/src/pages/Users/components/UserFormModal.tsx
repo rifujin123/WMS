@@ -1,4 +1,4 @@
-import { Alert, Col, Form, Input, Modal, Row, Select } from 'antd'
+﻿import { Alert, Col, Form, Input, Modal, Row, Select } from 'antd'
 import { useEffect } from 'react'
 import type { RegisterFormValues } from '../../../types/auth'
 import { useQueryClient } from '@tanstack/react-query'

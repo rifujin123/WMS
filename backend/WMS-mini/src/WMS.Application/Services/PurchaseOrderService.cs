@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
 using WMS.Domain.Entities;
@@ -31,7 +31,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     public async Task<List<PurchaseOrderDto>> GetAllAsync()
     {
         var orders = await _repo.GetAllAsync();
-        if (!_currentUser.IsInRole("Admin") && _currentUser.WarehouseId.HasValue)
+        if (!_currentUser.IsInRole("Admin") && !_currentUser.IsInRole("ChiefAccountant") && _currentUser.WarehouseId.HasValue)
         {
             orders = orders.Where(p => p.WarehouseId == _currentUser.WarehouseId.Value).ToList();
         }
@@ -43,7 +43,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUser.IsInRole("Admin") && _currentUser.WarehouseId.HasValue)
+        if (!_currentUser.IsInRole("Admin") && !_currentUser.IsInRole("ChiefAccountant") && _currentUser.WarehouseId.HasValue)
         {
             query.WarehouseId = _currentUser.WarehouseId.Value;
         }
@@ -88,6 +88,10 @@ public class PurchaseOrderService : IPurchaseOrderService
         if (dto.CreditOffsetAmount > rawTotal)
             throw new InvalidOperationException("Số tiền giảm trừ công nợ không được vượt quá tổng giá trị đơn hàng.");
 
+        if (_currentUser.IsInRole("WarehouseManager") && !_currentUser.IsInRole("Admin") && !_currentUser.IsInRole("ChiefAccountant") && !_currentUser.IsInRole("Accountant") && dto.CreditOffsetAmount > 0)
+        {
+            throw new InvalidOperationException("Quản lý kho không có thẩm quyền cấn trừ công nợ nhà cung cấp.");
+        }
         entity.CreditOffsetAmount = dto.CreditOffsetAmount;
         entity.TotalAmount = Math.Max(0m, rawTotal - dto.CreditOffsetAmount);
 
@@ -129,6 +133,10 @@ public class PurchaseOrderService : IPurchaseOrderService
         if (entity.PurchaseOrderDetails.Any(d => d.UnitPrice < 0 || d.TaxRate < 0))
             throw new InvalidOperationException("Đơn giá và thuế suất không được nhỏ hơn 0.");
 
+        if (_currentUser.IsInRole("WarehouseManager") && !_currentUser.IsInRole("Admin") && !_currentUser.IsInRole("ChiefAccountant") && !_currentUser.IsInRole("Accountant") && dto.CreditOffsetAmount > 0)
+        {
+            throw new InvalidOperationException("Quản lý kho không có thẩm quyền cấn trừ công nợ nhà cung cấp.");
+        }
         entity.CreditOffsetAmount = dto.CreditOffsetAmount;
         var rawTotal = Math.Round(
             entity.PurchaseOrderDetails.Sum(d => d.OrderedQuantity * d.UnitPrice * (1 + d.TaxRate / 100m)),

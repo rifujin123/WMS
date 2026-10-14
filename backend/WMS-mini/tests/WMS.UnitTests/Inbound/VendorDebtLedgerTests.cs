@@ -33,7 +33,7 @@ public class VendorDebtLedgerTests
         WmsDbContext db,
         Guid tenantId,
         Guid userId)
-        CreateTestContext(string? userRole = "WarehouseManager")
+        CreateTestContext(string? userRole = "All")
     {
         var tenantId = Guid.NewGuid();
         var userId = Guid.NewGuid();

@@ -1,4 +1,4 @@
-export const allRoles: string[] = ['Admin', 'WarehouseManager', 'WarehouseStaff']
+export const allRoles: string[] = ['Admin', 'WarehouseManager', 'WarehouseStaff', 'ChiefAccountant', 'Accountant']
 
 export function isValidRole(role: string): boolean {
   return allRoles.includes(role)

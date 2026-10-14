@@ -13,7 +13,9 @@ public class PurchaseOrderDto {
     public Guid? WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     public string? WarehouseCode { get; set; }
+    public Guid? ApprovedById { get; set; }
     public DateTime? ApprovedDate { get; set; }
+    public Guid? CreatedById { get; set; }
     public DateTime CreatedDate { get; set; }
     public List<Guid> ResolvedDebtIds { get; set; } = new();
     public List<PurchaseOrderDetailDto> PurchaseOrderDetails { get; set; } = new();

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,131 +11,131 @@ using WMS.Infrastructure.Data;
 
 namespace WMS.Infrastructure.Services;
 
-/// Seed dữ liệu demo thật (điện thoại / laptop / phụ kiện).
+/// Seed d? li?u demo th?t (di?n tho?i / laptop / ph? ki?n).
 /// Ticket 01: scaffold + gating (Seed:Enabled) + base idempotency + logging.
 /// Ticket 02: seed users & roles (2 manager + 4 staff), idempotent theo username.
-/// Các nhóm dữ liệu còn lại được các ticket 03–08 điền vào đây.
+/// C�c nh�m d? li?u c�n l?i du?c c�c ticket 03�08 di?n v�o d�y.
 public class DemoDataSeeder : IDemoDataSeeder
 {
-    private static readonly string[] DemoRoles = { "Admin", "WarehouseManager", "WarehouseStaff" };
+    private static readonly string[] DemoRoles = { "Admin", "WarehouseManager", "WarehouseStaff", "ChiefAccountant", "Accountant" };
 
-    // (code, name, address, aisles, racks, levels) — HCM 4×3×2=24, HN 5×4×2=40
+    // (code, name, address, aisles, racks, levels) � HCM 4�3�2=24, HN 5�4�2=40
     private static readonly (string Code, string Name, string Address, int Aisles, int Racks, int Levels)[] DemoWarehouses =
     {
-        ("WH-HCM", "Kho TPHCM", "12 Nguyễn Văn Linh, Phường Tân Phú, Quận 7, TP.HCM", 4, 3, 2),
-        ("WH-HN",  "Kho Hà Nội", "Số 8 Lê Quang Đạo, Phường Mỹ Đình, Nam Từ Liêm, Hà Nội", 5, 4, 2)
+        ("WH-HCM", "Kho TPHCM", "12 Nguy?n Van Linh, Phu?ng T�n Ph�, Qu?n 7, TP.HCM", 4, 3, 2),
+        ("WH-HN",  "Kho H� N?i", "S? 8 L� Quang �?o, Phu?ng M? ��nh, Nam T? Li�m, H� N?i", 5, 4, 2)
     };
 
     private static readonly string[] DemoCategories =
     {
-        "Điện thoại", "Laptop", "Phụ kiện", "Máy tính bảng"
+        "�i?n tho?i", "Laptop", "Ph? ki?n", "M�y t�nh b?ng"
     };
 
-    // (category, sku, name, price VND, unit, dimension) — 60 sản phẩm thị trường VN.
+    // (category, sku, name, price VND, unit, dimension) � 60 s?n ph?m th? tru?ng VN.
     private static readonly (string Category, string Sku, string Name, decimal Price, string Unit, string Dimension)[] DemoProducts =
     {
-        // Điện thoại (18)
-        ("Điện thoại", "IP15PM-256-TT",  "iPhone 15 Pro Max 256GB Titan Tự Nhiên", 31_990_000, "Chiếc", "15.9x7.7x0.8 cm"),
-        ("Điện thoại", "IP15PM-512-NT",  "iPhone 15 Pro Max 512GB Titan Xanh",     37_990_000, "Chiếc", "15.9x7.7x0.8 cm"),
-        ("Điện thoại", "IP15P-128-TD",   "iPhone 15 Pro 128GB Titan Đen",          27_990_000, "Chiếc", "14.6x7.1x0.8 cm"),
-        ("Điện thoại", "IP14-128-XD",    "iPhone 14 128GB Xanh Dương",             20_490_000, "Chiếc", "14.7x7.2x0.8 cm"),
-        ("Điện thoại", "IP13-128-H",     "iPhone 13 128GB Hồng",                   15_990_000, "Chiếc", "14.7x7.2x0.8 cm"),
-        ("Điện thoại", "SS-S24U-256-D",  "Samsung Galaxy S24 Ultra 256GB Đen",     28_990_000, "Chiếc", "16.2x7.9x0.9 cm"),
-        ("Điện thoại", "SS-S24-256-T",   "Samsung Galaxy S24 256GB Titan",          21_990_000, "Chiếc", "14.7x7.1x0.8 cm"),
-        ("Điện thoại", "SS-S23FE-256-X", "Samsung Galaxy S23 FE 256GB Xanh",       12_990_000, "Chiếc", "15.8x7.6x0.8 cm"),
-        ("Điện thoại", "SS-A55-128-X",   "Samsung Galaxy A55 5G 128GB Xanh",        8_490_000, "Chiếc", "16.1x7.7x0.8 cm"),
-        ("Điện thoại", "XM-14-256-D",    "Xiaomi 14 256GB Đen",                   18_990_000, "Chiếc", "15.3x7.2x0.8 cm"),
-        ("Điện thoại", "XM-RN13-128-X",  "Xiaomi Redmi Note 13 128GB Xanh",        4_990_000, "Chiếc", "16.2x7.5x0.8 cm"),
-        ("Điện thoại", "XM-RA3-64-D",    "Xiaomi Redmi A3 64GB Đen",              2_490_000, "Chiếc", "16.3x7.6x0.9 cm"),
-        ("Điện thoại", "OP-R11-256-X",   "OPPO Reno 11 256GB Xanh",               10_990_000, "Chiếc", "16.2x7.4x0.8 cm"),
-        ("Điện thoại", "OP-A58-128-D",   "OPPO A58 128GB Đen",                     4_690_000, "Chiếc", "16.6x7.6x0.8 cm"),
-        ("Điện thoại", "VV-V30-256-X",   "Vivo V30 256GB Xanh",                   12_990_000, "Chiếc", "16.4x7.5x0.8 cm"),
-        ("Điện thoại", "GP-P8-128-O",    "Google Pixel 8 128GB Oải hương",        19_990_000, "Chiếc", "15.1x7.1x0.9 cm"),
-        ("Điện thoại", "RM-12P-256-X",   "Realme 12 Pro 256GB Xanh",              9_990_000, "Chiếc", "16.2x7.4x0.8 cm"),
-        ("Điện thoại", "NK-G42-128-D",   "Nokia G42 128GB Đen",                    3_290_000, "Chiếc", "16.5x7.6x0.9 cm"),
+        // �i?n tho?i (18)
+        ("�i?n tho?i", "IP15PM-256-TT",  "iPhone 15 Pro Max 256GB Titan T? Nhi�n", 31_990_000, "Chi?c", "15.9x7.7x0.8 cm"),
+        ("�i?n tho?i", "IP15PM-512-NT",  "iPhone 15 Pro Max 512GB Titan Xanh",     37_990_000, "Chi?c", "15.9x7.7x0.8 cm"),
+        ("�i?n tho?i", "IP15P-128-TD",   "iPhone 15 Pro 128GB Titan �en",          27_990_000, "Chi?c", "14.6x7.1x0.8 cm"),
+        ("�i?n tho?i", "IP14-128-XD",    "iPhone 14 128GB Xanh Duong",             20_490_000, "Chi?c", "14.7x7.2x0.8 cm"),
+        ("�i?n tho?i", "IP13-128-H",     "iPhone 13 128GB H?ng",                   15_990_000, "Chi?c", "14.7x7.2x0.8 cm"),
+        ("�i?n tho?i", "SS-S24U-256-D",  "Samsung Galaxy S24 Ultra 256GB �en",     28_990_000, "Chi?c", "16.2x7.9x0.9 cm"),
+        ("�i?n tho?i", "SS-S24-256-T",   "Samsung Galaxy S24 256GB Titan",          21_990_000, "Chi?c", "14.7x7.1x0.8 cm"),
+        ("�i?n tho?i", "SS-S23FE-256-X", "Samsung Galaxy S23 FE 256GB Xanh",       12_990_000, "Chi?c", "15.8x7.6x0.8 cm"),
+        ("�i?n tho?i", "SS-A55-128-X",   "Samsung Galaxy A55 5G 128GB Xanh",        8_490_000, "Chi?c", "16.1x7.7x0.8 cm"),
+        ("�i?n tho?i", "XM-14-256-D",    "Xiaomi 14 256GB �en",                   18_990_000, "Chi?c", "15.3x7.2x0.8 cm"),
+        ("�i?n tho?i", "XM-RN13-128-X",  "Xiaomi Redmi Note 13 128GB Xanh",        4_990_000, "Chi?c", "16.2x7.5x0.8 cm"),
+        ("�i?n tho?i", "XM-RA3-64-D",    "Xiaomi Redmi A3 64GB �en",              2_490_000, "Chi?c", "16.3x7.6x0.9 cm"),
+        ("�i?n tho?i", "OP-R11-256-X",   "OPPO Reno 11 256GB Xanh",               10_990_000, "Chi?c", "16.2x7.4x0.8 cm"),
+        ("�i?n tho?i", "OP-A58-128-D",   "OPPO A58 128GB �en",                     4_690_000, "Chi?c", "16.6x7.6x0.8 cm"),
+        ("�i?n tho?i", "VV-V30-256-X",   "Vivo V30 256GB Xanh",                   12_990_000, "Chi?c", "16.4x7.5x0.8 cm"),
+        ("�i?n tho?i", "GP-P8-128-O",    "Google Pixel 8 128GB O?i huong",        19_990_000, "Chi?c", "15.1x7.1x0.9 cm"),
+        ("�i?n tho?i", "RM-12P-256-X",   "Realme 12 Pro 256GB Xanh",              9_990_000, "Chi?c", "16.2x7.4x0.8 cm"),
+        ("�i?n tho?i", "NK-G42-128-D",   "Nokia G42 128GB �en",                    3_290_000, "Chi?c", "16.5x7.6x0.9 cm"),
         // Laptop (16)
-        ("Laptop", "MBP14-M3-512-X",     "MacBook Pro 14 M3 512GB Xám",           38_990_000, "Chiếc", "31.3x22.1x1.6 cm"),
-        ("Laptop", "MBA13-M2-256-X",     "MacBook Air 13 M2 256GB Xám",           22_990_000, "Chiếc", "30.4x21.5x1.1 cm"),
-        ("Laptop", "MBP16-M3P-1T-NT",    "MacBook Pro 16 M3 Pro 1TB Đen",         62_990_000, "Chiếc", "35.6x24.8x1.7 cm"),
-        ("Laptop", "DELL-XPS13-16-512-D", "Dell XPS 13 i7 16GB/512GB Đen",        30_990_000, "Chiếc", "29.5x19.9x1.5 cm"),
-        ("Laptop", "DELL-IN15-8-512-D",  "Dell Inspiron 15 i5 8GB/512GB Đen",     15_990_000, "Chiếc", "35.9x23.5x1.8 cm"),
-        ("Laptop", "LEN-TP14-16-512-D",  "Lenovo ThinkPad E14 i5 16GB/512GB Đen", 18_990_000, "Chiếc", "32.5x23.6x1.8 cm"),
-        ("Laptop", "LEN-IP5-16-512-X",   "Lenovo IdeaPad Slim 5 i5 16GB/512GB Xám",16_990_000, "Chiếc", "35.6x23.7x1.7 cm"),
-        ("Laptop", "HP-PV15-8-512-D",    "HP Pavilion 15 i5 8GB/512GB Đen",       15_490_000, "Chiếc", "35.9x23.6x1.8 cm"),
-        ("Laptop", "HP-EB840-16-512-D",  "HP EliteBook 840 G10 i7 16GB/512GB Đen",28_990_000, "Chiếc", "31.6x22.4x1.9 cm"),
-        ("Laptop", "ASUS-VB15-8-256-D",  "ASUS VivoBook 15 i3 8GB/256GB Đen",     10_990_000, "Chiếc", "35.9x23.6x1.9 cm"),
-        ("Laptop", "ASUS-G16-16-512-D",  "ASUS ROG Strix G16 i7 16GB/512GB Đen",  38_990_000, "Chiếc", "35.4x26.4x2.3 cm"),
-        ("Laptop", "ACER-AS5-8-512-D",   "Acer Aspire 5 i5 8GB/512GB Đen",        13_990_000, "Chiếc", "36.3x23.8x1.8 cm"),
-        ("Laptop", "ACER-N5-16-512-D",   "Acer Nitro 5 i5 16GB/512GB Đen",        20_990_000, "Chiếc", "36.0x27.1x2.5 cm"),
-        ("Laptop", "MS-SL5-8-256-D",     "Microsoft Surface Laptop 5 i5 8GB/256GB Đen", 26_990_000, "Chiếc", "32.3x22.3x1.5 cm"),
-        ("Laptop", "SS-GB3P-16-512-X",   "Samsung Galaxy Book3 Pro 16GB/512GB Xám", 29_990_000, "Chiếc", "35.6x25.3x1.2 cm"),
-        ("Laptop", "XIAO-RB16-16-512-X", "Xiaomi RedmiBook 16 i5 16GB/512GB Xám", 14_990_000, "Chiếc", "36.1x23.5x1.6 cm"),
-        // Phụ kiện (14)
-        ("Phụ kiện", "AP-AP2-W",         "AirPods Pro 2",                           5_490_000, "Bộ",   "2.4x2.2x3.1 cm"),
-        ("Phụ kiện", "AP-AP3-W",         "AirPods 3",                              3_990_000, "Bộ",   "3.0x1.9x1.9 cm"),
-        ("Phụ kiện", "SS-BUDS2-W",       "Samsung Galaxy Buds2 Pro",               3_490_000, "Bộ",   "2.2x2.2x1.9 cm"),
-        ("Phụ kiện", "SS-BUDSFE-W",      "Samsung Galaxy Buds FE",                 1_690_000, "Bộ",   "2.0x1.8x2.4 cm"),
-        ("Phụ kiện", "XM-BUD4-W",        "Xiaomi Buds 4 Pro",                      1_990_000, "Bộ",   "2.5x2.0x2.0 cm"),
-        ("Phụ kiện", "AP-WSE44-M",       "Apple Watch SE 44mm",                    7_490_000, "Chiếc", "4.4x3.8x1.0 cm"),
-        ("Phụ kiện", "AP-WS9-M",         "Apple Watch Series 9 45mm",             11_990_000, "Chiếc", "4.5x3.8x1.0 cm"),
-        ("Phụ kiện", "ANK-65G-D",        "Sạc GaN Anker 65W",                       890_000, "Chiếc", "7.2x3.6x3.0 cm"),
-        ("Phụ kiện", "ANK-PB20-D",       "Sạc dự phòng Anker 20000mAh",            1_290_000, "Chiếc", "15.2x7.1x2.6 cm"),
-        ("Phụ kiện", "LOG-MX3S-G",       "Chuột Logitech MX Master 3S",            2_490_000, "Chiếc", "5.1x12.4x4.3 cm"),
-        ("Phụ kiện", "LOG-K380-W",       "Bàn phím Logitech K380",                  890_000, "Chiếc", "27.9x12.4x1.6 cm"),
-        ("Phụ kiện", "LOG-G502-D",       "Chuột gaming Logitech G502 Hero",        1_190_000, "Chiếc", "7.5x13.2x4.0 cm"),
-        ("Phụ kiện", "AP-MK-W",          "Apple Magic Keyboard",                   2_990_000, "Chiếc", "27.9x11.5x0.4 cm"),
-        ("Phụ kiện", "SS-T7-1T-D",       "SSD Samsung T7 1TB",                     2_990_000, "Chiếc", "8.5x5.7x0.8 cm"),
-        // Máy tính bảng (12)
-        ("Máy tính bảng", "IPD-PRO11-M4-S", "iPad Pro 11 M4 256GB Xám",          28_990_000, "Chiếc", "24.9x17.8x0.6 cm"),
-        ("Máy tính bảng", "IPD-AIR13-M2-S", "iPad Air 13 M2 256GB Xám",          21_990_000, "Chiếc", "28.1x21.5x0.6 cm"),
-        ("Máy tính bảng", "IPD-10-64-S",    "iPad 10 64GB Xanh",                 10_990_000, "Chiếc", "24.9x17.5x0.7 cm"),
-        ("Máy tính bảng", "IPD-MINI6-P",    "iPad mini 6 64GB Hồng",              12_990_000, "Chiếc", "19.5x13.5x0.6 cm"),
-        ("Máy tính bảng", "SS-TABS9-X",     "Samsung Galaxy Tab S9 256GB Xanh",   19_990_000, "Chiếc", "25.4x16.6x0.6 cm"),
-        ("Máy tính bảng", "SS-TABA9-X",     "Samsung Galaxy Tab A9+ 64GB Xanh",    5_990_000, "Chiếc", "25.7x16.8x0.7 cm"),
-        ("Máy tính bảng", "XM-PAD6-D",      "Xiaomi Pad 6 128GB Đen",             8_990_000, "Chiếc", "25.4x16.5x0.6 cm"),
-        ("Máy tính bảng", "LEN-TABP12-X",   "Lenovo Tab P12 128GB Xám",           7_990_000, "Chiếc", "29.4x18.1x0.7 cm"),
-        ("Máy tính bảng", "OP-PAD-D",       "OPPO Pad Air 128GB Xám",              6_990_000, "Chiếc", "25.0x16.4x0.7 cm"),
-        ("Máy tính bảng", "VIVO-PAD2-X",    "Vivo Pad2 128GB Xanh",               9_490_000, "Chiếc", "26.7x17.4x0.7 cm"),
-        ("Máy tính bảng", "HUAWEI-M11-G",   "Huawei MatePad 11 128GB Xám",       8_490_000, "Chiếc", "25.4x16.2x0.7 cm"),
-        ("Máy tính bảng", "ACER-TAB10-D",   "Acer Iconia Tab 10 64GB Đen",        3_990_000, "Chiếc", "24.7x15.6x0.8 cm"),
+        ("Laptop", "MBP14-M3-512-X",     "MacBook Pro 14 M3 512GB X�m",           38_990_000, "Chi?c", "31.3x22.1x1.6 cm"),
+        ("Laptop", "MBA13-M2-256-X",     "MacBook Air 13 M2 256GB X�m",           22_990_000, "Chi?c", "30.4x21.5x1.1 cm"),
+        ("Laptop", "MBP16-M3P-1T-NT",    "MacBook Pro 16 M3 Pro 1TB �en",         62_990_000, "Chi?c", "35.6x24.8x1.7 cm"),
+        ("Laptop", "DELL-XPS13-16-512-D", "Dell XPS 13 i7 16GB/512GB �en",        30_990_000, "Chi?c", "29.5x19.9x1.5 cm"),
+        ("Laptop", "DELL-IN15-8-512-D",  "Dell Inspiron 15 i5 8GB/512GB �en",     15_990_000, "Chi?c", "35.9x23.5x1.8 cm"),
+        ("Laptop", "LEN-TP14-16-512-D",  "Lenovo ThinkPad E14 i5 16GB/512GB �en", 18_990_000, "Chi?c", "32.5x23.6x1.8 cm"),
+        ("Laptop", "LEN-IP5-16-512-X",   "Lenovo IdeaPad Slim 5 i5 16GB/512GB X�m",16_990_000, "Chi?c", "35.6x23.7x1.7 cm"),
+        ("Laptop", "HP-PV15-8-512-D",    "HP Pavilion 15 i5 8GB/512GB �en",       15_490_000, "Chi?c", "35.9x23.6x1.8 cm"),
+        ("Laptop", "HP-EB840-16-512-D",  "HP EliteBook 840 G10 i7 16GB/512GB �en",28_990_000, "Chi?c", "31.6x22.4x1.9 cm"),
+        ("Laptop", "ASUS-VB15-8-256-D",  "ASUS VivoBook 15 i3 8GB/256GB �en",     10_990_000, "Chi?c", "35.9x23.6x1.9 cm"),
+        ("Laptop", "ASUS-G16-16-512-D",  "ASUS ROG Strix G16 i7 16GB/512GB �en",  38_990_000, "Chi?c", "35.4x26.4x2.3 cm"),
+        ("Laptop", "ACER-AS5-8-512-D",   "Acer Aspire 5 i5 8GB/512GB �en",        13_990_000, "Chi?c", "36.3x23.8x1.8 cm"),
+        ("Laptop", "ACER-N5-16-512-D",   "Acer Nitro 5 i5 16GB/512GB �en",        20_990_000, "Chi?c", "36.0x27.1x2.5 cm"),
+        ("Laptop", "MS-SL5-8-256-D",     "Microsoft Surface Laptop 5 i5 8GB/256GB �en", 26_990_000, "Chi?c", "32.3x22.3x1.5 cm"),
+        ("Laptop", "SS-GB3P-16-512-X",   "Samsung Galaxy Book3 Pro 16GB/512GB X�m", 29_990_000, "Chi?c", "35.6x25.3x1.2 cm"),
+        ("Laptop", "XIAO-RB16-16-512-X", "Xiaomi RedmiBook 16 i5 16GB/512GB X�m", 14_990_000, "Chi?c", "36.1x23.5x1.6 cm"),
+        // Ph? ki?n (14)
+        ("Ph? ki?n", "AP-AP2-W",         "AirPods Pro 2",                           5_490_000, "B?",   "2.4x2.2x3.1 cm"),
+        ("Ph? ki?n", "AP-AP3-W",         "AirPods 3",                              3_990_000, "B?",   "3.0x1.9x1.9 cm"),
+        ("Ph? ki?n", "SS-BUDS2-W",       "Samsung Galaxy Buds2 Pro",               3_490_000, "B?",   "2.2x2.2x1.9 cm"),
+        ("Ph? ki?n", "SS-BUDSFE-W",      "Samsung Galaxy Buds FE",                 1_690_000, "B?",   "2.0x1.8x2.4 cm"),
+        ("Ph? ki?n", "XM-BUD4-W",        "Xiaomi Buds 4 Pro",                      1_990_000, "B?",   "2.5x2.0x2.0 cm"),
+        ("Ph? ki?n", "AP-WSE44-M",       "Apple Watch SE 44mm",                    7_490_000, "Chi?c", "4.4x3.8x1.0 cm"),
+        ("Ph? ki?n", "AP-WS9-M",         "Apple Watch Series 9 45mm",             11_990_000, "Chi?c", "4.5x3.8x1.0 cm"),
+        ("Ph? ki?n", "ANK-65G-D",        "S?c GaN Anker 65W",                       890_000, "Chi?c", "7.2x3.6x3.0 cm"),
+        ("Ph? ki?n", "ANK-PB20-D",       "S?c d? ph�ng Anker 20000mAh",            1_290_000, "Chi?c", "15.2x7.1x2.6 cm"),
+        ("Ph? ki?n", "LOG-MX3S-G",       "Chu?t Logitech MX Master 3S",            2_490_000, "Chi?c", "5.1x12.4x4.3 cm"),
+        ("Ph? ki?n", "LOG-K380-W",       "B�n ph�m Logitech K380",                  890_000, "Chi?c", "27.9x12.4x1.6 cm"),
+        ("Ph? ki?n", "LOG-G502-D",       "Chu?t gaming Logitech G502 Hero",        1_190_000, "Chi?c", "7.5x13.2x4.0 cm"),
+        ("Ph? ki?n", "AP-MK-W",          "Apple Magic Keyboard",                   2_990_000, "Chi?c", "27.9x11.5x0.4 cm"),
+        ("Ph? ki?n", "SS-T7-1T-D",       "SSD Samsung T7 1TB",                     2_990_000, "Chi?c", "8.5x5.7x0.8 cm"),
+        // M�y t�nh b?ng (12)
+        ("M�y t�nh b?ng", "IPD-PRO11-M4-S", "iPad Pro 11 M4 256GB X�m",          28_990_000, "Chi?c", "24.9x17.8x0.6 cm"),
+        ("M�y t�nh b?ng", "IPD-AIR13-M2-S", "iPad Air 13 M2 256GB X�m",          21_990_000, "Chi?c", "28.1x21.5x0.6 cm"),
+        ("M�y t�nh b?ng", "IPD-10-64-S",    "iPad 10 64GB Xanh",                 10_990_000, "Chi?c", "24.9x17.5x0.7 cm"),
+        ("M�y t�nh b?ng", "IPD-MINI6-P",    "iPad mini 6 64GB H?ng",              12_990_000, "Chi?c", "19.5x13.5x0.6 cm"),
+        ("M�y t�nh b?ng", "SS-TABS9-X",     "Samsung Galaxy Tab S9 256GB Xanh",   19_990_000, "Chi?c", "25.4x16.6x0.6 cm"),
+        ("M�y t�nh b?ng", "SS-TABA9-X",     "Samsung Galaxy Tab A9+ 64GB Xanh",    5_990_000, "Chi?c", "25.7x16.8x0.7 cm"),
+        ("M�y t�nh b?ng", "XM-PAD6-D",      "Xiaomi Pad 6 128GB �en",             8_990_000, "Chi?c", "25.4x16.5x0.6 cm"),
+        ("M�y t�nh b?ng", "LEN-TABP12-X",   "Lenovo Tab P12 128GB X�m",           7_990_000, "Chi?c", "29.4x18.1x0.7 cm"),
+        ("M�y t�nh b?ng", "OP-PAD-D",       "OPPO Pad Air 128GB X�m",              6_990_000, "Chi?c", "25.0x16.4x0.7 cm"),
+        ("M�y t�nh b?ng", "VIVO-PAD2-X",    "Vivo Pad2 128GB Xanh",               9_490_000, "Chi?c", "26.7x17.4x0.7 cm"),
+        ("M�y t�nh b?ng", "HUAWEI-M11-G",   "Huawei MatePad 11 128GB X�m",       8_490_000, "Chi?c", "25.4x16.2x0.7 cm"),
+        ("M�y t�nh b?ng", "ACER-TAB10-D",   "Acer Iconia Tab 10 64GB �en",        3_990_000, "Chi?c", "24.7x15.6x0.8 cm"),
     };
 
-    // (name, contactName, phone, email, address) — nhà phân phối ủy quyền + đại lý VN.
+    // (name, contactName, phone, email, address) � nh� ph�n ph?i ?y quy?n + d?i l� VN.
     private static readonly (string Name, string ContactName, string Phone, string Email, string Address)[] DemoVendors =
     {
-        ("Công ty TNHH Thế Giới Di Động",   "Nguyễn Văn Nam",   "028 3838 5000", "contact@thegioididong.vn", "60-62 Lê Lợi, Q.1, TPHCM"),
-        ("Công ty Cổ phần FPT Trading",     "Trần Thanh Hải",   "024 3726 5555", "sale@fpttrading.com.vn",    "Số 10A Lý Thường Kiệt, Q.Hoàn Kiếm, Hà Nội"),
-        ("Công ty TNHH Samsung Electronics VN", "Lê Thị Hương",  "028 3622 8080", "hcm@samsung.com.vn",      "Số 2 Đường 3/2, Quận 10, TPHCM"),
-        ("Công ty TNHH Apple Authorized Reseller VN", "Phạm Minh Châu", "024 3733 8080", "sale@apple-reseller.vn", "25 Đường Láng, Q.Đống Đa, Hà Nội"),
-        ("Công ty TNHH Thương mại & Dịch vụ Kỹ thuật Long", "Nguyễn Quốc Long", "028 3999 1234", "info@longtech.com.vn", "88 Nguyễn Trãi, Q.Thanh Xuân, Hà Nội"),
-        ("Công ty Cổ phần Sản xuất & TM Phát Đạt", "Hoàng Văn Phát", "024 3356 7890", "phatdat@phatdat.vn", "45 Trần Hưng Đạo, Q.Hoàn Kiếm, Hà Nội"),
-        ("Công ty TNHH Anpha Computer",     "Võ An Khoa",       "028 3766 4321", "sales@anphacom.vn",       "120 Nguyễn Chí Thanh, Q.5, TPHCM"),
-        ("Công ty TNHH MTV Điện tử Gia Bảo", "Đoàn Thị Mai",     "024 3868 2468", "giabao@giabao.vn",        "68 Quang Trung, Q.Hai Bà Trưng, Hà Nội"),
-        ("Công ty TNHH Netco Việt Nam",     "Trịnh Bảo Khang",  "028 3822 1999", "netco@netco.vn",          "33 Nguyễn Văn Cừ, Q.1, TPHCM"),
-        ("Công ty Cổ phần E-phone (ENS)",   "Kiều Hạnh Nhi",    "024 3560 8899", "ens@e-phone.vn",          "22 Lê Thanh Nghị, Q.Hai Bà Trưng, Hà Nội"),
+        ("C�ng ty TNHH Th? Gi?i Di �?ng",   "Nguy?n Van Nam",   "028 3838 5000", "contact@thegioididong.vn", "60-62 L� L?i, Q.1, TPHCM"),
+        ("C�ng ty C? ph?n FPT Trading",     "Tr?n Thanh H?i",   "024 3726 5555", "sale@fpttrading.com.vn",    "S? 10A L� Thu?ng Ki?t, Q.Ho�n Ki?m, H� N?i"),
+        ("C�ng ty TNHH Samsung Electronics VN", "L� Th? Huong",  "028 3622 8080", "hcm@samsung.com.vn",      "S? 2 �u?ng 3/2, Qu?n 10, TPHCM"),
+        ("C�ng ty TNHH Apple Authorized Reseller VN", "Ph?m Minh Ch�u", "024 3733 8080", "sale@apple-reseller.vn", "25 �u?ng L�ng, Q.�?ng �a, H� N?i"),
+        ("C�ng ty TNHH Thuong m?i & D?ch v? K? thu?t Long", "Nguy?n Qu?c Long", "028 3999 1234", "info@longtech.com.vn", "88 Nguy?n Tr�i, Q.Thanh Xu�n, H� N?i"),
+        ("C�ng ty C? ph?n S?n xu?t & TM Ph�t �?t", "Ho�ng Van Ph�t", "024 3356 7890", "phatdat@phatdat.vn", "45 Tr?n Hung �?o, Q.Ho�n Ki?m, H� N?i"),
+        ("C�ng ty TNHH Anpha Computer",     "V� An Khoa",       "028 3766 4321", "sales@anphacom.vn",       "120 Nguy?n Ch� Thanh, Q.5, TPHCM"),
+        ("C�ng ty TNHH MTV �i?n t? Gia B?o", "�o�n Th? Mai",     "024 3868 2468", "giabao@giabao.vn",        "68 Quang Trung, Q.Hai B� Trung, H� N?i"),
+        ("C�ng ty TNHH Netco Vi?t Nam",     "Tr?nh B?o Khang",  "028 3822 1999", "netco@netco.vn",          "33 Nguy?n Van C?, Q.1, TPHCM"),
+        ("C�ng ty C? ph?n E-phone (ENS)",   "Ki?u H?nh Nhi",    "024 3560 8899", "ens@e-phone.vn",          "22 L� Thanh Ngh?, Q.Hai B� Trung, H� N?i"),
     };
 
-    // (name, contactName, phone, email, address) — doanh nghiệp + khách lẻ, sồ/thiếu email/address ở khách lẻ.
+    // (name, contactName, phone, email, address) � doanh nghi?p + kh�ch l?, s?/thi?u email/address ? kh�ch l?.
     private static readonly (string Name, string ContactName, string Phone, string Email, string Address)[] DemoCustomers =
     {
-        ("Công ty CP Đầu tư Minh Anh",      "Bùi Thị Hồng Nhung", "0912 345 678", "minhanh@minhanh.com.vn",   "12 Nguyễn Đình Chiểu, Q.1, TPHCM"),
-        ("Công ty TNHH Thương mại Hoàng Gia","Phan Thế Hoàng",    "0903 123 456", "hoanggia@hoanggia.vn",     "56 Lê Văn Sỹ, Q.Tân Bình, TPHCM"),
-        ("Công ty Cổ phần Dệt may Việt Thắng", "Lê Minh Đức",    "0988 765 432", "vietthang@vietthang.vn",   "78 Nguyễn Trãi, Q.Thanh Xuân, Hà Nội"),
-        ("Công ty TNHH Xây dựng Nam Long",  "Nguyễn Thành Long", "0909 111 222", "namlong@namlong.vn",       "90 Lạc Long Quân, Q.Tây Hồ, Hà Nội"),
-        ("Công ty Cổ phần Giáo dục Vina",   "Trần Thu Trang",    "0913 555 666", "vinaedu@vinaedu.vn",       "33 Trần Quốc Vượng, Q.Cầu Giấy, Hà Nội"),
-        ("Công ty TNHH Dịch vụ Sắc Màu",    "Hồ Ngọc Ánh",       "0933 777 888", "sacmau@sacmau.vn",         "18 Phạm Văn Đồng, Q.Gò Vấp, TPHCM"),
-        ("Công ty CP Công nghệ Bách Khoa",  "Vũ Huy Cường",      "0916 234 567", "bachkhoa@bk-tech.vn",      "101 Trần Hưng Đạo, Q.5, TPHCM"),
-        ("Công ty TNHH Kinh doanh ASA",     "Đỗ Thuý Hà",        "0977 888 999", "asa@asa.vn",               "67 Hàng Bài, Q.Hoàn Kiếm, Hà Nội"),
-        ("Công ty Cổ phần Thép Miền Nam",   "Lương Văn Tài",     "0989 123 321", "thp@thepmienam.vn",        "24 Tôn Đức Thắng, Q.1, TPHCM"),
-        ("Công ty TNHH Truyền thông SkyMedia", "Ngô Thanh Thuỷ", "0917 456 789", "skymedia@skymedia.vn",     "44 Phạm Ngọc Thạch, Q.Đống Đa, Hà Nội"),
-        ("Công ty Cổ phần Sữa Bình Minh",   "Đinh Thị Hạnh",     "0902 333 444", "binhminh@bms.vn",          "9 Giảng Võ, Q.Ba Đình, Hà Nội"),
-        ("Công ty TNHH Dược phẩm Phú Gia",  "Trương Văn Phúc",   "0935 222 111", "phugia@phugia.vn",         "55 Hoàng Hoa Thám, Q.Ba Đình, Hà Nội"),
-        ("Công ty Cổ phần Logistics NorthStar", "Mai Hoàng Dũng", "0944 567 890", "northstar@nslog.vn",       "77 Nguyễn Hữu Thọ, Q.7, TPHCM"),
-        ("Khách lẻ - Anh Tuấn",             "Nguyễn Anh Tuấn",   "0908 333 555", "",                        ""),
-        ("Khách lẻ - Chị Lan",              "Trần Thị Lan",      "0914 666 777", "",                        ""),
-        ("Khách lẻ - Anh Minh",             "Lê Quang Minh",     "0932 444 555", "",                        ""),
-        ("Khách lẻ - Chị Hoa",              "Phạm Thu Hoa",      "0905 222 888", "",                        ""),
-        ("Khách lẻ - Anh Khoa",             "Đinh Văn Khoa",     "0981 777 123", "",                        ""),
+        ("C�ng ty CP �?u tu Minh Anh",      "B�i Th? H?ng Nhung", "0912 345 678", "minhanh@minhanh.com.vn",   "12 Nguy?n ��nh Chi?u, Q.1, TPHCM"),
+        ("C�ng ty TNHH Thuong m?i Ho�ng Gia","Phan Th? Ho�ng",    "0903 123 456", "hoanggia@hoanggia.vn",     "56 L� Van S?, Q.T�n B�nh, TPHCM"),
+        ("C�ng ty C? ph?n D?t may Vi?t Th?ng", "L� Minh �?c",    "0988 765 432", "vietthang@vietthang.vn",   "78 Nguy?n Tr�i, Q.Thanh Xu�n, H� N?i"),
+        ("C�ng ty TNHH X�y d?ng Nam Long",  "Nguy?n Th�nh Long", "0909 111 222", "namlong@namlong.vn",       "90 L?c Long Qu�n, Q.T�y H?, H� N?i"),
+        ("C�ng ty C? ph?n Gi�o d?c Vina",   "Tr?n Thu Trang",    "0913 555 666", "vinaedu@vinaedu.vn",       "33 Tr?n Qu?c Vu?ng, Q.C?u Gi?y, H� N?i"),
+        ("C�ng ty TNHH D?ch v? S?c M�u",    "H? Ng?c �nh",       "0933 777 888", "sacmau@sacmau.vn",         "18 Ph?m Van �?ng, Q.G� V?p, TPHCM"),
+        ("C�ng ty CP C�ng ngh? B�ch Khoa",  "Vu Huy Cu?ng",      "0916 234 567", "bachkhoa@bk-tech.vn",      "101 Tr?n Hung �?o, Q.5, TPHCM"),
+        ("C�ng ty TNHH Kinh doanh ASA",     "�? Thu� H�",        "0977 888 999", "asa@asa.vn",               "67 H�ng B�i, Q.Ho�n Ki?m, H� N?i"),
+        ("C�ng ty C? ph?n Th�p Mi?n Nam",   "Luong Van T�i",     "0989 123 321", "thp@thepmienam.vn",        "24 T�n �?c Th?ng, Q.1, TPHCM"),
+        ("C�ng ty TNHH Truy?n th�ng SkyMedia", "Ng� Thanh Thu?", "0917 456 789", "skymedia@skymedia.vn",     "44 Ph?m Ng?c Th?ch, Q.�?ng �a, H� N?i"),
+        ("C�ng ty C? ph?n S?a B�nh Minh",   "�inh Th? H?nh",     "0902 333 444", "binhminh@bms.vn",          "9 Gi?ng V�, Q.Ba ��nh, H� N?i"),
+        ("C�ng ty TNHH Du?c ph?m Ph� Gia",  "Truong Van Ph�c",   "0935 222 111", "phugia@phugia.vn",         "55 Ho�ng Hoa Th�m, Q.Ba ��nh, H� N?i"),
+        ("C�ng ty C? ph?n Logistics NorthStar", "Mai Ho�ng Dung", "0944 567 890", "northstar@nslog.vn",       "77 Nguy?n H?u Th?, Q.7, TPHCM"),
+        ("Kh�ch l? - Anh Tu?n",             "Nguy?n Anh Tu?n",   "0908 333 555", "",                        ""),
+        ("Kh�ch l? - Ch? Lan",              "Tr?n Th? Lan",      "0914 666 777", "",                        ""),
+        ("Kh�ch l? - Anh Minh",             "L� Quang Minh",     "0932 444 555", "",                        ""),
+        ("Kh�ch l? - Ch? Hoa",              "Ph?m Thu Hoa",      "0905 222 888", "",                        ""),
+        ("Kh�ch l? - Anh Khoa",             "�inh Van Khoa",     "0981 777 123", "",                        ""),
     };
 
     private readonly WmsDbContext _db;
@@ -160,8 +160,8 @@ public class DemoDataSeeder : IDemoDataSeeder
             return SeedSummary.Disabled();
         }
 
-        // Base idempotency: nếu dữ liệu demo đã tồn tại (kho đã có) thì skip toàn bộ
-        // để tránh duplicate khi chạy lại / chạy giữa chừng sau một đợt seed trước đó.
+        // Base idempotency: n?u d? li?u demo d� t?n t?i (kho d� c�) th� skip to�n b?
+        // d? tr�nh duplicate khi ch?y l?i / ch?y gi?a ch?ng sau m?t d?t seed tru?c d�.
         var hasWarehouses = await _db.Warehouses.AsNoTracking().AnyAsync(cancellationToken);
         if (hasWarehouses)
         {
@@ -178,7 +178,7 @@ public class DemoDataSeeder : IDemoDataSeeder
         await SeedStockAsync(cancellationToken);
         var purchaseOrders = await SeedPoAndPutAwayChainsAsync(cancellationToken);
         var (saleOrders, stockAdjustments) = await SeedSaleOrderPickingAndAdjustmentAsync(cancellationToken);
-        // StockMovements = tổng cả ticket 06 (ledger) + ticket 07 (putaway In movements) từ DB.
+        // StockMovements = t?ng c? ticket 06 (ledger) + ticket 07 (putaway In movements) t? DB.
         var totalStockMovements = await _db.StockMovements.AsNoTracking().CountAsync(cancellationToken);
         var summary = new SeedSummary
         {
@@ -210,9 +210,9 @@ public class DemoDataSeeder : IDemoDataSeeder
             tenant = new Tenant
             {
                 Id = WmsDbContext.DefaultTenantId,
-                Name = "Công ty TNHH Demo Logistics",
+                Name = "C�ng ty TNHH Demo Logistics",
                 Code = "demo-corp",
-                Address = "12 Nguyễn Văn Linh, Quận 7, TP.HCM",
+                Address = "12 Nguy?n Van Linh, Qu?n 7, TP.HCM",
                 ContactEmail = "admin@demo.com",
                 ContactPhone = "0901234567",
                 HasExpiryManagement = false,
@@ -227,7 +227,7 @@ public class DemoDataSeeder : IDemoDataSeeder
 
     private async Task<int> SeedUsersAsync(CancellationToken cancellationToken)
     {
-        // Đảm bảo roles tồn tại trước khi gán user (không tạo kép).
+        // �?m b?o roles t?n t?i tru?c khi g�n user (kh�ng t?o k�p).
         foreach (var roleName in DemoRoles)
         {
             if (!await _db.Roles.AsNoTracking().AnyAsync(r => r.Name == roleName, cancellationToken))
@@ -247,13 +247,17 @@ public class DemoDataSeeder : IDemoDataSeeder
         var demoUsers = new[]
         {
             // Managers
-            ("manager1", "Nguyễn Văn An",     "manager1@wms.local",     "WarehouseManager"),
-            ("manager2", "Trần Thị Bình",     "manager2@wms.local",     "WarehouseManager"),
+            ("manager1", "Nguy?n Van An",     "manager1@wms.local",     "WarehouseManager"),
+            ("manager2", "Tr?n Th? B�nh",     "manager2@wms.local",     "WarehouseManager"),
             // Staff
-            ("nvhung",   "Nguyễn Văn Hùng",   "nvhung@wms.local",       "WarehouseStaff"),
-            ("nvlan",    "Lê Thị Lan",        "nvlan@wms.local",        "WarehouseStaff"),
-            ("pvnam",    "Phạm Văn Nam",      "pvnam@wms.local",        "WarehouseStaff"),
-            ("nthao",    "Nguyễn Thị Thảo",   "nthao@wms.local",        "WarehouseStaff"),
+            ("nvhung",   "Nguy?n Van H�ng",   "nvhung@wms.local",       "WarehouseStaff"),
+            ("nvlan",    "L� Th? Lan",        "nvlan@wms.local",        "WarehouseStaff"),
+            ("pvnam",    "Ph?m Van Nam",      "pvnam@wms.local",        "WarehouseStaff"),
+            ("nthao",    "Nguy?n Th? Th?o",   "nthao@wms.local",        "WarehouseStaff"),
+            // Accountants
+            ("chief_accountant", "K? to�n tru?ng HQ", "chief_accountant@wms.local", "ChiefAccountant"),
+            ("accountant_hcm",   "K? to�n Kho HCM",   "accountant_hcm@wms.local",   "Accountant"),
+            ("accountant_hn",    "K? to�n Kho HN",    "accountant_hn@wms.local",    "Accountant"),
         };
 
         var created = 0;
@@ -351,8 +355,8 @@ public class DemoDataSeeder : IDemoDataSeeder
         return (warehouses, locations);
     }
 
-    // Kiểu + dung lượng tối đa theo vị trí (deterministic theo thứ tự sinh).
-    // Ưu tiên Storage; vài vị trí đầu làm Receiving / Shipping / Picking cho hợp nghiệp vụ.
+    // Ki?u + dung lu?ng t?i da theo v? tr� (deterministic theo th? t? sinh).
+    // Uu ti�n Storage; v�i v? tr� d?u l�m Receiving / Shipping / Picking cho h?p nghi?p v?.
     private static (LocationType LocationType, int MaxQuantity) LocationSpec(int index) => index switch
     {
         0 => (LocationType.Receiving, 50),
@@ -408,8 +412,8 @@ public class DemoDataSeeder : IDemoDataSeeder
         return (categoriesCreated, productsCreated);
     }
 
-    // Ảnh placeholder stable theo SKU: cùng SKU → cùng ảnh (picsum.photos seed).
-    // Chấp nhận phụ thuộc internet khi demo; không dùng Cloudinary trong scope này.
+    // ?nh placeholder stable theo SKU: c�ng SKU ? c�ng ?nh (picsum.photos seed).
+    // Ch?p nh?n ph? thu?c internet khi demo; kh�ng d�ng Cloudinary trong scope n�y.
     private static string PlaceholderImageUrl(string sku)
         => $"https://picsum.photos/seed/{sku}/240/240";
 
@@ -485,9 +489,9 @@ public class DemoDataSeeder : IDemoDataSeeder
             var product = products[i];
             var location = storageLocations[i % storageLocations.Count];
 
-            // Deterministic ledger: In trước rồi Out/Adjustment — không bao giờ tồn âm
-            // vì running balance chỉ giảm sau khi đã có đủ In.
-            // Ranges được giữ nhỏ để 2 sản phẩm dùng chung 1 storage slot vẫn ≤ MaxQuantity (200).
+            // Deterministic ledger: In tru?c r?i Out/Adjustment � kh�ng bao gi? t?n �m
+            // v� running balance ch? gi?m sau khi d� c� d? In.
+            // Ranges du?c gi? nh? d? 2 s?n ph?m d�ng chung 1 storage slot v?n = MaxQuantity (200).
             var finalOnhand = 10 + ((i * 13) % 40);          // 10..49
             var soldTotal = 15 + ((i * 7) % 30);             // 15..44
             var adjustTotal = 1 + ((i * 5) % 8);             // 1..8
@@ -496,12 +500,12 @@ public class DemoDataSeeder : IDemoDataSeeder
             var suffix = $"{product.Sku} @ {location.Code}";
             var seq = new (int DayOffset, MovementType Type, int Qty, string Note)[]
             {
-                (-42, MovementType.In, totalIn / 2, $"Nhận hàng nhập kho {suffix}"),
-                (-35, MovementType.In, totalIn - totalIn / 2, $"Nhận hàng nhập kho {suffix}"),
-                (-28, MovementType.Out, soldTotal / 3, $"Bán hàng - xuất kho {suffix}"),
-                (-20, MovementType.Adjustment, adjustTotal, $"Kiểm kê - điều chỉnh tồn {suffix}"),
-                (-10, MovementType.Out, soldTotal / 3, $"Bán hàng - xuất kho {suffix}"),
-                (-3,  MovementType.Out, soldTotal - 2 * (soldTotal / 3), $"Bán hàng - xuất kho {suffix}"),
+                (-42, MovementType.In, totalIn / 2, $"Nh?n h�ng nh?p kho {suffix}"),
+                (-35, MovementType.In, totalIn - totalIn / 2, $"Nh?n h�ng nh?p kho {suffix}"),
+                (-28, MovementType.Out, soldTotal / 3, $"B�n h�ng - xu?t kho {suffix}"),
+                (-20, MovementType.Adjustment, adjustTotal, $"Ki?m k� - di?u ch?nh t?n {suffix}"),
+                (-10, MovementType.Out, soldTotal / 3, $"B�n h�ng - xu?t kho {suffix}"),
+                (-3,  MovementType.Out, soldTotal - 2 * (soldTotal / 3), $"B�n h�ng - xu?t kho {suffix}"),
             };
 
             var running = 0;
@@ -530,8 +534,8 @@ public class DemoDataSeeder : IDemoDataSeeder
                 movementTimestamps[movement.Id] = occurred;
             }
 
-            // Onhand = running balance thật qua toàn bộ chuỗi ledger
-            // (= Σ In − Σ Out + Σ Adjustment), consistency by construction.
+            // Onhand = running balance th?t qua to�n b? chu?i ledger
+            // (= S In - S Out + S Adjustment), consistency by construction.
             stocks.Add(new Stock
             {
                 Id = Guid.NewGuid(),
@@ -558,8 +562,8 @@ public class DemoDataSeeder : IDemoDataSeeder
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        // Backdate CreatedDate + CreatedById (interceptor ép = now khi Add).
-        // ExecuteUpdate không qua ChangeTracker → không sinh thêm audit kép.
+        // Backdate CreatedDate + CreatedById (interceptor �p = now khi Add).
+        // ExecuteUpdate kh�ng qua ChangeTracker ? kh�ng sinh th�m audit k�p.
         foreach (var movement in movements)
         {
             var occurred = movementTimestamps[movement.Id];
@@ -570,7 +574,7 @@ public class DemoDataSeeder : IDemoDataSeeder
                     .SetProperty(x => x.CreatedById, actorId == Guid.Empty ? null : (Guid?)actorId),
                     cancellationToken);
 
-            // Backdate luôn AuditLog tự sinh cho movement (interceptor ép OccurredAtUtc = now).
+            // Backdate lu�n AuditLog t? sinh cho movement (interceptor �p OccurredAtUtc = now).
             await _db.AuditLogs
                 .Where(a => a.EntityType == nameof(StockMovement) && a.EntityId == movement.Id)
                 .ExecuteUpdateAsync(s => s
@@ -596,7 +600,7 @@ public class DemoDataSeeder : IDemoDataSeeder
         if (vendors.Count < 3 || products.Count < 6)
             return 0;
 
-        // Load trạng thái tồn + vị trí hiện tại (sau ticket 06) để cập nhật nhất quán.
+        // Load tr?ng th�i t?n + v? tr� hi?n t?i (sau ticket 06) d? c?p nh?t nh?t qu�n.
         var existingStocks = await _db.Stocks.AsNoTracking().ToListAsync(cancellationToken);
         var onhand = existingStocks.ToDictionary(s => (s.ProductId, s.LocationId), s => s.OnhandQty);
         var locationQty = (await _db.Locations.AsNoTracking().ToListAsync(cancellationToken))
@@ -617,11 +621,11 @@ public class DemoDataSeeder : IDemoDataSeeder
             var vendor = vendors[vendorIndex];
             var usedProducts = productIndexes.Select(i => products[i]).ToList();
 
-            // PO: Pending → Approved → Received → Closed (final = Closed).
-            // Lưu ý: không tạo PurchaseOrderDetail trong seed — entity đó có RowVersion (IsRowVersion,
-            // store-generated) không thể insert qua EF trên SQLite (test seam); flow sản phẩm vẫn
-            // được thể hiện qua ReceivingDetail + PutAwayTask. Trên SQL Server production, các thao tác
-            // nghiệp vụ sau này sẽ tạo detail như bình thường.
+            // PO: Pending ? Approved ? Received ? Closed (final = Closed).
+            // Luu �: kh�ng t?o PurchaseOrderDetail trong seed � entity d� c� RowVersion (IsRowVersion,
+            // store-generated) kh�ng th? insert qua EF tr�n SQLite (test seam); flow s?n ph?m v?n
+            // du?c th? hi?n qua ReceivingDetail + PutAwayTask. Tr�n SQL Server production, c�c thao t�c
+            // nghi?p v? sau n�y s? t?o detail nhu b�nh thu?ng.
             var po = new PurchaseOrder
             {
                 Id = Guid.NewGuid(),
@@ -634,7 +638,7 @@ public class DemoDataSeeder : IDemoDataSeeder
                 ClosedDate = now.AddDays(-3)
             };
 
-            // Receiving: Draft → Confirmed (final = Confirmed), 1 per PO.
+            // Receiving: Draft ? Confirmed (final = Confirmed), 1 per PO.
             var receiving = new Receiving
             {
                 Id = Guid.NewGuid(),
@@ -646,7 +650,7 @@ public class DemoDataSeeder : IDemoDataSeeder
                 ReceivedDate = now.AddDays(-20),
                 ConfirmedById = managerId,
                 ConfirmedDate = now.AddDays(-19),
-                Notes = $"Nhận hàng theo {po.PoNumber}",
+                Notes = $"Nh?n h�ng theo {po.PoNumber}",
                 ReceivingDetails = usedProducts.Select(p => new ReceivingDetail
                 {
                     Id = Guid.NewGuid(),
@@ -660,7 +664,7 @@ public class DemoDataSeeder : IDemoDataSeeder
             // Link FK
             foreach (var d in receiving.ReceivingDetails) d.Receiving = receiving;
 
-            // PutAway: cho mỗi dòng Ok → Completed; cộng tồn tại chính location ấy.
+            // PutAway: cho m?i d�ng Ok ? Completed; c?ng t?n t?i ch�nh location ?y.
             foreach (var detail in receiving.ReceivingDetails)
             {
                 var targetLocation = FindPutAwayLocation(detail.ProductId, detail.ActualQuantity, locationQty);
@@ -698,13 +702,13 @@ public class DemoDataSeeder : IDemoDataSeeder
                     LocationId = targetLocation.Id,
                     MovementType = MovementType.In,
                     Qty = detail.ActualQuantity,
-                    Notes = $"Phiếu cất {po.PoNumber} - nhập kho {targetLocation.Code}"
+                    Notes = $"Phi?u c?t {po.PoNumber} - nh?p kho {targetLocation.Code}"
                 };
                 _db.StockMovements.Add(putAwayMovement);
                 putAwayMovements.Add((putAwayMovement, putAwayOccurred));
             }
 
-            // StatusHistory cho PO: Pending→Approved, Approved→Received, Received→Closed.
+            // StatusHistory cho PO: Pending?Approved, Approved?Received, Received?Closed.
             _db.StatusHistories.Add(new StatusHistory(Guid.NewGuid(), nameof(PurchaseOrder), po.Id,
                 nameof(PurchaseOrderStatus.Pending), nameof(PurchaseOrderStatus.Approved), "StatusChanged",
                 managerId, now.AddDays(-day)));
@@ -723,7 +727,7 @@ public class DemoDataSeeder : IDemoDataSeeder
             purchaseOrders++;
         }
 
-        // Ghi lại onhand/location vào DB (Stock + Location đã track; cập nhật luôn).
+        // Ghi l?i onhand/location v�o DB (Stock + Location d� track; c?p nh?t lu�n).
         foreach (var ((productId, locationId), qty) in onhand)
         {
             var stock = await _db.Stocks.AsNoTracking()
@@ -743,7 +747,7 @@ public class DemoDataSeeder : IDemoDataSeeder
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        // Backdate putaway movements + audit logs tự sinh (giống ticket 06), để cửa sổ lịch sử thống nhất.
+        // Backdate putaway movements + audit logs t? sinh (gi?ng ticket 06), d? c?a s? l?ch s? th?ng nh?t.
         foreach (var (movement, occurred) in putAwayMovements)
         {
             await _db.StockMovements
@@ -764,8 +768,8 @@ public class DemoDataSeeder : IDemoDataSeeder
         return purchaseOrders;
     }
 
-    // Chọn location nhận hàng cất: ưu tiên location sẵn có stock của sản phẩm (đã nạp từ ticket 06),
-    // ngược lại dùng location rỗng nhất, giữ capacity ≤ MaxQuantity.
+    // Ch?n location nh?n h�ng c?t: uu ti�n location s?n c� stock c?a s?n ph?m (d� n?p t? ticket 06),
+    // ngu?c l?i d�ng location r?ng nh?t, gi? capacity = MaxQuantity.
     private Location? FindPutAwayLocation(Guid productId, int qty, IReadOnlyDictionary<Guid, int> locationQty)
     {
         var stockLocations = _db.Locations.AsNoTracking()
@@ -773,7 +777,7 @@ public class DemoDataSeeder : IDemoDataSeeder
             .OrderBy(l => l.WarehouseId).ThenBy(l => l.Code)
             .ToList();
 
-        // Ưu tiên storage location của sản phẩm đã tồn (xác định lại từ Stocks).
+        // Uu ti�n storage location c?a s?n ph?m d� t?n (x�c d?nh l?i t? Stocks).
         var productStockLoc = _db.Stocks.AsNoTracking()
             .Where(s => s.ProductId == productId)
             .Select(s => s.LocationId)
@@ -782,7 +786,7 @@ public class DemoDataSeeder : IDemoDataSeeder
         if (preferred != null && locationQty.GetValueOrDefault(preferred.Id) + qty <= preferred.MaxQuantity)
             return preferred;
 
-        // Fallback: location rỗng nhất có đủ chỗ.
+        // Fallback: location r?ng nh?t c� d? ch?.
         return stockLocations
             .Where(l => locationQty.GetValueOrDefault(l.Id) + qty <= l.MaxQuantity)
             .OrderBy(l => locationQty.GetValueOrDefault(l.Id))
@@ -801,7 +805,7 @@ public class DemoDataSeeder : IDemoDataSeeder
         if (customers.Count < 2 || products.Count < 6 || warehouses.Count == 0)
             return (0, 0);
 
-        // Load trạng thái tồn + vị trí hiện tại (sau tickets 06-07).
+        // Load tr?ng th�i t?n + v? tr� hi?n t?i (sau tickets 06-07).
         var existingStocks = await _db.Stocks.AsNoTracking().ToListAsync(cancellationToken);
         var onhand = existingStocks.ToDictionary(s => (s.ProductId, s.LocationId), s => s.OnhandQty);
         var stocksByKey = existingStocks.ToDictionary(s => (s.ProductId, s.LocationId), s => s);
@@ -837,7 +841,7 @@ public class DemoDataSeeder : IDemoDataSeeder
                 SaleOrderDetails = usedProducts.Select(p => new SaleOrderDetail
                 {
                     Id = Guid.NewGuid(),
-                    ProductId = p.Id, // chỉ FK — Product là master đã track, không gán navigation
+                    ProductId = p.Id, // ch? FK � Product l� master d� track, kh�ng g�n navigation
                     Quantity = qtyPer,
                     AllocatedQty = qtyPer,
                     Status = SaleOrderDetailStatus.Picked
@@ -845,12 +849,12 @@ public class DemoDataSeeder : IDemoDataSeeder
             };
             foreach (var d in saleOrder.SaleOrderDetails) d.SaleOrder = saleOrder;
 
-            // Picking: Open → Assigned → InProgress → Completed. QtyPicked == QtyToPick.
+            // Picking: Open ? Assigned ? InProgress ? Completed. QtyPicked == QtyToPick.
             var picking = new Picking
             {
                 Id = Guid.NewGuid(),
                 PickingNo = $"PK-{now.AddDays(-(16 - idx * 5)):yyyyMMdd}-{idx + 1:000}",
-                WarehouseId = warehouse.Id, // chỉ FK — Warehouse đã track
+                WarehouseId = warehouse.Id, // ch? FK � Warehouse d� track
                 Status = PickingStatus.Completed,
                 AssignedToId = staffId,
                 AssignedById = managerId,
@@ -862,18 +866,18 @@ public class DemoDataSeeder : IDemoDataSeeder
                 PickingDetails = saleOrder.SaleOrderDetails.Select(d => new PickingDetail
                 {
                     Id = Guid.NewGuid(),
-                    ProductId = d.ProductId, // chỉ FK
+                    ProductId = d.ProductId, // ch? FK
                     SaleOrderDetailId = d.Id,
-                    SaleOrderDetail = d, // SaleOrderDetail mới cùng chain — ok
+                    SaleOrderDetail = d, // SaleOrderDetail m?i c�ng chain � ok
                     QtyToPick = d.Quantity,
                     QtyPicked = d.Quantity,
                     Status = PickingDetailStatus.Picked,
-                    LocationId = FindStockLocation(d.ProductId, onhand)?.Id // chỉ FK
+                    LocationId = FindStockLocation(d.ProductId, onhand)?.Id // ch? FK
                 }).ToList()
             };
             foreach (var pd in picking.PickingDetails) pd.Picking = picking;
 
-            // Picking hoàn thành → trừ tồn + ghi Out movement.
+            // Picking ho�n th�nh ? tr? t?n + ghi Out movement.
             foreach (var pd in picking.PickingDetails)
             {
                 if (pd.LocationId is not Guid locationId) continue;
@@ -891,7 +895,7 @@ public class DemoDataSeeder : IDemoDataSeeder
                     LocationId = locationId,
                     MovementType = MovementType.Out,
                     Qty = pd.QtyPicked,
-                    Notes = $"Phiếu lấy hàng {picking.PickingNo} - xuất kho"
+                    Notes = $"Phi?u l?y h�ng {picking.PickingNo} - xu?t kho"
                 };
                 _db.StockMovements.Add(movement);
                 outboundMovements.Add((movement, occurred));
@@ -916,16 +920,16 @@ public class DemoDataSeeder : IDemoDataSeeder
             saleOrdersCreated++;
         }
 
-        // StockAdjustments: 2 phiếu Draft → Approved; CountedQty chênh lệch thực → Adjustment movement.
+        // StockAdjustments: 2 phi?u Draft ? Approved; CountedQty ch�nh l?ch th?c ? Adjustment movement.
         var adjustmentsCreated = 0;
         for (var idx = 0; idx < 2; idx++)
         {
-            var product = products[12 + idx]; // sản phẩm phụ kiện/phụ tùng
+            var product = products[12 + idx]; // s?n ph?m ph? ki?n/ph? t�ng
             var stockEntry = existingStocks.FirstOrDefault(s => s.ProductId == product.Id);
             if (stockEntry == null) continue;
 
             var adjustmentNo = $"ADJ-{now.AddDays(-8 + idx * 2):yyyyMMdd}-{idx + 1:000}";
-            // CountedQty kiểm kê thực: chênh lệch nhỏ so với onhand (cộng/trừ vài đơn vị).
+            // CountedQty ki?m k� th?c: ch�nh l?ch nh? so v?i onhand (c?ng/tr? v�i don v?).
             var countedQty = Math.Max(0, stockEntry.OnhandQty + (idx == 0 ? 2 : -1));
             var delta = countedQty - stockEntry.OnhandQty;
             if (delta == 0) continue;
@@ -935,7 +939,7 @@ public class DemoDataSeeder : IDemoDataSeeder
                 Id = Guid.NewGuid(),
                 AdjustmentNo = adjustmentNo,
                 Status = StockAdjustmentStatus.Approved,
-                Notes = "Kiểm kê định kỳ - điều chỉnh tồn kho",
+                Notes = "Ki?m k� d?nh k? - di?u ch?nh t?n kho",
                 ApprovedById = managerId,
                 ApprovedDate = now.AddDays(-8 + idx * 2),
                 Details = new List<StockAdjustmentDetail>
@@ -965,14 +969,14 @@ public class DemoDataSeeder : IDemoDataSeeder
                 ProductId = product.Id,
                 LocationId = stockEntry.LocationId,
                 MovementType = MovementType.Adjustment,
-                Qty = delta, // signed delta (giống ApproveAsync) — có thể âm
-                Notes = $"Phiếu điều chỉnh {adjustmentNo} - kiểm kê (delta {delta})"
+                Qty = delta, // signed delta (gi?ng ApproveAsync) � c� th? �m
+                Notes = $"Phi?u di?u ch?nh {adjustmentNo} - ki?m k� (delta {delta})"
             };
             _db.StockMovements.Add(adjMovement);
             outboundMovements.Add((adjMovement, adjOccurred));
         }
 
-        // Ghi lại onhand/location vào DB.
+        // Ghi l?i onhand/location v�o DB.
         foreach (var ((productId, locationId), qty) in onhand)
         {
             var stock = await _db.Stocks.AsNoTracking()
