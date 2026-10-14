@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -54,6 +54,8 @@ function SaleOrders() {
   const markShippedMutation = useMarkShipped()
   const { user } = useAuthContext()
   const canManage = user?.role === 'Admin' || user?.role === 'WarehouseManager'
+  const canConfirmDeposit = user?.role === 'Admin' || user?.role === 'ChiefAccountant' || user?.role === 'Accountant'
+  const canLinkPo = user?.role === 'Admin' || user?.role === 'WarehouseManager' || user?.role === 'ChiefAccountant' || user?.role === 'Accountant'
 
   const shipmentBySaleOrderId = (() => {
     const map = new Map<string, ShipmentDto>()
@@ -235,7 +237,7 @@ function SaleOrders() {
         style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {row.status === 'AwaitingDeposit' && canManage && (
+        {row.status === 'AwaitingDeposit' && canConfirmDeposit && (
           <Button
             type="primary"
             size="small"
@@ -245,7 +247,7 @@ function SaleOrders() {
             Xác nhận cọc
           </Button>
         )}
-        {row.status === 'Backorder' && canManage && (
+        {row.status === 'Backorder' && canLinkPo && (
           <Button
             type="primary"
             size="small"
