@@ -18,6 +18,7 @@ import { AppFooter } from './AppFooter'
 import { useTenantConfig } from '../../hooks/useTenant'
 import { useWorkingCapitalRadar } from '../../hooks/useWorkingCapitalRadar'
 import CommandPaletteModal from '../CommandPalette/CommandPaletteModal'
+import { NotificationBellPopover } from '../Notification/NotificationBellPopover'
 
 const { Header, Content, Sider } = Layout
 
@@ -291,6 +292,8 @@ function AppLayout() {
               </Badge>
             </Popover>
           )}
+
+          <NotificationBellPopover />
 
           <Dropdown menu={userMenu} trigger={['click']} placement="bottomRight">
             <div

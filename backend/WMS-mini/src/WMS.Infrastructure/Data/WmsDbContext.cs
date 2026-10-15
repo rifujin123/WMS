@@ -62,6 +62,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<StockAdjustmentDetail> StockAdjustmentDetails => Set<StockAdjustmentDetail>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StatusHistory> StatusHistories => Set<StatusHistory>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -344,6 +345,16 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             entity.HasIndex(s => new { s.TenantId, s.EntityType, s.EntityId, s.OccurredAtUtc });
             entity.HasIndex(s => new { s.TenantId, s.ActorUserId, s.OccurredAtUtc });
             entity.HasQueryFilter(s => CurrentTenantId == null || s.TenantId == CurrentTenantId);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasIndex(n => new { n.TenantId, n.UserId, n.IsRead, n.CreatedAtUtc });
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasQueryFilter(n => CurrentTenantId == null || n.TenantId == CurrentTenantId);
         });
     }
 
