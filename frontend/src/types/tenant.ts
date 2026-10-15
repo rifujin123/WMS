@@ -1,4 +1,4 @@
-export interface TenantConfig {
+﻿export interface TenantConfig {
   companyName: string
   companyCode: string
   address?: string
@@ -15,6 +15,8 @@ export interface TenantConfig {
   deadStockDays?: number
   frozenCapitalDays?: number
   enableExpiryAlertBanner?: boolean
+  enableEmailAlerts?: boolean
+  alertEmailRecipients?: string
 }
 
 export interface UpdateTenantConfigInput {
@@ -30,6 +32,17 @@ export interface UpdateTenantConfigInput {
   deadStockDays?: number
   frozenCapitalDays?: number
   enableExpiryAlertBanner?: boolean
+  enableEmailAlerts?: boolean
+  alertEmailRecipients?: string
+}
+
+export interface TestEmailInput {
+  testEmail: string
+}
+
+export interface TestEmailResult {
+  success: boolean
+  message: string
 }
 
 export interface TestAiKeyInput {

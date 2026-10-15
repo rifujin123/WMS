@@ -1,17 +1,17 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   AppstoreOutlined,
   EnvironmentOutlined,
+  HistoryOutlined,
   ReloadOutlined,
+  RightOutlined,
   ShoppingOutlined,
 } from '@ant-design/icons'
-import { Button, Select, Space, Typography } from 'antd'
+import { Button, Card, Select, Space, Typography } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import KpiCard from './KpiCard'
 import StockMovementTable from './StockMovementTable'
-import AuditLogTable from './AuditLogTable'
-import StatusHistoryTable from './StatusHistoryTable'
 import { getPeriodRange, PERIOD_OPTIONS } from './period'
 import type { PeriodKey } from './period'
 import WorkingCapitalRadarWidget from './WorkingCapitalRadarWidget'
@@ -115,19 +115,24 @@ function AdminDashboard() {
 
       <WorkingCapitalRadarWidget />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Widget tinh gọn: Biến động gần đây + Nút chuyển sang trang Nhật ký & Kiểm toán */}
+      <Card
+        variant="borderless"
+        title="Biến động kho gần đây"
+        extra={
+          <Button
+            type="link"
+            icon={<HistoryOutlined />}
+            onClick={() => navigate('/audit-logs')}
+            style={{ fontWeight: 500 }}
+          >
+            Xem toàn bộ nhật ký & kiểm toán <RightOutlined />
+          </Button>
+        }
+        styles={{ body: { padding: '8px 16px' } }}
+      >
         <StockMovementTable fromUtc={range.fromUtc} toUtc={range.toUtc} />
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 16,
-          }}
-        >
-          <AuditLogTable fromUtc={range.fromUtc} toUtc={range.toUtc} />
-          <StatusHistoryTable fromUtc={range.fromUtc} toUtc={range.toUtc} />
-        </div>
-      </div>
+      </Card>
     </div>
   )
 }

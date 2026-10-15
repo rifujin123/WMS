@@ -1,11 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getTenantConfig,
   updateTenantConfig,
   testAiKey,
+  testEmailConnection,
   getPublicBranding,
 } from '../services/tenant'
-import type { UpdateTenantConfigInput, TestAiKeyInput } from '../types/tenant'
+import type { UpdateTenantConfigInput, TestAiKeyInput, TestEmailInput } from '../types/tenant'
 
 export function useTenantConfig() {
   return useQuery({
@@ -27,6 +28,12 @@ export function useUpdateTenantConfig() {
 export function useTestAiKey() {
   return useMutation({
     mutationFn: (input: TestAiKeyInput) => testAiKey(input),
+  })
+}
+
+export function useTestEmailConnection() {
+  return useMutation({
+    mutationFn: (input: TestEmailInput) => testEmailConnection(input),
   })
 }
 

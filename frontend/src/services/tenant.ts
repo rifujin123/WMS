@@ -1,9 +1,11 @@
-import api from '../lib/axios'
+﻿import api from '../lib/axios'
 import type {
   TenantConfig,
   UpdateTenantConfigInput,
   TestAiKeyInput,
   TestAiKeyResult,
+  TestEmailInput,
+  TestEmailResult,
   PublicTenantBranding,
 } from '../types/tenant'
 
@@ -19,6 +21,10 @@ export async function updateTenantConfig(
 
 export async function testAiKey(input: TestAiKeyInput): Promise<TestAiKeyResult> {
   return await api.post('/tenants/config/test-ai-key', input)
+}
+
+export async function testEmailConnection(input: TestEmailInput): Promise<TestEmailResult> {
+  return await api.post('/tenants/test-email', input)
 }
 
 export async function getPublicBranding(

@@ -1,6 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
 import {
-  BellOutlined,
   DownOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -8,7 +7,7 @@ import {
   SearchOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
-import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Popover, Tag, theme } from 'antd'
+import { Avatar, Button, Dropdown, Layout, Menu, theme } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../Logo'
 import { useAuthContext } from '../../contexts/useAuthContext'
@@ -16,7 +15,6 @@ import { DEFAULT_AVATAR_URL } from '../../lib/avatar'
 import { getGroupKeyForPath, getMenuItems, navConfig } from './navConfig'
 import { AppFooter } from './AppFooter'
 import { useTenantConfig } from '../../hooks/useTenant'
-import { useWorkingCapitalRadar } from '../../hooks/useWorkingCapitalRadar'
 import CommandPaletteModal from '../CommandPalette/CommandPaletteModal'
 import { NotificationBellPopover } from '../Notification/NotificationBellPopover'
 import { useFcmToken } from '../../hooks/useFcmToken'
@@ -47,12 +45,6 @@ function AppLayout() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
-
-  const canViewRadar = user?.role === 'Admin' || user?.role === 'ChiefAccountant' || user?.role === 'WarehouseManager'
-  const { data: radarData } = useWorkingCapitalRadar(undefined, {
-    enabled: canViewRadar,
-    refetchInterval: canViewRadar ? 60000 : undefined,
-  })
 
   // Tìm key item và nhóm khớp với đường dẫn hiện tại (hỗ trợ cả sub-path như /receivings/:id)
   let selectedKey = location.pathname
@@ -88,11 +80,9 @@ function AppLayout() {
     setOpenKeys(currentGroupKey ? [currentGroupKey] : [])
   }
 
-  // Khi người dùng bấm mở/đóng một nhóm (Accordion: mở nhóm mới thì đóng nhóm cũ)
-  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
-    const rootSubmenuKeys = ['inbound', 'outbound', 'inventory', 'master-data', 'hr']
+  const handleOpenChange = (keys: string[]) => {
     const latestOpenKey = keys.find((key) => !openKeys.includes(key))
-    if (!latestOpenKey || !rootSubmenuKeys.includes(latestOpenKey)) {
+    if (!latestOpenKey) {
       setOpenKeys([])
     } else {
       setOpenKeys([latestOpenKey])
@@ -111,56 +101,60 @@ function AppLayout() {
       },
     ],
     onClick: ({ key }) => {
-      if (key === 'profile') {
-        navigate('/profile')
-      }
-      if (key === 'logout') {
-        sessionStorage.setItem('loggedOut', 'true')
-        logout()
-        navigate('/login')
-      }
+      if (key === 'profile') navigate('/profile')
+      if (key === 'logout') logout()
     },
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      {/* Sidebar Push Layout: flex chuẩn Ant Design, không che đè nội dung */}
+    <Layout style={{ minHeight: '100vh', background: '#F4F6F9', display: 'flex' }}>
+      {/* Sider cố định bên trái (Static Push Layout) */}
       <Sider
         collapsible
         collapsed={collapsed}
-        collapsedWidth={64}
-        width={220}
+        onCollapse={setCollapsed}
         trigger={null}
+        width={240}
+        collapsedWidth={64}
+        theme="light"
         style={{
+          borderRight: '1px solid #EDF1F5',
+          background: colorBgContainer,
           position: 'sticky',
           top: 0,
           height: '100vh',
           zIndex: 100,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          boxShadow: '1px 0 6px rgba(0, 21, 41, 0.08)',
+          boxShadow: '1px 0 4px rgba(0, 0, 0, 0.02)',
         }}
       >
         <div
           style={{
+            height: 64,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: collapsed ? '18px 8px' : '18px 16px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            marginBottom: 8,
-            transition: 'padding 0.2s',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            padding: collapsed ? 0 : '0 16px',
+            borderBottom: '1px solid #EDF1F5',
+            gap: 10,
+            overflow: 'hidden',
           }}
         >
-          <Logo
-            size={28}
-            withWordmark={!collapsed}
-            customLogoUrl={tenantConfig?.logoUrl}
-            companyName={tenantConfig?.companyName}
-          />
+          {tenantConfig?.logoUrl ? (
+            <img
+              src={tenantConfig.logoUrl}
+              alt={tenantConfig.companyName || 'Logo'}
+              style={{
+                height: 36,
+                maxWidth: collapsed ? 36 : 140,
+                objectFit: 'contain',
+              }}
+            />
+          ) : (
+            <Logo withWordmark={!collapsed} wordmarkColor="#1677FF" />
+          )}
         </div>
+
         <Menu
-          theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
           openKeys={collapsed ? [] : openKeys}
@@ -194,110 +188,58 @@ function AppLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Button
               type="text"
-              icon={collapsed ? <MenuUnfoldOutlined style={{ fontSize: 18 }} /> : <MenuFoldOutlined style={{ fontSize: 18 }} />}
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
-              aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
               style={{
-                width: 40,
-                height: 40,
+                fontSize: 16,
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 color: '#595959',
               }}
+              title={collapsed ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu'}
             />
           </div>
 
-          {/* Cụm bên phải Header: Search, FEFO, Bell và Profile */}
+          {/* Cụm bên phải Header: Search, Notification Bell và Profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {/* Nút mở nhanh Command Palette */}
             <Button
-              type="default"
-              icon={<SearchOutlined style={{ color: '#8c8c8c' }} />}
+              type="text"
               onClick={() => setCommandPaletteOpen(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                color: '#8c8c8c',
-                background: '#f8fafc',
-                border: '1px solid #d9d9d9',
-                borderRadius: 6,
+                background: '#F1F5F9',
+                border: '1px solid #E2E8F0',
+                borderRadius: 8,
+                padding: '4px 12px',
                 height: 34,
-                padding: '0 12px',
-                cursor: 'pointer',
+                color: '#64748B',
+                fontSize: 13,
               }}
             >
-              <span style={{ fontSize: 13 }}>Tìm kiếm nhanh...</span>
+              <SearchOutlined style={{ fontSize: 14 }} />
+              <span>Tìm kiếm nhanh...</span>
               <span
                 style={{
-                  background: '#ffffff',
-                  border: '1px solid #d9d9d9',
+                  background: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
                   borderRadius: 4,
-                  padding: '0 5px',
+                  padding: '1px 5px',
                   fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: '#595959',
+                  fontWeight: 600,
+                  color: '#475569',
                 }}
               >
                 Ctrl + K
               </span>
             </Button>
 
-            {canViewRadar && (
-              <Popover
-                placement="bottomRight"
-                title={
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Cảnh báo cận date (FEFO)</span>
-                    <Button type="link" size="small" style={{ padding: 0 }} onClick={() => navigate('/dashboard')}>
-                      Chi tiết
-                    </Button>
-                  </div>
-                }
-                content={
-                  <div style={{ width: 320, maxHeight: 360, overflowY: 'auto' }}>
-                    {(radarData?.fefoAlerts ?? []).length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '16px 0', color: '#8c8c8c' }}>
-                        Không có lô hàng nào cận hạn sử dụng
-                      </div>
-                    ) : (
-                      <List
-                        size="small"
-                        dataSource={(radarData?.fefoAlerts ?? []).slice(0, 5)}
-                        renderItem={(item) => {
-                          const color = item.alertLevel === 'Red' ? '#cf1322' : item.alertLevel === 'Orange' ? '#fa8c16' : '#faad14'
-                          return (
-                            <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
-                              <div style={{ width: '100%' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Tag color="blue" style={{ fontFamily: 'monospace', margin: 0 }}>{item.productSku}</Tag>
-                                  <span style={{ color, fontWeight: 600, fontSize: 12 }}>{item.statusText}</span>
-                                </div>
-                                <div style={{ fontSize: 13, fontWeight: 500, margin: '4px 0', color: '#262626' }}>{item.productName}</div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8c8c8c' }}>
-                                  <span>Vị trí: <Tag color="default" style={{ margin: 0, fontFamily: 'monospace' }}>{item.locationCode}</Tag></span>
-                                  <span>SL: <b>{item.onhandQty}</b></span>
-                                </div>
-                              </div>
-                            </List.Item>
-                          )
-                        }}
-                      />
-                    )}
-                  </div>
-                }
-                trigger="click"
-              >
-                <Badge count={(radarData?.fefoAlerts ?? []).length} size="small" offset={[-2, 2]}>
-                  <Button
-                    type="text"
-                    shape="circle"
-                    icon={<BellOutlined style={{ fontSize: 18, color: '#595959' }} />}
-                    aria-label="Thông báo hàng cận date"
-                  />
-                </Badge>
-              </Popover>
-            )}
-
-            {/* In-App System Notification Center */}
+            {/* In-App System Notification Center: Quả chuông duy nhất toàn hệ thống */}
             <NotificationBellPopover />
 
             <Dropdown menu={userMenu} trigger={['click']} placement="bottomRight">

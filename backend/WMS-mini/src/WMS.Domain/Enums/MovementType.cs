@@ -1,8 +1,10 @@
-namespace WMS.Domain.Enums;
+﻿namespace WMS.Domain.Enums;
 
 public enum MovementType
 {
     In,
     Out,
-    Adjustment
+    Adjustment,
+    TransferOut,
+    TransferIn
 }

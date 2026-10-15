@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WMS.Application.DTOs;
 
@@ -20,6 +20,8 @@ public class TenantConfigDto
     public int DeadStockDays { get; set; } = 90;
     public int FrozenCapitalDays { get; set; } = 60;
     public bool EnableExpiryAlertBanner { get; set; } = true;
+    public bool EnableEmailAlerts { get; set; } = false;
+    public string? AlertEmailRecipients { get; set; }
 }
 
 public class UpdateTenantConfigDto
@@ -55,6 +57,19 @@ public class UpdateTenantConfigDto
     public int? FrozenCapitalDays { get; set; }
 
     public bool? EnableExpiryAlertBanner { get; set; }
+
+    public bool? EnableEmailAlerts { get; set; }
+
+    [MaxLength(1000)]
+    public string? AlertEmailRecipients { get; set; }
+}
+
+public class TestEmailDto
+{
+    [Required]
+    [EmailAddress]
+    [MaxLength(200)]
+    public string TestEmail { get; set; } = string.Empty;
 }
 
 public class TestAiKeyDto

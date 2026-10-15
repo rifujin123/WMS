@@ -1,4 +1,6 @@
-using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+﻿using System.Text;
 using System.Text.Json.Serialization;
 using CloudinaryDotNet;
 using System.Net.Http.Headers;
@@ -21,11 +23,11 @@ using WMS.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Tắt reload-on-change cho các JSON configuration source.
-// Lý do: trong container Linux, mỗi file JSON tạo một FileSystemWatcher. Khi image
-// chứa toàn bộ source code, tổng số watcher vượt quá giới hạn inotify (mặc định 128/user),
-// gây lỗi "inotify instances limit reached" lúc khởi động.
-// Production dùng biến môi trường để cấu hình, không cần reload file runtime.
+// Táº¯t reload-on-change cho cÃ¡c JSON configuration source.
+// LÃ½ do: trong container Linux, má»—i file JSON táº¡o má»™t FileSystemWatcher. Khi image
+// chá»©a toÃ n bá»™ source code, tá»•ng sá»‘ watcher vÆ°á»£t quÃ¡ giá»›i háº¡n inotify (máº·c Ä‘á»‹nh 128/user),
+// gÃ¢y lá»—i "inotify instances limit reached" lÃºc khá»Ÿi Ä‘á»™ng.
+// Production dÃ¹ng biáº¿n mÃ´i trÆ°á»ng Ä‘á»ƒ cáº¥u hÃ¬nh, khÃ´ng cáº§n reload file runtime.
 foreach (var src in builder.Configuration.Sources
     .OfType<Microsoft.Extensions.Configuration.Json.JsonConfigurationSource>()
     .ToList())
@@ -79,6 +81,45 @@ builder.Services.AddCors(o =>
          .AllowAnyHeader()
          .AllowAnyMethod());
 });
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync("{\"success\":false,\"code\":429,\"message\":\"Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.\",\"data\":null}", token);
+    };
+
+    // Toàn hệ thống (Global): 100 req / phút / IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: clientIp,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+
+    // Riêng Auth (Login/Register): 5 req / phút / IP
+    options.AddPolicy("AuthPolicy", httpContext =>
+    {
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: clientIp,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -91,7 +132,7 @@ builder.Services.AddSwaggerGen(c =>
     var jwtScheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Description = "Enter your JWT token (no need to include 'Bearer ' — Swagger will add it automatically).",
+        Description = "Enter your JWT token (no need to include 'Bearer ' â€” Swagger will add it automatically).",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
         Scheme = "bearer",
@@ -140,7 +181,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
-// Cloudinary (dùng chung 1 instance, thread-safe)
+// Cloudinary (dÃ¹ng chung 1 instance, thread-safe)
 var cloudName = builder.Configuration["Cloudinary:CloudName"];
 if (string.IsNullOrWhiteSpace(cloudName))
     throw new InvalidOperationException("Cloudinary:CloudName is not configured.");
@@ -151,7 +192,7 @@ var cloudApiSecret = builder.Configuration["Cloudinary:ApiSecret"];
 if (string.IsNullOrWhiteSpace(cloudApiSecret))
     throw new InvalidOperationException("Cloudinary:ApiSecret is not configured.");
 var cloudinary = new Cloudinary(new Account(cloudName, cloudApiKey, cloudApiSecret));
-cloudinary.Api.Secure = true; // trả về https:// URL
+cloudinary.Api.Secure = true; // tráº£ vá» https:// URL
 builder.Services.AddSingleton(cloudinary);
 
 // Services
@@ -174,6 +215,7 @@ builder.Services.AddScoped<IPutAwayService, PutAwayService>();
 builder.Services.AddScoped<IReceivingService, ReceivingService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IStockAdjustmentService, StockAdjustmentService>();
+builder.Services.AddScoped<IStockTransferService, StockTransferService>();
 builder.Services.AddScoped<ISaleOrderService, SaleOrderService>();
 builder.Services.AddScoped<IPickingService, PickingService>();
 builder.Services.AddScoped<IShipmentService, ShipmentService>();
@@ -234,8 +276,8 @@ using (var scope = app.Services.CreateScope())
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     const string adminUsername = "admin";
-    // Đọc mật khẩu seed từ cấu hình (env SEED__ADMIN_PASSWORD); môi trường dev dùng default an toàn.
-    // Không hardcode password trong source; production nên set SEED__ADMIN_PASSWORD.
+    // Äá»c máº­t kháº©u seed tá»« cáº¥u hÃ¬nh (env SEED__ADMIN_PASSWORD); mÃ´i trÆ°á»ng dev dÃ¹ng default an toÃ n.
+    // KhÃ´ng hardcode password trong source; production nÃªn set SEED__ADMIN_PASSWORD.
     var adminPassword = builder.Configuration["Seed:AdminPassword"]
         ?? "Admin@123";
     if (await userManager.FindByNameAsync(adminUsername) == null)
@@ -253,7 +295,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Seed dữ liệu demo (chỉ chạy trong Development; bản thân seeder kiểm tra Seed:Enabled)
+// Seed dá»¯ liá»‡u demo (chá»‰ cháº¡y trong Development; báº£n thÃ¢n seeder kiá»ƒm tra Seed:Enabled)
 if (app.Environment.IsDevelopment())
 {
     using var demoSeedScope = app.Services.CreateScope();
@@ -262,6 +304,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseRateLimiter();
+
 
 if (app.Environment.IsDevelopment())
 {

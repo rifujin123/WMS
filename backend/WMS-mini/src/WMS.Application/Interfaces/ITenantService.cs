@@ -1,4 +1,4 @@
-using WMS.Application.DTOs;
+﻿using WMS.Application.DTOs;
 
 namespace WMS.Application.Interfaces;
 
@@ -10,4 +10,5 @@ public interface ITenantService
     Task UpdateTenantConfigAsync(UpdateTenantConfigDto dto);
     Task<TestAiKeyResultDto> TestAiKeyAsync(TestAiKeyDto dto);
     Task<PublicTenantBrandingDto?> GetPublicBrandingAsync(string tenantCode);
+    Task<bool> TestEmailConnectionAsync(string testToEmail);
 }

@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
@@ -38,7 +38,6 @@ public class TenantService : ITenantService
         var cleanCode = dto.CompanyCode.Trim().ToLowerInvariant();
         var cleanEmail = dto.AdminEmail.Trim().ToLowerInvariant();
 
-        // 1. Kiểm tra mã doanh nghiệp duy nhất
         var codeExists = await _db.Tenants
             .IgnoreQueryFilters()
             .AnyAsync(t => t.Code == cleanCode);
@@ -48,14 +47,12 @@ public class TenantService : ITenantService
             throw new InvalidOperationException("Mã doanh nghiệp đã tồn tại trên hệ thống. Vui lòng chọn mã khác.");
         }
 
-        // 2. Kiểm tra email đại diện duy nhất toàn hệ thống
         var existingUser = await _userManager.FindByEmailAsync(cleanEmail);
         if (existingUser != null)
         {
             throw new InvalidOperationException("Email này đã được sử dụng. Vui lòng sử dụng email khác.");
         }
 
-        // 3. Khởi tạo Tenant (ở trạng thái chưa kích hoạt)
         var tenant = new Tenant
         {
             Id = Guid.NewGuid(),
@@ -72,7 +69,6 @@ public class TenantService : ITenantService
         _db.Tenants.Add(tenant);
         await _db.SaveChangesAsync();
 
-        // 4. Tạo tài khoản Tenant Admin
         var adminUser = new User
         {
             Id = Guid.NewGuid(),
@@ -87,17 +83,14 @@ public class TenantService : ITenantService
         var createResult = await _userManager.CreateAsync(adminUser, dto.Password);
         if (!createResult.Succeeded)
         {
-            // Rollback tenant nếu tạo user thất bại
             _db.Tenants.Remove(tenant);
             await _db.SaveChangesAsync();
             var error = string.Join("; ", createResult.Errors.Select(e => e.Description));
             throw new InvalidOperationException($"Không thể tạo tài khoản quản trị: {error}");
         }
 
-        // 5. Gán Role Admin
         await _userManager.AddToRoleAsync(adminUser, "Admin");
 
-        // 6. Tạo Token xác thực email & Gửi mail
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(adminUser);
         var origin = !string.IsNullOrWhiteSpace(clientOrigin) ? clientOrigin : "http://localhost:5173";
         var verificationUrl = $"{origin.TrimEnd('/')}/verify-email?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(cleanEmail)}";
@@ -116,24 +109,25 @@ public class TenantService : ITenantService
             throw new InvalidOperationException("Không tìm thấy tài khoản tương ứng với email này.");
         }
 
-        // Xác nhận token qua ASP.NET Identity
         var confirmResult = await _userManager.ConfirmEmailAsync(user, dto.Token);
         if (!confirmResult.Succeeded)
         {
-            throw new InvalidOperationException("Liên kết xác thực không hợp lệ hoặc đã hết hạn.");
+            throw new InvalidOperationException("Mã xác thực không hợp lệ hoặc đã hết hạn.");
         }
 
-        // Kích hoạt Tenant
-        var tenant = await _db.Tenants
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(t => t.Id == user.TenantId);
-
-        if (tenant != null && !tenant.IsActive)
+        if (user.TenantId != Guid.Empty)
         {
-            tenant.IsActive = true;
-            tenant.VerifiedDate = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Tenant '{TenantCode}' ({TenantId}) đã được kích hoạt thành công qua xác thực email.", tenant.Code, tenant.Id);
+            var tenant = await _db.Tenants
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.Id == user.TenantId);
+
+            if (tenant != null)
+            {
+                tenant.IsActive = true;
+                tenant.VerifiedDate = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("Tenant '{TenantCode}' ({TenantId}) đã được kích hoạt sau khi xác thực email.", tenant.Code, tenant.Id);
+            }
         }
     }
 
@@ -181,7 +175,9 @@ public class TenantService : ITenantService
             NearExpiryDays = tenant.NearExpiryDays,
             DeadStockDays = tenant.DeadStockDays,
             FrozenCapitalDays = tenant.FrozenCapitalDays,
-            EnableExpiryAlertBanner = tenant.EnableExpiryAlertBanner
+            EnableExpiryAlertBanner = tenant.EnableExpiryAlertBanner,
+            EnableEmailAlerts = tenant.EnableEmailAlerts,
+            AlertEmailRecipients = tenant.AlertEmailRecipients
         };
     }
 
@@ -212,42 +208,47 @@ public class TenantService : ITenantService
             tenant.ContactPhone = dto.ContactPhone.Trim();
 
         if (dto.LogoUrl != null)
-            tenant.LogoUrl = dto.LogoUrl.Trim();
+            tenant.LogoUrl = string.IsNullOrWhiteSpace(dto.LogoUrl) ? null : dto.LogoUrl.Trim();
 
         if (dto.LoginBackgroundUrl != null)
-            tenant.LoginBackgroundUrl = dto.LoginBackgroundUrl.Trim();
+            tenant.LoginBackgroundUrl = string.IsNullOrWhiteSpace(dto.LoginBackgroundUrl) ? null : dto.LoginBackgroundUrl.Trim();
 
         if (dto.FooterText != null)
-            tenant.FooterText = dto.FooterText.Trim();
+            tenant.FooterText = string.IsNullOrWhiteSpace(dto.FooterText) ? null : dto.FooterText.Trim();
 
-        // Chỉ cập nhật AiApiKey khi người dùng nhập giá trị mới thực sự (không phải chuỗi che mờ)
-        if (!string.IsNullOrWhiteSpace(dto.AiApiKey) && !dto.AiApiKey.Contains("****"))
+        if (dto.AiApiKey != null)
         {
-            tenant.AiApiKey = dto.AiApiKey.Trim();
+            var trimmedKey = dto.AiApiKey.Trim();
+            if (string.IsNullOrEmpty(trimmedKey))
+            {
+                tenant.AiApiKey = null;
+            }
+            else if (!trimmedKey.Contains("****"))
+            {
+                tenant.AiApiKey = trimmedKey;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(dto.AiModel))
-        {
             tenant.AiModel = dto.AiModel.Trim();
-        }
 
         if (dto.NearExpiryDays.HasValue)
         {
-            if (dto.NearExpiryDays.Value <= 0)
+            if (dto.NearExpiryDays.Value < 1)
                 throw new InvalidOperationException("Số ngày cảnh báo cận hạn phải là số nguyên dương lớn hơn hoặc bằng 1.");
             tenant.NearExpiryDays = dto.NearExpiryDays.Value;
         }
 
         if (dto.DeadStockDays.HasValue)
         {
-            if (dto.DeadStockDays.Value <= 0)
-                throw new InvalidOperationException("Số ngày tính hàng đọng vốn (Dead Stock) phải là số nguyên dương lớn hơn hoặc bằng 1.");
+            if (dto.DeadStockDays.Value < 1)
+                throw new InvalidOperationException("Số ngày tính hàng đọng vốn phải là số nguyên dương lớn hơn hoặc bằng 1.");
             tenant.DeadStockDays = dto.DeadStockDays.Value;
         }
 
         if (dto.FrozenCapitalDays.HasValue)
         {
-            if (dto.FrozenCapitalDays.Value <= 0)
+            if (dto.FrozenCapitalDays.Value < 1)
                 throw new InvalidOperationException("Số ngày tính vốn đóng băng phải là số nguyên dương lớn hơn hoặc bằng 1.");
             tenant.FrozenCapitalDays = dto.FrozenCapitalDays.Value;
         }
@@ -255,6 +256,16 @@ public class TenantService : ITenantService
         if (dto.EnableExpiryAlertBanner.HasValue)
         {
             tenant.EnableExpiryAlertBanner = dto.EnableExpiryAlertBanner.Value;
+        }
+
+        if (dto.EnableEmailAlerts.HasValue)
+        {
+            tenant.EnableEmailAlerts = dto.EnableEmailAlerts.Value;
+        }
+
+        if (dto.AlertEmailRecipients != null)
+        {
+            tenant.AlertEmailRecipients = string.IsNullOrWhiteSpace(dto.AlertEmailRecipients) ? null : dto.AlertEmailRecipients.Trim();
         }
 
         if (tenant.FrozenCapitalDays > tenant.DeadStockDays)
@@ -266,12 +277,21 @@ public class TenantService : ITenantService
         _logger.LogInformation("Đã cập nhật cấu hình cho tenant '{TenantCode}' ({TenantId}).", tenant.Code, tenant.Id);
     }
 
+    public async Task<bool> TestEmailConnectionAsync(string testToEmail)
+    {
+        if (string.IsNullOrWhiteSpace(testToEmail))
+        {
+            throw new InvalidOperationException("Địa chỉ email kiểm tra không được để trống.");
+        }
+
+        return await _emailService.TestEmailConnectionAsync(testToEmail.Trim());
+    }
+
     public async Task<TestAiKeyResultDto> TestAiKeyAsync(TestAiKeyDto dto)
     {
         var tenantId = _db.CurrentTenantId;
         string? candidateKey = dto.ApiKey?.Trim();
 
-        // Nếu để trống hoặc giữ chuỗi masked thì lấy key đã lưu của Tenant
         if (string.IsNullOrWhiteSpace(candidateKey) || candidateKey.Contains("****"))
         {
             if (!tenantId.HasValue)

@@ -1,9 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   CarryOutOutlined,
   FileTextOutlined,
+  HistoryOutlined,
   InboxOutlined,
   ReloadOutlined,
+  RightOutlined,
   ShoppingOutlined,
 } from '@ant-design/icons'
 import { Button, Card, Empty, Select, Space, Tag, Typography } from 'antd'
@@ -158,7 +160,23 @@ function ManagerDashboard() {
 
       <WorkingCapitalRadarWidget />
 
-      <StockMovementTable fromUtc={range.fromUtc} toUtc={range.toUtc} />
+      <Card
+        variant="borderless"
+        title="Biến động kho gần đây"
+        extra={
+          <Button
+            type="link"
+            icon={<HistoryOutlined />}
+            onClick={() => navigate('/audit-logs')}
+            style={{ fontWeight: 500 }}
+          >
+            Xem toàn bộ nhật ký & kiểm toán <RightOutlined />
+          </Button>
+        }
+        styles={{ body: { padding: '8px 16px' } }}
+      >
+        <StockMovementTable fromUtc={range.fromUtc} toUtc={range.toUtc} />
+      </Card>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,13 +18,18 @@ public class EmailService : IEmailService
         _logger = logger;
     }
 
+    private bool IsSimulated(EmailOptions config)
+    {
+        return string.Equals(config.Provider, "Simulated", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(config.SmtpHost)
+            || string.IsNullOrWhiteSpace(config.Username);
+    }
+
     public async Task SendVerificationEmailAsync(string toEmail, string toName, string verificationLink)
     {
         var emailConfig = _options.Value;
 
-        // Chế độ 1: Simulated (Dành cho Development / Local)
-        if (string.Equals(emailConfig.Provider, "Simulated", StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(emailConfig.SmtpHost))
+        if (IsSimulated(emailConfig))
         {
             _logger.LogInformation(
                 "\n================================================================================\n" +
@@ -41,21 +46,12 @@ public class EmailService : IEmailService
             return;
         }
 
-        // Chế độ 2: SMTP Thật (Hỗ trợ Gmail, Outlook, Lark Suite, Custom SMTP)
         try
         {
             _logger.LogInformation("Đang gửi email xác thực tới {ToEmail} qua máy chủ SMTP {SmtpHost}:{SmtpPort}...",
                 toEmail, emailConfig.SmtpHost, emailConfig.SmtpPort);
 
-            using var client = new SmtpClient(emailConfig.SmtpHost, emailConfig.SmtpPort)
-            {
-                EnableSsl = emailConfig.EnableSsl,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(emailConfig.Username, emailConfig.Password),
-                Timeout = 20000 // 20s
-            };
-
+            using var client = CreateSmtpClient(emailConfig);
             var sender = !string.IsNullOrWhiteSpace(emailConfig.SenderEmail) ? emailConfig.SenderEmail : emailConfig.Username;
             using var mail = new MailMessage
             {
@@ -75,6 +71,98 @@ public class EmailService : IEmailService
             _logger.LogError(ex, "Lỗi khi gửi email xác thực qua SMTP tới {ToEmail}: {Message}", toEmail, ex.Message);
             throw new InvalidOperationException($"Không thể gửi email xác thực tới địa chỉ {toEmail}. Vui lòng thử lại sau.", ex);
         }
+    }
+
+    public async Task SendAlertEmailAsync(string toEmail, string toName, string subject, string htmlBody)
+    {
+        var emailConfig = _options.Value;
+
+        if (IsSimulated(emailConfig))
+        {
+            _logger.LogInformation(
+                "\n================================================================================\n" +
+                "[SIMULATED EMAIL ALERT DISPATCH]\n" +
+                "To: {ToName} <{ToEmail}>\n" +
+                "Subject: {Subject}\n" +
+                "Body:\n" +
+                "{Body}\n" +
+                "================================================================================\n",
+                toName, toEmail, subject, htmlBody);
+
+            return;
+        }
+
+        try
+        {
+            using var client = CreateSmtpClient(emailConfig);
+            var sender = !string.IsNullOrWhiteSpace(emailConfig.SenderEmail) ? emailConfig.SenderEmail : emailConfig.Username;
+            using var mail = new MailMessage
+            {
+                From = new MailAddress(sender, emailConfig.SenderName),
+                Subject = subject,
+                IsBodyHtml = true,
+                Body = htmlBody
+            };
+
+            mail.To.Add(new MailAddress(toEmail, toName));
+
+            await client.SendMailAsync(mail);
+            _logger.LogInformation("Đã gửi thành công email cảnh báo tới {ToEmail}.", toEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Không thể gửi email cảnh báo tới {ToEmail}: {Message}", toEmail, ex.Message);
+            // Non-blocking: Do not rethrow
+        }
+    }
+
+    public async Task<bool> TestEmailConnectionAsync(string testToEmail)
+    {
+        var emailConfig = _options.Value;
+
+        if (IsSimulated(emailConfig))
+        {
+            _logger.LogInformation(
+                "\n[SIMULATED TEST EMAIL] Gửi mail thử nghiệm tới {TestEmail} thành công ở chế độ Simulated.\n",
+                testToEmail);
+            await Task.CompletedTask;
+            return true;
+        }
+
+        try
+        {
+            using var client = CreateSmtpClient(emailConfig);
+            var sender = !string.IsNullOrWhiteSpace(emailConfig.SenderEmail) ? emailConfig.SenderEmail : emailConfig.Username;
+            using var mail = new MailMessage
+            {
+                From = new MailAddress(sender, emailConfig.SenderName),
+                Subject = "[WMS Test] Kiểm tra kết nối máy chủ gửi thư cảnh báo",
+                IsBodyHtml = true,
+                Body = "<p>Xin chào,</p><p>Đây là email kiểm tra kết nối SMTP tự động từ hệ thống WMS Cloud Platform. Cấu hình gửi mail đang hoạt động chính xác!</p>"
+            };
+
+            mail.To.Add(new MailAddress(testToEmail));
+            await client.SendMailAsync(mail);
+            _logger.LogInformation("Đã gửi thử nghiệm email thành công tới {TestEmail}.", testToEmail);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Kiểm tra kết nối SMTP thất bại tới {TestEmail}: {Message}", testToEmail, ex.Message);
+            throw new InvalidOperationException($"Lỗi kết nối máy chủ SMTP: {ex.Message}", ex);
+        }
+    }
+
+    private static SmtpClient CreateSmtpClient(EmailOptions emailConfig)
+    {
+        return new SmtpClient(emailConfig.SmtpHost, emailConfig.SmtpPort)
+        {
+            EnableSsl = emailConfig.EnableSsl,
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            UseDefaultCredentials = false,
+            Credentials = new NetworkCredential(emailConfig.Username, emailConfig.Password),
+            Timeout = 10000 // 10s non-blocking ergonomics
+        };
     }
 
     private static string BuildVerificationHtmlBody(string recipientName, string link)

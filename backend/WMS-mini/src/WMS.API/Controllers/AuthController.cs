@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
@@ -5,6 +6,7 @@ using WMS.Application.Interfaces;
 
 namespace WMS.API.Controllers;
 
+[EnableRateLimiting("AuthPolicy")]
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase

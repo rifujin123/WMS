@@ -60,6 +60,8 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<AssociationRule> AssociationRules => Set<AssociationRule>();
     public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
     public DbSet<StockAdjustmentDetail> StockAdjustmentDetails => Set<StockAdjustmentDetail>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferDetail> StockTransferDetails => Set<StockTransferDetail>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StatusHistory> StatusHistories => Set<StatusHistory>();
     public DbSet<Notification> Notifications => Set<Notification>();

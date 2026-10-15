@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WMS.Application.DTOs;
 using WMS.Application.Interfaces;
@@ -98,6 +98,25 @@ public class TenantsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Không thể cập nhật cấu hình.", details = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("test-email")]
+    public async Task<IActionResult> TestEmail([FromBody] TestEmailDto dto)
+    {
+        try
+        {
+            var success = await _tenantService.TestEmailConnectionAsync(dto.TestEmail);
+            return Ok(new { success, message = "Đã gửi email kiểm tra kết nối SMTP thành công!" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Lỗi khi kiểm tra kết nối SMTP.", details = ex.Message });
         }
     }
 

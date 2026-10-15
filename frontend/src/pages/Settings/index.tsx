@@ -1,13 +1,15 @@
-import { Typography, Tabs, Skeleton } from 'antd'
+﻿import { Typography, Tabs, Skeleton } from 'antd'
 import {
   ShopOutlined,
   RobotOutlined,
   AlertOutlined,
+  MailOutlined,
 } from '@ant-design/icons'
 import { useTenantConfig } from '../../hooks/useTenant'
 import BrandingTab from './components/BrandingTab'
 import AiIntegrationTab from './components/AiIntegrationTab'
 import AlertConfigTab from './components/AlertConfigTab'
+import EmailAlertConfigTab from './components/EmailAlertConfigTab'
 
 export default function SettingsPage() {
   const { data: config, isLoading } = useTenantConfig()
@@ -19,7 +21,7 @@ export default function SettingsPage() {
           Cài đặt doanh nghiệp
         </Typography.Title>
         <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-          Tùy chỉnh nhận diện thương hiệu (Logo, ảnh nền, chân trang) và tích hợp Google Gemini AI.
+          Tùy chỉnh nhận diện thương hiệu (Logo, ảnh nền, chân trang), tích hợp Google Gemini AI và cấu hình cảnh báo tự động.
         </Typography.Text>
       </div>
 
@@ -58,6 +60,16 @@ export default function SettingsPage() {
                 </span>
               ),
               children: <AlertConfigTab config={config} />,
+            },
+            {
+              key: 'emailAlertConfig',
+              label: (
+                <span>
+                  <MailOutlined />
+                  Email cảnh báo tự động
+                </span>
+              ),
+              children: <EmailAlertConfigTab config={config} />,
             },
           ]}
         />

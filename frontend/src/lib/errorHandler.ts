@@ -105,6 +105,8 @@ export function getErrorMessage(error: unknown, fallbackMessage = 'Đã có lỗ
         return 'Không tìm thấy dữ liệu yêu cầu.'
       case 409:
         return 'Dữ liệu bị xung đột hoặc đã tồn tại.'
+      case 429:
+        return 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.'
       case 500:
       case 502:
       case 503:

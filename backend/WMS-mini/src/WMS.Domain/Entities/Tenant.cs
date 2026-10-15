@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WMS.Domain.Entities;
 
@@ -33,6 +33,12 @@ public class Tenant
     public int FrozenCapitalDays { get; set; } = 60;
 
     public bool EnableExpiryAlertBanner { get; set; } = true;
+
+    // Cấu hình Email cảnh báo tự động
+    public bool EnableEmailAlerts { get; set; } = false;
+
+    [MaxLength(1000)]
+    public string? AlertEmailRecipients { get; set; }
 
     // Tùy biến thương hiệu (White-label Branding)
     [MaxLength(500)]

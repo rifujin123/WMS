@@ -30,6 +30,8 @@ const SaleOrders = lazy(() => import('../pages/SaleOrders'))
 const VendorDebts = lazy(() => import('../pages/VendorDebts'))
 const Pickings = lazy(() => import('../pages/Pickings'))
 const Settings = lazy(() => import('../pages/Settings'))
+const AuditLogs = lazy(() => import('../pages/AuditLogs'))
+const StockTransfers = lazy(() => import('../pages/StockTransfers'))
 const Forbidden = lazy(() => import('../pages/Forbidden'))
 
 function PageFallback() {
@@ -113,6 +115,8 @@ export const router = createBrowserRouter([
             element: <ProtectedRoute allowedRoles={['Admin', 'WarehouseManager', 'ChiefAccountant', 'Accountant']} />,
             children: [
               { path: 'sale-orders', element: <Suspense fallback={<PageFallback />}><SaleOrders /></Suspense> },
+              { path: 'audit-logs', element: <Suspense fallback={<PageFallback />}><AuditLogs /></Suspense> },
+              { path: 'transfers', element: <Suspense fallback={<PageFallback />}><StockTransfers /></Suspense> },
             ],
           },
           {
