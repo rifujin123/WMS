@@ -25,3 +25,11 @@ export async function seedSampleNotifications(): Promise<{ seededCount: number }
   const { data } = await api.post<{ seededCount: number }>('/api/notifications/seed-sample')
   return data
 }
+
+export async function registerFcmToken(fcmToken: string, deviceType: string = 'Web'): Promise<void> {
+  await api.post('/api/notifications/fcm-token', { fcmToken, deviceType })
+}
+
+export async function unregisterFcmToken(fcmToken: string): Promise<void> {
+  await api.delete('/api/notifications/fcm-token', { data: { fcmToken } })
+}

@@ -11,16 +11,19 @@ public class NotificationService : INotificationService
 {
     private readonly WmsDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IFcmPushService? _fcmPushService;
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
         WmsDbContext context,
         ICurrentUserService currentUserService,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        IFcmPushService? fcmPushService = null)
     {
         _context = context;
         _currentUserService = currentUserService;
         _logger = logger;
+        _fcmPushService = fcmPushService;
     }
 
     public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(NotificationListQuery query, CancellationToken cancellationToken = default)
@@ -315,6 +318,11 @@ public class NotificationService : INotificationService
             _context.Notifications.AddRange(notifications);
             await _context.SaveChangesAsync(cancellationToken);
 
+            if (_fcmPushService != null)
+            {
+                _ = _fcmPushService.SendPushNotificationAsync(targetUsers.Select(u => u.Id), title, message, actionUrl, cancellationToken);
+            }
+
             _logger.LogInformation("Published {Count} notifications to role {Role}", notifications.Count, role);
             return notifications.Count;
         }
@@ -366,6 +374,11 @@ public class NotificationService : INotificationService
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync(cancellationToken);
+
+            if (_fcmPushService != null)
+            {
+                _ = _fcmPushService.SendPushNotificationAsync(new[] { userId }, title, message, actionUrl, cancellationToken);
+            }
 
             _logger.LogInformation("Published notification to user {UserId}: {Title}", userId, title);
             return new NotificationDto

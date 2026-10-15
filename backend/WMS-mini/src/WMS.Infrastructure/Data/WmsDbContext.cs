@@ -63,6 +63,7 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StatusHistory> StatusHistories => Set<StatusHistory>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserDeviceToken> UserDeviceTokens => Set<UserDeviceToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -355,6 +356,16 @@ public class WmsDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasQueryFilter(n => CurrentTenantId == null || n.TenantId == CurrentTenantId);
+        });
+
+        modelBuilder.Entity<UserDeviceToken>(entity =>
+        {
+            entity.HasIndex(t => new { t.TenantId, t.UserId, t.FcmToken }).IsUnique();
+            entity.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasQueryFilter(t => CurrentTenantId == null || t.TenantId == CurrentTenantId);
         });
     }
 

@@ -19,12 +19,14 @@ import { useTenantConfig } from '../../hooks/useTenant'
 import { useWorkingCapitalRadar } from '../../hooks/useWorkingCapitalRadar'
 import CommandPaletteModal from '../CommandPalette/CommandPaletteModal'
 import { NotificationBellPopover } from '../Notification/NotificationBellPopover'
+import { useFcmToken } from '../../hooks/useFcmToken'
 
 const { Header, Content, Sider } = Layout
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  useFcmToken()
   const { user, logout } = useAuthContext()
   const menuItems = getMenuItems(user?.role)
   const navigate = useNavigate()

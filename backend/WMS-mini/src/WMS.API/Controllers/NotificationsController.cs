@@ -11,10 +11,17 @@ namespace WMS.API.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
+    private readonly IFcmPushService _fcmPushService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public NotificationsController(INotificationService notificationService)
+    public NotificationsController(
+        INotificationService notificationService,
+        IFcmPushService fcmPushService,
+        ICurrentUserService currentUserService)
     {
         _notificationService = notificationService;
+        _fcmPushService = fcmPushService;
+        _currentUserService = currentUserService;
     }
 
     [HttpGet]
@@ -72,5 +79,34 @@ public class NotificationsController : ControllerBase
     {
         var seededCount = await _notificationService.SeedSampleNotificationsAsync(cancellationToken);
         return Ok(new { seededCount, message = $"Đã tạo {seededCount} thông báo mẫu thành công." });
+    }
+    [HttpPost("fcm-token")]
+    public async Task<IActionResult> RegisterFcmToken(
+        [FromBody] RegisterFcmTokenDto dto,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var success = await _fcmPushService.RegisterTokenAsync(currentUserId.Value, dto.FcmToken, dto.DeviceType ?? "Web", cancellationToken);
+        return Ok(new { success, message = "Đã đăng ký thiết bị nhận thông báo thành công." });
+    }
+
+    [HttpDelete("fcm-token")]
+    public async Task<IActionResult> UnregisterFcmToken(
+        [FromBody] RegisterFcmTokenDto dto,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var success = await _fcmPushService.UnregisterTokenAsync(currentUserId.Value, dto.FcmToken, cancellationToken);
+        return Ok(new { success, message = "Đã hủy đăng ký thiết bị." });
     }
 }

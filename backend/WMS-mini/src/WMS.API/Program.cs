@@ -183,6 +183,7 @@ builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IWorkingCapitalRadarService, WorkingCapitalRadarService>();
+builder.Services.AddScoped<IFcmPushService, FcmPushService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDemoDataSeeder, MultiStatusDemoDataSeeder>();
 
