@@ -244,4 +244,147 @@ public class NotificationService : INotificationService
         _logger.LogInformation("Seeded {Count} sample notifications for user {UserId}", sampleItems.Count, currentUserId.Value);
         return sampleItems.Count;
     }
+
+    public async Task<int> PublishToRoleAsync(
+        string role,
+        string title,
+        string message,
+        string type,
+        string? actionUrl,
+        Guid? warehouseId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tenantId = _currentUserService.TenantId ?? WmsDbContext.DefaultTenantId;
+            var currentUserId = _currentUserService.UserId;
+
+            // Query active users belonging to role and warehouse
+            var query = _context.Users
+                .AsNoTracking()
+                .Where(u => u.TenantId == tenantId);
+
+            if (warehouseId.HasValue)
+            {
+                query = query.Where(u => !u.WarehouseId.HasValue || u.WarehouseId == warehouseId.Value);
+            }
+
+            var users = await query.ToListAsync(cancellationToken);
+            if (users.Count == 0)
+            {
+                return 0;
+            }
+
+            // Lọc users theo Role thông qua AspNetUserRoles
+            var roleEntity = await _context.Roles.FirstOrDefaultAsync(r => r.Name == role, cancellationToken);
+            if (roleEntity == null)
+            {
+                _logger.LogWarning("Role {Role} not found when publishing notifications", role);
+                return 0;
+            }
+
+            var userIdsInRole = await _context.UserRoles
+                .Where(ur => ur.RoleId == roleEntity.Id)
+                .Select(ur => ur.UserId)
+                .ToListAsync(cancellationToken);
+
+            var targetUsers = users
+                .Where(u => userIdsInRole.Contains(u.Id))
+                .Where(u => !currentUserId.HasValue || u.Id != currentUserId.Value) // Không gửi cho chính người tạo sự kiện
+                .ToList();
+
+            if (targetUsers.Count == 0)
+            {
+                return 0;
+            }
+
+            var notifications = targetUsers.Select(u => new Notification
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                UserId = u.Id,
+                TargetRole = role,
+                Title = title,
+                Message = message,
+                Type = type,
+                ActionUrl = actionUrl,
+                IsRead = false,
+                CreatedAtUtc = DateTime.UtcNow
+            }).ToList();
+
+            _context.Notifications.AddRange(notifications);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Published {Count} notifications to role {Role}", notifications.Count, role);
+            return notifications.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish notifications to role {Role}", role);
+            return 0;
+        }
+    }
+
+    public async Task<NotificationDto?> PublishToUserAsync(
+        Guid userId,
+        string title,
+        string message,
+        string type,
+        string? actionUrl,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tenantId = _currentUserService.TenantId ?? WmsDbContext.DefaultTenantId;
+            var currentUserId = _currentUserService.UserId;
+
+            // Nếu người nhận chính là người thực hiện, bỏ qua để tránh self-notification
+            if (currentUserId.HasValue && currentUserId.Value == userId)
+            {
+                return null;
+            }
+
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            if (user == null)
+            {
+                _logger.LogWarning("User {UserId} not found when publishing notification", userId);
+                return null;
+            }
+
+            var notification = new Notification
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                UserId = userId,
+                Title = title,
+                Message = message,
+                Type = type,
+                ActionUrl = actionUrl,
+                IsRead = false,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Published notification to user {UserId}: {Title}", userId, title);
+            return new NotificationDto
+            {
+                Id = notification.Id,
+                TenantId = notification.TenantId,
+                UserId = notification.UserId,
+                Title = notification.Title,
+                Message = notification.Message,
+                Type = notification.Type,
+                ActionUrl = notification.ActionUrl,
+                IsRead = notification.IsRead,
+                CreatedAtUtc = notification.CreatedAtUtc
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish notification to user {UserId}", userId);
+            return null;
+        }
+    }
 }
